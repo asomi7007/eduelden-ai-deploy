@@ -89,6 +89,35 @@ Write-Host "  설정 파일: $configDir\config.json" -ForegroundColor Green
 $env:AI_CLASS_API_KEY = $ApiKey
 Write-Host "  API 키: 환경변수 AI_CLASS_API_KEY에 저장" -ForegroundColor Green
 
+# 3-b. Cline VS Code 확장 글로벌 설정 자동 주입
+Write-Host "  Cline 설정 자동 구성 중..." -ForegroundColor Yellow
+$vsCodeSettingsDir = "$env:APPDATA\Code\User"
+if (Test-Path $vsCodeSettingsDir) {
+    $vsCodeSettingsFile = "$vsCodeSettingsDir\settings.json"
+    if (Test-Path $vsCodeSettingsFile) {
+        $existingSettings = Get-Content $vsCodeSettingsFile -Raw | ConvertFrom-Json
+    } else {
+        $existingSettings = [PSCustomObject]@{}
+    }
+
+    $clineConfig = [PSCustomObject]@{
+        baseUrl = "$APIM_BASE_URL/openai/v1"
+        apiKey  = $ApiKey
+        modelId = "gpt-54-mini"
+    }
+
+    $existingSettings | Add-Member -NotePropertyName "cline.apiProvider" -NotePropertyValue "openai-compatible" -Force
+    $existingSettings | Add-Member -NotePropertyName "cline.openAiCompatibleApiConfiguration" -NotePropertyValue $clineConfig -Force
+
+    $existingSettings | ConvertTo-Json -Depth 10 | Out-File -FilePath $vsCodeSettingsFile -Encoding utf8
+    Write-Host "  Cline 설정 완료: $vsCodeSettingsFile" -ForegroundColor Green
+    Write-Host "  → Provider: openai-compatible" -ForegroundColor Gray
+    Write-Host "  → Base URL: $APIM_BASE_URL/openai/v1" -ForegroundColor Gray
+    Write-Host "  → Model: gpt-54-mini (변경 가능: gpt-55, deepseek-v4-flash)" -ForegroundColor Gray
+} else {
+    Write-Host "  VS Code 설정 폴더를 찾을 수 없습니다. VS Code를 먼저 한 번 실행해주세요." -ForegroundColor Yellow
+}
+
 # 4. 연결 테스트
 Write-Host "[4/4] API 연결 테스트..." -ForegroundColor Yellow
 

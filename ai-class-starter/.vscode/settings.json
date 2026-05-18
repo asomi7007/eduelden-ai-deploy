@@ -1,0 +1,15 @@
+{
+  // ============================================
+  // Cline (AI 코딩 어시스턴트) 설정
+  // ============================================
+  //
+  // 🔑 아래 YOUR_API_KEY_HERE 부분만 이메일로 받은 키로 교체하세요!
+  // 나머지는 건드리지 않아도 됩니다.
+  //
+  "cline.apiProvider": "openai-compatible",
+  "cline.openAiCompatibleApiConfiguration": {
+    "baseUrl": "https://apim-eduelden-ai.azure-api.net/openai/v1",
+    "apiKey": "YOUR_API_KEY_HERE",
+    "modelId": "gpt-54-mini"
+  }
+}
