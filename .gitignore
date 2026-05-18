@@ -1,0 +1,31 @@
+# 시크릿 관련
+*.secret
+secrets/
+.secrets/
+.env
+.env.*
+*.pem
+*.key
+
+# Azure CLI 캐시
+.azure/
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 학생 키 CSV (절대 push 금지)
+student_keys*.csv
+/tmp/student_keys*.csv
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code 로컬 상태
+.claude/local/

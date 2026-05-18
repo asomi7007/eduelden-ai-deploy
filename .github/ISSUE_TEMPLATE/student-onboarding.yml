@@ -1,0 +1,30 @@
+name: 학생 온보딩 신청
+description: AI 실습 환경 설정을 위한 온보딩 신청서
+title: "[온보딩] 학생 XX번"
+labels: ["onboarding"]
+body:
+  - type: input
+    id: student_id
+    attributes:
+      label: 학생 번호
+      description: "01~50 사이의 번호를 입력하세요"
+      placeholder: "예: 01"
+    validations:
+      required: true
+  - type: input
+    id: email
+    attributes:
+      label: 이메일
+      description: "설정 안내를 받을 이메일 (기본: XX@eduelden.kr)"
+      placeholder: "예: 01@eduelden.kr"
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: 확인 사항
+      options:
+        - label: "VS Code가 설치되어 있습니다"
+          required: false
+        - label: "Windows PC를 사용하고 있습니다"
+          required: true

@@ -1,0 +1,78 @@
+name: Cost Monitor
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # 매일 09:00 KST (UTC 00:00)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-cost:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+        run: |
+          echo "$AZURE_CREDENTIALS" | az login --service-principal \
+            --username $(echo "$AZURE_CREDENTIALS" | jq -r .clientId) \
+            --password $(echo "$AZURE_CREDENTIALS" | jq -r .clientSecret) \
+            --tenant $(echo "$AZURE_CREDENTIALS" | jq -r .tenantId)
+
+      - name: Check budget status
+        id: budget
+        run: |
+          RG="rg-powerplatform-billing"
+          BUDGET=$(az consumption budget show \
+            --budget-name eduelden-ai-budget \
+            --resource-group "$RG" \
+            --output json 2>/dev/null || echo '{"amount":800}')
+
+          AMOUNT=$(echo "$BUDGET" | jq -r '.amount // 800')
+          CURRENT=$(echo "$BUDGET" | jq -r '.currentSpend.amount // 0')
+          [ "$CURRENT" = "null" ] && CURRENT=0
+
+          PERCENT=$(echo "scale=1; $CURRENT * 100 / $AMOUNT" | bc)
+
+          echo "amount=$AMOUNT" >> "$GITHUB_OUTPUT"
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "percent=$PERCENT" >> "$GITHUB_OUTPUT"
+
+          DEPLOYMENTS=$(az cognitiveservices account deployment list \
+            --name eduelden-ai-resource --resource-group "$RG" \
+            --query "[].{name:name,model:properties.model.name,state:properties.provisioningState}" \
+            --output json)
+          echo "deployments<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$DEPLOYMENTS" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+          if (( $(echo "$PERCENT > 80" | bc -l) )); then
+            echo "alert=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "alert=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create alert issue if over 80%
+        if: steps.budget.outputs.alert == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `⚠️ 비용 경고: ${{ steps.budget.outputs.percent }}% (${{ steps.budget.outputs.current }}/${{ steps.budget.outputs.amount }} USD)`,
+              body: `## 비용 모니터 알림\n\n- 예산: $${{ steps.budget.outputs.amount }}\n- 현재: $${{ steps.budget.outputs.current }} (${{ steps.budget.outputs.percent }}%)\n\n즉시 확인이 필요합니다.`,
+              labels: ['cost-alert', 'urgent']
+            });
+
+      - name: Summary
+        run: |
+          echo "## Cost Monitor Report" >> $GITHUB_STEP_SUMMARY
+          echo "- Budget: \$${{ steps.budget.outputs.amount }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Current: \$${{ steps.budget.outputs.current }} (${{ steps.budget.outputs.percent }}%)" >> $GITHUB_STEP_SUMMARY
+          echo "- Alert: ${{ steps.budget.outputs.alert }}" >> $GITHUB_STEP_SUMMARY

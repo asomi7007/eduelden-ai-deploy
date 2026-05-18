@@ -1,0 +1,20 @@
+{
+  "_comment": "이 파일은 setup-claude-code.ps1이 실행 마지막 단계에서 .mcp.json으로 복사해줍니다. 직접 손댈 필요 없어요. Claude Code가 폴더 시작 시 .mcp.json을 자동으로 읽어서 프로젝트별 MCP를 로드합니다.",
+  "mcpServers": {
+    "azure": {
+      "command": "npx",
+      "args": ["-y", "@azure/mcp@latest", "server", "start"]
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+    "mslearn": {
+      "type": "http",
+      "url": "https://learn.microsoft.com/api/mcp"
+    }
+  }
+}
