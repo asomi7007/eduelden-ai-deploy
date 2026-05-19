@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(az account show --output json 2>&1)",
+      "PowerShell(az cognitiveservices account list-models --name eduelden-ai-resource --resource-group rg-powerplatform-billing --output json 2>&1 | ConvertFrom-Json | Where-Object { $_.model.name -match 'gpt|deepseek' } | ForEach-Object { \"$\\($_.model.name\\) | $\\($_.model.version\\) | $\\($_.model.format\\) | $\\(\\($_.model.skus | ForEach-Object { $_.name }\\) -join ','\\)\" })",
+      "Bash(az cognitiveservices *)",
+      "Bash(python -c \"import json,sys; data=json.load\\(sys.stdin\\); [print\\(m.get\\('model',{}\\).get\\('name','?'\\)\\) for m in data[:10]]\")",
+      "Bash(python -c \"import json,sys; data=json.load\\(sys.stdin\\); print\\(json.dumps\\(data[0], indent=2\\)\\)\")",
+      "Bash(python -c ' *)",
+      "PowerShell($u = az ad user show --id \"01@eduelden.kr\" --output json 2>&1 | ConvertFrom-Json; \"01: enabled=$\\($u.accountEnabled\\) displayName=$\\($u.displayName\\)\")",
+      "PowerShell($content = Get-Content \"D:\\\\작업용\\\\eduelden-ai-deploy\\\\.secrets\\\\azure-credentials.json\" -Raw; if \\($content -match '\"appId\"'\\) { \"File valid\" } else { $content.Substring\\(0, [Math]::Min\\(300, $content.Length\\)\\) })",
+      "Bash(az apim *)",
+      "PowerShell($env:PYTHONIOENCODING = \"utf-8\"; az apim subscription create --resource-group rg-powerplatform-billing --service-name apim-eduelden-ai --subscription-id \"sub-student-01\" --display-name \"Student 01\" --scope \"/apis\" --state active --output json 2>&1)"
+    ]
+  }
+}

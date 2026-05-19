@@ -128,7 +128,7 @@ $headers = @{
 
 $testBody = @{
     messages = @(@{ role = "user"; content = "Say hello in Korean" })
-    max_tokens = 50
+    max_completion_tokens = 50
 } | ConvertTo-Json
 
 try {
