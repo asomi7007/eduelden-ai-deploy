@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Azure AI Foundry 바이브코딩 실습 - 온보딩</title>
+<style>
+  :root {
+    --primary: #1a56db;
+    --primary-light: #e1effe;
+    --success: #059669;
+    --success-light: #d1fae5;
+    --danger: #dc2626;
+    --danger-light: #fee2e2;
+    --warning: #d97706;
+    --warning-light: #fef3c7;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-500: #6b7280;
+    --gray-700: #374151;
+    --gray-900: #111827;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--gray-50);
+    color: var(--gray-900);
+    min-height: 100vh;
+  }
+  .container { max-width: 680px; margin: 0 auto; padding: 24px 16px; }
+  header {
+    text-align: center;
+    padding: 32px 0 24px;
+  }
+  header h1 {
+    font-size: 1.6rem;
+    color: var(--primary);
+    margin-bottom: 8px;
+  }
+  header p { color: var(--gray-500); font-size: 0.95rem; }
+
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    font-size: 1.15rem;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+    color: var(--gray-700);
+  }
+  label .hint {
+    font-weight: 400;
+    color: var(--gray-500);
+    font-size: 0.82rem;
+  }
+  input, select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--gray-300);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus { border-color: var(--primary); }
+  .field { margin-bottom: 16px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    width: 100%;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn:hover:not(:disabled) { opacity: 0.88; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-outline {
+    background: #fff;
+    color: var(--gray-700);
+    border: 1px solid var(--gray-300);
+  }
+  .btn-sm { padding: 6px 14px; font-size: 0.85rem; width: auto; }
+
+  .alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .alert.show { display: block; }
+  .alert-success { background: var(--success-light); color: #065f46; }
+  .alert-error { background: var(--danger-light); color: #991b1b; }
+  .alert-warning { background: var(--warning-light); color: #92400e; }
+  .alert-info { background: var(--primary-light); color: #1e40af; }
+
+  .slot-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 4px;
+    margin: 12px 0;
+  }
+  .slot {
+    text-align: center;
+    padding: 6px 0;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1px solid var(--gray-200);
+    background: #fff;
+    color: var(--gray-700);
+  }
+  .slot.taken {
+    background: var(--primary-light);
+    color: var(--primary);
+    border-color: #93bbfd;
+  }
+  .slot.mine {
+    background: var(--success-light);
+    color: var(--success);
+    border-color: #6ee7b7;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--gray-200);
+  }
+  .tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: var(--gray-500);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.15s;
+  }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .tab:hover { color: var(--gray-700); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Admin table */
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin-top: 12px;
+  }
+  .admin-table th {
+    background: var(--gray-100);
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid var(--gray-200);
+  }
+  .admin-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--gray-200);
+  }
+  .admin-table tr:hover td { background: var(--gray-50); }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .badge-done { background: var(--success-light); color: var(--success); }
+  .badge-pending { background: var(--warning-light); color: var(--warning); }
+  .badge-rejected { background: var(--danger-light); color: var(--danger); }
+
+  .footer {
+    text-align: center;
+    padding: 24px 0;
+    color: var(--gray-500);
+    font-size: 0.82rem;
+  }
+
+  .hidden { display: none !important; }
+
+  /* Setup overlay */
+  .setup-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+  }
+  .setup-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 32px;
+    max-width: 480px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  }
+  .setup-card h2 { margin-bottom: 8px; }
+  .setup-card p { color: var(--gray-500); font-size: 0.9rem; margin-bottom: 20px; }
+
+  @media (max-width: 480px) {
+    .slot-grid { grid-template-columns: repeat(5, 1fr); }
+    .container { padding: 12px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- GitHub PAT Setup Overlay -->
+<div id="setupOverlay" class="setup-overlay hidden">
+  <div class="setup-card">
+    <h2>🔧 초기 설정</h2>
+    <p>이 페이지가 GitHub에 온보딩 요청을 보내려면 GitHub Personal Access Token이 필요합니다.<br>
+       관리자가 한 번만 설정하면 이 브라우저에 저장됩니다.</p>
+    <div class="field">
+      <label>GitHub Owner/Repo</label>
+      <input type="text" id="setupRepo" value="asomi7007/eduelden-ai-deploy" placeholder="owner/repo">
+    </div>
+    <div class="field">
+      <label>GitHub PAT <span class="hint">(repo scope 필요)</span></label>
+      <input type="password" id="setupPat" placeholder="ghp_xxxxxxxxxxxx">
+    </div>
+    <div class="field">
+      <label>관리자 비밀번호 설정</label>
+      <input type="password" id="setupAdminPw" placeholder="관리자 패널 접근용 비밀번호">
+    </div>
+    <button class="btn btn-primary" onclick="saveSetup()">저장하고 시작</button>
+  </div>
+</div>
+
+<div class="container">
+  <header>
+    <h1>🚀 Azure AI Foundry 바이브코딩 실습</h1>
+    <p>온보딩 신청 페이지 — 학생 번호와 이메일을 입력하면 API 키가 발송됩니다</p>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('student')">🎓 학생 온보딩</div>
+    <div class="tab" onclick="switchTab('cancel')">↩️ 취소/재신청</div>
+    <div class="tab" onclick="switchTab('admin')">🔐 관리자</div>
+  </div>
+
+  <!-- Global alerts -->
+  <div id="alertGlobal" class="alert"></div>
+
+  <!-- ==================== STUDENT PANEL ==================== -->
+  <div id="panelStudent" class="panel active">
+    <div class="card">
+      <h2>📋 현재 신청 현황</h2>
+      <p style="font-size:0.85rem;color:var(--gray-500);margin-bottom:8px">
+        <span id="slotCount">?</span>/50 자리 사용 중
+        <button class="btn btn-outline btn-sm" style="float:right" onclick="refreshSlots()">새로고침</button>
+      </p>
+      <div id="slotGrid" class="slot-grid"></div>
+      <p style="font-size:0.78rem;color:var(--gray-500);margin-top:4px">
+        ⬜ 빈 자리 &nbsp; 🟦 사용 중 &nbsp; 🟩 내 번호
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>✏️ 온보딩 신청</h2>
+      <div id="alertStudent" class="alert"></div>
+
+      <div class="field">
+        <label>수업 패스코드 <span class="hint">(강사가 알려준 코드)</span></label>
+        <input type="password" id="inputPasscode" placeholder="패스코드 입력" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>학생 번호 <span class="hint">(01~50)</span></label>
+        <select id="inputStudentId">
+          <option value="">번호 선택...</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>이메일 <span class="hint">(API 키를 받을 이메일 주소)</span></label>
+        <input type="email" id="inputEmail" placeholder="example@email.com">
+      </div>
+
+      <button id="btnSubmit" class="btn btn-primary" onclick="submitOnboarding()">
+        온보딩 신청
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== CANCEL PANEL ==================== -->
+  <div id="panelCancel" class="panel">
+    <div class="card">
+      <h2>↩️ 신청 취소 / 재신청</h2>
+      <p style="font-size:0.88rem;color:var(--gray-500);margin-bottom:16px">
+        이메일을 잘못 입력했거나 다시 신청하고 싶을 때 사용하세요.<br>
+        기존 신청을 취소하면 해당 번호가 다시 빈 자리가 됩니다.
+      </p>
+      <div id="alertCancel" class="alert"></div>
+
+      <div class="field">
+        <label>수업 패스코드</label>
+        <input type="password" id="cancelPasscode" placeholder="패스코드 입력" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>취소할 학생 번호</label>
+        <select id="cancelStudentId">
+          <option value="">번호 선택...</option>
+        </select>
+      </div>
+      <button class="btn btn-danger" onclick="cancelOnboarding()">신청 취소</button>
+    </div>
+  </div>
+
+  <!-- ==================== ADMIN PANEL ==================== -->
+  <div id="panelAdmin" class="panel">
+    <div id="adminLogin" class="card">
+      <h2>🔐 관리자 로그인</h2>
+      <div id="alertAdmin" class="alert"></div>
+      <div class="field">
+        <label>관리자 비밀번호</label>
+        <input type="password" id="adminPassword" placeholder="비밀번호 입력"
+               onkeydown="if(event.key==='Enter')adminAuth()">
+      </div>
+      <button class="btn btn-primary" onclick="adminAuth()">로그인</button>
+    </div>
+
+    <div id="adminDashboard" class="hidden">
+      <div class="card">
+        <h2>📊 관리자 대시보드
+          <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="adminRefresh()">새로고침</button>
+          <button class="btn btn-outline btn-sm" onclick="adminLogout()">로그아웃</button>
+        </h2>
+        <p style="font-size:0.88rem;color:var(--gray-500);margin-bottom:12px">
+          총 <b id="adminTotal">0</b>건 신청 | 완료 <b id="adminDone">0</b> | 대기 <b id="adminPending">0</b> | 거부 <b id="adminRejected">0</b>
+        </p>
+        <div style="overflow-x:auto">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>번호</th>
+                <th>이메일</th>
+                <th>상태</th>
+                <th>이슈</th>
+                <th>작업</th>
+              </tr>
+            </thead>
+            <tbody id="adminTableBody"></tbody>
+          </table>
+        </div>
+        <p id="adminEmpty" class="hidden" style="text-align:center;padding:24px;color:var(--gray-500)">
+          아직 신청 내역이 없습니다.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Azure AI Foundry 바이브코딩 실습 &copy; 2026 EduElden
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+let CONFIG = {
+  repo: localStorage.getItem('onboard_repo') || '',
+  pat: localStorage.getItem('onboard_pat') || '',
+  adminPw: localStorage.getItem('onboard_admin_pw') || ''
+};
+
+const PASSCODE = '!!ed7788'; // 클라이언트 검증용 (서버에서도 재검증)
+let issuesCache = [];
+let adminLoggedIn = false;
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  if (!CONFIG.repo || !CONFIG.pat || !CONFIG.adminPw) {
+    document.getElementById('setupOverlay').classList.remove('hidden');
+  } else {
+    init();
+  }
+});
+
+function saveSetup() {
+  const repo = document.getElementById('setupRepo').value.trim();
+  const pat = document.getElementById('setupPat').value.trim();
+  const adminPw = document.getElementById('setupAdminPw').value.trim();
+  if (!repo || !pat || !adminPw) {
+    alert('모든 항목을 입력해주세요.');
+    return;
+  }
+  localStorage.setItem('onboard_repo', repo);
+  localStorage.setItem('onboard_pat', pat);
+  localStorage.setItem('onboard_admin_pw', adminPw);
+  CONFIG = { repo, pat, adminPw };
+  document.getElementById('setupOverlay').classList.add('hidden');
+  init();
+}
+
+function init() {
+  // Populate student number selects
+  const selects = [document.getElementById('inputStudentId'), document.getElementById('cancelStudentId')];
+  for (let i = 1; i <= 50; i++) {
+    const val = String(i).padStart(2, '0');
+    selects.forEach(sel => {
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = `${val}번`;
+      sel.appendChild(opt);
+    });
+  }
+  refreshSlots();
+}
+
+// ============================================================
+// GITHUB API HELPERS
+// ============================================================
+async function ghFetch(path, options = {}) {
+  const url = path.startsWith('http') ? path : `https://api.github.com/repos/${CONFIG.repo}${path}`;
+  const resp = await fetch(url, {
+    ...options,
+    headers: {
+      'Accept': 'application/vnd.github+json',
+      'Authorization': `Bearer ${CONFIG.pat}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(options.headers || {})
+    }
+  });
+  if (!resp.ok && resp.status !== 404) {
+    const text = await resp.text();
+    throw new Error(`GitHub API ${resp.status}: ${text}`);
+  }
+  if (resp.status === 204 || resp.status === 404) return null;
+  return resp.json();
+}
+
+// Fetch ALL onboarding issues (open + closed)
+async function fetchOnboardingIssues() {
+  let all = [];
+  // Get open
+  const open = await ghFetch('/issues?labels=onboarding&state=open&per_page=100') || [];
+  all = all.concat(open);
+  // Get closed
+  const closed = await ghFetch('/issues?labels=onboarding&state=closed&per_page=100') || [];
+  all = all.concat(closed);
+  // Filter out PRs
+  issuesCache = all.filter(i => !i.pull_request);
+  return issuesCache;
+}
+
+// Parse student ID from issue title "[온보딩] 학생 XX번"
+function parseStudentId(issue) {
+  const m = issue.title.match(/학생\s*(\d{2})번/);
+  return m ? m[1] : null;
+}
+
+// Parse email from issue body
+function parseEmail(issue) {
+  const body = issue.body || '';
+  const m = body.match(/EMAIL:\s*([\w.+\-]+@[\w.\-]+\.\w+)/);
+  return m ? m[1] : null;
+}
+
+// Get issue status
+function getStatus(issue) {
+  const labels = issue.labels.map(l => l.name);
+  if (labels.includes('done')) return 'done';
+  if (labels.includes('rejected')) return 'rejected';
+  if (issue.state === 'open') return 'pending';
+  return 'closed';
+}
+
+// ============================================================
+// SLOT GRID
+// ============================================================
+async function refreshSlots() {
+  const grid = document.getElementById('slotGrid');
+  grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--gray-500);font-size:0.85rem">로딩 중...</p>';
+
+  try {
+    const issues = await fetchOnboardingIssues();
+    // Build a map: studentId -> issue
+    const taken = {};
+    issues.forEach(iss => {
+      const sid = parseStudentId(iss);
+      const status = getStatus(iss);
+      // Only count non-rejected as taken
+      if (sid && status !== 'rejected') {
+        // If multiple, prefer the latest (open > closed-done)
+        if (!taken[sid] || iss.state === 'open' || status === 'done') {
+          taken[sid] = iss;
+        }
+      }
+    });
+
+    grid.innerHTML = '';
+    let count = 0;
+    for (let i = 1; i <= 50; i++) {
+      const id = String(i).padStart(2, '0');
+      const div = document.createElement('div');
+      div.className = 'slot';
+      div.textContent = id;
+      if (taken[id]) {
+        div.classList.add('taken');
+        count++;
+        div.title = `${id}번: ${parseEmail(taken[id]) || '이메일 없음'} (${getStatus(taken[id])})`;
+      }
+      grid.appendChild(div);
+    }
+    document.getElementById('slotCount').textContent = count;
+
+    // Disable taken numbers in student select
+    const sel = document.getElementById('inputStudentId');
+    Array.from(sel.options).forEach(opt => {
+      if (opt.value && taken[opt.value]) {
+        opt.disabled = true;
+        opt.textContent = `${opt.value}번 (사용 중)`;
+      } else if (opt.value) {
+        opt.disabled = false;
+        opt.textContent = `${opt.value}번`;
+      }
+    });
+
+  } catch (e) {
+    grid.innerHTML = `<p style="grid-column:1/-1;color:var(--danger);font-size:0.85rem">오류: ${e.message}</p>`;
+  }
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const idx = { student: 0, cancel: 1, admin: 2 }[name];
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  document.getElementById(`panel${name.charAt(0).toUpperCase() + name.slice(1)}`).classList.add('active');
+  // Clear alerts
+  hideAlert('alertGlobal');
+}
+
+// ============================================================
+// ALERTS
+// ============================================================
+function showAlert(id, type, msg) {
+  const el = document.getElementById(id);
+  el.className = `alert alert-${type} show`;
+  el.innerHTML = msg;
+}
+function hideAlert(id) {
+  const el = document.getElementById(id);
+  if (el) { el.className = 'alert'; el.innerHTML = ''; }
+}
+
+// ============================================================
+// SUBMIT ONBOARDING
+// ============================================================
+async function submitOnboarding() {
+  hideAlert('alertStudent');
+  const passcode = document.getElementById('inputPasscode').value.trim();
+  const studentId = document.getElementById('inputStudentId').value;
+  const email = document.getElementById('inputEmail').value.trim();
+
+  // Client-side validation
+  if (!passcode) return showAlert('alertStudent', 'error', '패스코드를 입력해주세요.');
+  if (passcode !== PASSCODE) return showAlert('alertStudent', 'error', '❌ 패스코드가 올바르지 않습니다.');
+  if (!studentId) return showAlert('alertStudent', 'error', '학생 번호를 선택해주세요.');
+  if (!email) return showAlert('alertStudent', 'error', '이메일 주소를 입력해주세요.');
+  if (!/^[\w.+\-]+@[\w.\-]+\.\w+$/.test(email)) return showAlert('alertStudent', 'error', '유효한 이메일 주소를 입력해주세요.');
+
+  // Check if slot is taken
+  const taken = issuesCache.find(iss => {
+    const sid = parseStudentId(iss);
+    const st = getStatus(iss);
+    return sid === studentId && st !== 'rejected';
+  });
+  if (taken) return showAlert('alertStudent', 'error', `❌ ${studentId}번은 이미 사용 중입니다. 다른 번호를 선택해주세요.`);
+
+  // Check if all 50 are full
+  const usedCount = parseInt(document.getElementById('slotCount').textContent);
+  if (usedCount >= 50) return showAlert('alertStudent', 'error', '❌ 50명 모두 신청 완료되었습니다. 취소 후 재신청하거나 관리자에게 문의하세요.');
+
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 처리 중...';
+
+  try {
+    const body = `PASSCODE: ${passcode}\nSTUDENT_ID: ${studentId}\nEMAIL: ${email}`;
+    await ghFetch('/issues', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: `[온보딩] 학생 ${studentId}번`,
+        body: body,
+        labels: ['onboarding']
+      })
+    });
+
+    showAlert('alertStudent', 'success',
+      `✅ 온보딩 신청 완료!<br>
+       <b>${studentId}번</b> — <b>${email}</b>로 API 키와 계정 정보가 곧 발송됩니다.<br>
+       <small style="color:var(--gray-500)">처리까지 1~2분 정도 소요됩니다.</small>`
+    );
+    document.getElementById('inputPasscode').value = '';
+    document.getElementById('inputStudentId').value = '';
+    document.getElementById('inputEmail').value = '';
+    setTimeout(refreshSlots, 3000);
+
+  } catch (e) {
+    showAlert('alertStudent', 'error', `❌ 오류가 발생했습니다: ${e.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '온보딩 신청';
+  }
+}
+
+// ============================================================
+// CANCEL ONBOARDING
+// ============================================================
+async function cancelOnboarding() {
+  hideAlert('alertCancel');
+  const passcode = document.getElementById('cancelPasscode').value.trim();
+  const studentId = document.getElementById('cancelStudentId').value;
+
+  if (!passcode) return showAlert('alertCancel', 'error', '패스코드를 입력해주세요.');
+  if (passcode !== PASSCODE) return showAlert('alertCancel', 'error', '❌ 패스코드가 올바르지 않습니다.');
+  if (!studentId) return showAlert('alertCancel', 'error', '취소할 학생 번호를 선택해주세요.');
+
+  // Find the active issue for this student
+  const issue = issuesCache.find(iss => {
+    const sid = parseStudentId(iss);
+    const st = getStatus(iss);
+    return sid === studentId && st !== 'rejected';
+  });
+
+  if (!issue) return showAlert('alertCancel', 'warning', `${studentId}번에 대한 활성 신청이 없습니다.`);
+
+  if (!confirm(`${studentId}번의 온보딩 신청을 취소하시겠습니까?\n(이메일: ${parseEmail(issue) || '없음'})`)) return;
+
+  try {
+    // Close the issue and add rejected label
+    await ghFetch(`/issues/${issue.number}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        state: 'closed',
+        labels: ['onboarding', 'rejected']
+      })
+    });
+    await ghFetch(`/issues/${issue.number}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        body: `↩️ 학생이 직접 취소했습니다. (프론트엔드에서 취소)`
+      })
+    });
+
+    showAlert('alertCancel', 'success', `✅ ${studentId}번 신청이 취소되었습니다. 이제 다시 신청할 수 있습니다.`);
+    document.getElementById('cancelPasscode').value = '';
+    document.getElementById('cancelStudentId').value = '';
+    setTimeout(refreshSlots, 2000);
+
+  } catch (e) {
+    showAlert('alertCancel', 'error', `❌ 취소 실패: ${e.message}`);
+  }
+}
+
+// ============================================================
+// ADMIN PANEL
+// ============================================================
+function adminAuth() {
+  hideAlert('alertAdmin');
+  const pw = document.getElementById('adminPassword').value;
+  if (pw !== CONFIG.adminPw) {
+    return showAlert('alertAdmin', 'error', '❌ 관리자 비밀번호가 틀렸습니다.');
+  }
+  adminLoggedIn = true;
+  document.getElementById('adminLogin').classList.add('hidden');
+  document.getElementById('adminDashboard').classList.remove('hidden');
+  adminRefresh();
+}
+
+function adminLogout() {
+  adminLoggedIn = false;
+  document.getElementById('adminLogin').classList.remove('hidden');
+  document.getElementById('adminDashboard').classList.add('hidden');
+  document.getElementById('adminPassword').value = '';
+}
+
+async function adminRefresh() {
+  const tbody = document.getElementById('adminTableBody');
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray-500)">로딩 중...</td></tr>';
+
+  try {
+    const issues = await fetchOnboardingIssues();
+    const rows = issues
+      .map(iss => {
+        const sid = parseStudentId(iss);
+        const email = parseEmail(iss);
+        const status = getStatus(iss);
+        return { sid, email, status, issue: iss };
+      })
+      .filter(r => r.sid)
+      .sort((a, b) => a.sid.localeCompare(b.sid));
+
+    // Stats
+    const done = rows.filter(r => r.status === 'done').length;
+    const pending = rows.filter(r => r.status === 'pending').length;
+    const rejected = rows.filter(r => r.status === 'rejected').length;
+    document.getElementById('adminTotal').textContent = rows.length;
+    document.getElementById('adminDone').textContent = done;
+    document.getElementById('adminPending').textContent = pending;
+    document.getElementById('adminRejected').textContent = rejected;
+
+    if (rows.length === 0) {
+      tbody.innerHTML = '';
+      document.getElementById('adminEmpty').classList.remove('hidden');
+      return;
+    }
+    document.getElementById('adminEmpty').classList.add('hidden');
+
+    tbody.innerHTML = rows.map(r => {
+      const badgeClass = { done: 'badge-done', pending: 'badge-pending', rejected: 'badge-rejected', closed: 'badge-rejected' }[r.status] || '';
+      const statusText = { done: '완료', pending: '대기', rejected: '거부/취소', closed: '닫힘' }[r.status] || r.status;
+      const cancelBtn = (r.status !== 'rejected')
+        ? `<button class="btn btn-danger btn-sm" onclick="adminCancel(${r.issue.number}, '${r.sid}')">취소</button>`
+        : '<span style="color:var(--gray-500)">-</span>';
+      return `<tr>
+        <td><b>${r.sid}</b></td>
+        <td>${r.email || '-'}</td>
+        <td><span class="badge ${badgeClass}">${statusText}</span></td>
+        <td><a href="${r.issue.html_url}" target="_blank">#${r.issue.number}</a></td>
+        <td>${cancelBtn}</td>
+      </tr>`;
+    }).join('');
+
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger)">${e.message}</td></tr>`;
+  }
+}
+
+async function adminCancel(issueNumber, sid) {
+  if (!confirm(`${sid}번의 온보딩을 관리자 권한으로 취소하시겠습니까?`)) return;
+  try {
+    await ghFetch(`/issues/${issueNumber}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        state: 'closed',
+        labels: ['onboarding', 'rejected']
+      })
+    });
+    await ghFetch(`/issues/${issueNumber}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        body: `🔐 관리자가 취소했습니다.`
+      })
+    });
+    showAlert('alertGlobal', 'success', `✅ ${sid}번 취소 완료`);
+    adminRefresh();
+    refreshSlots();
+  } catch (e) {
+    showAlert('alertGlobal', 'error', `❌ 취소 실패: ${e.message}`);
+  }
+}
+
+// ============================================================
+// RESET SETUP (for admin)
+// ============================================================
+function resetSetup() {
+  if (!confirm('초기 설정(GitHub PAT, 관리자 비밀번호)을 초기화하시겠습니까?')) return;
+  localStorage.removeItem('onboard_repo');
+  localStorage.removeItem('onboard_pat');
+  localStorage.removeItem('onboard_admin_pw');
+  location.reload();
+}
+</script>
+</body>
+</html>
