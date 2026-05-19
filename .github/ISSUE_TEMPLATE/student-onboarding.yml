@@ -4,6 +4,14 @@ title: "[온보딩] 학생 XX번"
 labels: ["onboarding"]
 body:
   - type: input
+    id: passcode
+    attributes:
+      label: 수업 패스코드
+      description: "강사가 수업 시간에 알려준 패스코드를 입력하세요"
+      placeholder: "패스코드 입력"
+    validations:
+      required: true
+  - type: input
     id: student_id
     attributes:
       label: 학생 번호

@@ -14,20 +14,49 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Parse student info from issue
+      - name: Verify passcode and parse student info
         id: parse
+        env:
+          CLASS_PASSCODE: ${{ secrets.CLASS_PASSCODE }}
         uses: actions/github-script@v7
         with:
           script: |
             const body = context.payload.issue.body || '';
-            const idMatch = body.match(/학생\s*번호[:\s]*(\d{2})/);
-            const emailMatch = body.match(/이메일[:\s]*([\w.+-]+@[\w-]+\.[\w.]+)/);
+
+            // 패스코드 검증
+            const passcodeMatch = body.match(/수업\s*패스코드[\s\S]*?\n\s*(.+)/);
+            const submitted = passcodeMatch ? passcodeMatch[1].trim() : '';
+            if (!submitted || submitted !== process.env.CLASS_PASSCODE) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: '❌ 패스코드가 올바르지 않습니다. 강사에게 확인 후 다시 신청해주세요.'
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                state: 'closed',
+                labels: ['onboarding', 'rejected']
+              });
+              core.setFailed('패스코드 불일치');
+              return;
+            }
+
+            // 학생 번호 파싱
+            const idMatch = body.match(/학생\s*번호[\s\S]*?\n\s*(\d{2})/);
             if (!idMatch) {
               core.setFailed('학생 번호를 찾을 수 없습니다');
               return;
             }
+
+            // 이메일 파싱 (도메인 제한 없음 — 학생 개인 이메일 허용)
+            const emailMatch = body.match(/이메일[\s\S]*?\n\s*([\w.+-]+@[\w-]+\.[\w.]+)/);
+            let email = emailMatch ? emailMatch[1].trim() : `${idMatch[1]}@eduelden.kr`;
+
             core.setOutput('student_id', idMatch[1]);
-            core.setOutput('student_email', emailMatch ? emailMatch[1] : `${idMatch[1]}@eduelden.kr`);
+            core.setOutput('student_email', email);
 
       - name: Get APIM subscription key
         id: key
