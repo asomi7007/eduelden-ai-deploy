@@ -30,15 +30,8 @@
     min-height: 100vh;
   }
   .container { max-width: 680px; margin: 0 auto; padding: 24px 16px; }
-  header {
-    text-align: center;
-    padding: 32px 0 24px;
-  }
-  header h1 {
-    font-size: 1.6rem;
-    color: var(--primary);
-    margin-bottom: 8px;
-  }
+  header { text-align: center; padding: 32px 0 24px; }
+  header h1 { font-size: 1.6rem; color: var(--primary); margin-bottom: 8px; }
   header p { color: var(--gray-500); font-size: 0.95rem; }
 
   .card {
@@ -63,11 +56,7 @@
     margin-bottom: 6px;
     color: var(--gray-700);
   }
-  label .hint {
-    font-weight: 400;
-    color: var(--gray-500);
-    font-size: 0.82rem;
-  }
+  label .hint { font-weight: 400; color: var(--gray-500); font-size: 0.82rem; }
   input, select {
     width: 100%;
     padding: 10px 14px;
@@ -98,11 +87,7 @@
   .btn:hover:not(:disabled) { opacity: 0.88; }
   .btn-primary { background: var(--primary); color: #fff; }
   .btn-danger { background: var(--danger); color: #fff; }
-  .btn-outline {
-    background: #fff;
-    color: var(--gray-700);
-    border: 1px solid var(--gray-300);
-  }
+  .btn-outline { background: #fff; color: var(--gray-700); border: 1px solid var(--gray-300); }
   .btn-sm { padding: 6px 14px; font-size: 0.85rem; width: auto; }
 
   .alert {
@@ -139,11 +124,6 @@
     color: var(--primary);
     border-color: #93bbfd;
   }
-  .slot.mine {
-    background: var(--success-light);
-    color: var(--success);
-    border-color: #6ee7b7;
-  }
 
   .spinner {
     display: inline-block;
@@ -177,7 +157,6 @@
   .panel { display: none; }
   .panel.active { display: block; }
 
-  /* Admin table */
   .admin-table {
     width: 100%;
     border-collapse: collapse;
@@ -214,26 +193,7 @@
     color: var(--gray-500);
     font-size: 0.82rem;
   }
-
   .hidden { display: none !important; }
-
-  /* Setup overlay */
-  .setup-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 1000;
-  }
-  .setup-card {
-    background: #fff;
-    border-radius: 12px;
-    padding: 32px;
-    max-width: 480px;
-    width: 90%;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-  }
-  .setup-card h2 { margin-bottom: 8px; }
-  .setup-card p { color: var(--gray-500); font-size: 0.9rem; margin-bottom: 20px; }
 
   @media (max-width: 480px) {
     .slot-grid { grid-template-columns: repeat(5, 1fr); }
@@ -243,42 +203,18 @@
 </head>
 <body>
 
-<!-- GitHub PAT Setup Overlay -->
-<div id="setupOverlay" class="setup-overlay hidden">
-  <div class="setup-card">
-    <h2>🔧 초기 설정</h2>
-    <p>이 페이지가 GitHub에 온보딩 요청을 보내려면 GitHub Personal Access Token이 필요합니다.<br>
-       관리자가 한 번만 설정하면 이 브라우저에 저장됩니다.</p>
-    <div class="field">
-      <label>GitHub Owner/Repo</label>
-      <input type="text" id="setupRepo" value="asomi7007/eduelden-ai-deploy" placeholder="owner/repo">
-    </div>
-    <div class="field">
-      <label>GitHub PAT <span class="hint">(repo scope 필요)</span></label>
-      <input type="password" id="setupPat" placeholder="ghp_xxxxxxxxxxxx">
-    </div>
-    <div class="field">
-      <label>관리자 비밀번호 설정</label>
-      <input type="password" id="setupAdminPw" placeholder="관리자 패널 접근용 비밀번호">
-    </div>
-    <button class="btn btn-primary" onclick="saveSetup()">저장하고 시작</button>
-  </div>
-</div>
-
 <div class="container">
   <header>
     <h1>🚀 Azure AI Foundry 바이브코딩 실습</h1>
     <p>온보딩 신청 페이지 — 학생 번호와 이메일을 입력하면 API 키가 발송됩니다</p>
   </header>
 
-  <!-- Tabs -->
   <div class="tabs">
     <div class="tab active" onclick="switchTab('student')">🎓 학생 온보딩</div>
     <div class="tab" onclick="switchTab('cancel')">↩️ 취소/재신청</div>
     <div class="tab" onclick="switchTab('admin')">🔐 관리자</div>
   </div>
 
-  <!-- Global alerts -->
   <div id="alertGlobal" class="alert"></div>
 
   <!-- ==================== STUDENT PANEL ==================== -->
@@ -291,14 +227,13 @@
       </p>
       <div id="slotGrid" class="slot-grid"></div>
       <p style="font-size:0.78rem;color:var(--gray-500);margin-top:4px">
-        ⬜ 빈 자리 &nbsp; 🟦 사용 중 &nbsp; 🟩 내 번호
+        ⬜ 빈 자리 &nbsp; 🟦 사용 중
       </p>
     </div>
 
     <div class="card">
       <h2>✏️ 온보딩 신청</h2>
       <div id="alertStudent" class="alert"></div>
-
       <div class="field">
         <label>수업 패스코드 <span class="hint">(강사가 알려준 코드)</span></label>
         <input type="password" id="inputPasscode" placeholder="패스코드 입력" autocomplete="off">
@@ -313,7 +248,6 @@
         <label>이메일 <span class="hint">(API 키를 받을 이메일 주소)</span></label>
         <input type="email" id="inputEmail" placeholder="example@email.com">
       </div>
-
       <button id="btnSubmit" class="btn btn-primary" onclick="submitOnboarding()">
         온보딩 신청
       </button>
@@ -329,7 +263,6 @@
         기존 신청을 취소하면 해당 번호가 다시 빈 자리가 됩니다.
       </p>
       <div id="alertCancel" class="alert"></div>
-
       <div class="field">
         <label>수업 패스코드</label>
         <input type="password" id="cancelPasscode" placeholder="패스코드 입력" autocomplete="off">
@@ -364,18 +297,12 @@
           <button class="btn btn-outline btn-sm" onclick="adminLogout()">로그아웃</button>
         </h2>
         <p style="font-size:0.88rem;color:var(--gray-500);margin-bottom:12px">
-          총 <b id="adminTotal">0</b>건 신청 | 완료 <b id="adminDone">0</b> | 대기 <b id="adminPending">0</b> | 거부 <b id="adminRejected">0</b>
+          총 <b id="adminTotal">0</b>건 | 완료 <b id="adminDone">0</b> | 대기 <b id="adminPending">0</b> | 거부 <b id="adminRejected">0</b>
         </p>
         <div style="overflow-x:auto">
           <table class="admin-table">
             <thead>
-              <tr>
-                <th>번호</th>
-                <th>이메일</th>
-                <th>상태</th>
-                <th>이슈</th>
-                <th>작업</th>
-              </tr>
+              <tr><th>번호</th><th>이메일</th><th>상태</th><th>이슈</th><th>작업</th></tr>
             </thead>
             <tbody id="adminTableBody"></tbody>
           </table>
@@ -394,47 +321,18 @@
 
 <script>
 // ============================================================
-// CONFIG
+// CONFIG — Azure Functions 백엔드 URL
+// 배포 후 실제 Function App URL로 변경
 // ============================================================
-let CONFIG = {
-  repo: localStorage.getItem('onboard_repo') || '',
-  pat: localStorage.getItem('onboard_pat') || '',
-  adminPw: localStorage.getItem('onboard_admin_pw') || ''
-};
+const API_BASE = window.ONBOARD_API_BASE || 'https://func-eduelden-onboard.azurewebsites.net/api';
 
-const PASSCODE = '!!ed7788'; // 클라이언트 검증용 (서버에서도 재검증)
-let issuesCache = [];
-let adminLoggedIn = false;
+let slotsData = {};
+let adminPw = '';
 
 // ============================================================
 // INIT
 // ============================================================
 window.addEventListener('DOMContentLoaded', () => {
-  if (!CONFIG.repo || !CONFIG.pat || !CONFIG.adminPw) {
-    document.getElementById('setupOverlay').classList.remove('hidden');
-  } else {
-    init();
-  }
-});
-
-function saveSetup() {
-  const repo = document.getElementById('setupRepo').value.trim();
-  const pat = document.getElementById('setupPat').value.trim();
-  const adminPw = document.getElementById('setupAdminPw').value.trim();
-  if (!repo || !pat || !adminPw) {
-    alert('모든 항목을 입력해주세요.');
-    return;
-  }
-  localStorage.setItem('onboard_repo', repo);
-  localStorage.setItem('onboard_pat', pat);
-  localStorage.setItem('onboard_admin_pw', adminPw);
-  CONFIG = { repo, pat, adminPw };
-  document.getElementById('setupOverlay').classList.add('hidden');
-  init();
-}
-
-function init() {
-  // Populate student number selects
   const selects = [document.getElementById('inputStudentId'), document.getElementById('cancelStudentId')];
   for (let i = 1; i <= 50; i++) {
     const val = String(i).padStart(2, '0');
@@ -446,64 +344,19 @@ function init() {
     });
   }
   refreshSlots();
-}
+});
 
 // ============================================================
-// GITHUB API HELPERS
+// API HELPER
 // ============================================================
-async function ghFetch(path, options = {}) {
-  const url = path.startsWith('http') ? path : `https://api.github.com/repos/${CONFIG.repo}${path}`;
-  const resp = await fetch(url, {
+async function apiFetch(path, options = {}) {
+  const resp = await fetch(`${API_BASE}${path}`, {
     ...options,
-    headers: {
-      'Accept': 'application/vnd.github+json',
-      'Authorization': `Bearer ${CONFIG.pat}`,
-      'X-GitHub-Api-Version': '2022-11-28',
-      ...(options.headers || {})
-    }
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
   });
-  if (!resp.ok && resp.status !== 404) {
-    const text = await resp.text();
-    throw new Error(`GitHub API ${resp.status}: ${text}`);
-  }
-  if (resp.status === 204 || resp.status === 404) return null;
-  return resp.json();
-}
-
-// Fetch ALL onboarding issues (open + closed)
-async function fetchOnboardingIssues() {
-  let all = [];
-  // Get open
-  const open = await ghFetch('/issues?labels=onboarding&state=open&per_page=100') || [];
-  all = all.concat(open);
-  // Get closed
-  const closed = await ghFetch('/issues?labels=onboarding&state=closed&per_page=100') || [];
-  all = all.concat(closed);
-  // Filter out PRs
-  issuesCache = all.filter(i => !i.pull_request);
-  return issuesCache;
-}
-
-// Parse student ID from issue title "[온보딩] 학생 XX번"
-function parseStudentId(issue) {
-  const m = issue.title.match(/학생\s*(\d{2})번/);
-  return m ? m[1] : null;
-}
-
-// Parse email from issue body
-function parseEmail(issue) {
-  const body = issue.body || '';
-  const m = body.match(/EMAIL:\s*([\w.+\-]+@[\w.\-]+\.\w+)/);
-  return m ? m[1] : null;
-}
-
-// Get issue status
-function getStatus(issue) {
-  const labels = issue.labels.map(l => l.name);
-  if (labels.includes('done')) return 'done';
-  if (labels.includes('rejected')) return 'rejected';
-  if (issue.state === 'open') return 'pending';
-  return 'closed';
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+  return data;
 }
 
 // ============================================================
@@ -514,20 +367,8 @@ async function refreshSlots() {
   grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--gray-500);font-size:0.85rem">로딩 중...</p>';
 
   try {
-    const issues = await fetchOnboardingIssues();
-    // Build a map: studentId -> issue
-    const taken = {};
-    issues.forEach(iss => {
-      const sid = parseStudentId(iss);
-      const status = getStatus(iss);
-      // Only count non-rejected as taken
-      if (sid && status !== 'rejected') {
-        // If multiple, prefer the latest (open > closed-done)
-        if (!taken[sid] || iss.state === 'open' || status === 'done') {
-          taken[sid] = iss;
-        }
-      }
-    });
+    const data = await apiFetch('/slots');
+    slotsData = data.slots || {};
 
     grid.innerHTML = '';
     let count = 0;
@@ -536,19 +377,19 @@ async function refreshSlots() {
       const div = document.createElement('div');
       div.className = 'slot';
       div.textContent = id;
-      if (taken[id]) {
+      if (slotsData[id]) {
         div.classList.add('taken');
+        div.title = `${id}번: ${slotsData[id].email || ''} (${slotsData[id].status})`;
         count++;
-        div.title = `${id}번: ${parseEmail(taken[id]) || '이메일 없음'} (${getStatus(taken[id])})`;
       }
       grid.appendChild(div);
     }
     document.getElementById('slotCount').textContent = count;
 
-    // Disable taken numbers in student select
+    // Update student select
     const sel = document.getElementById('inputStudentId');
     Array.from(sel.options).forEach(opt => {
-      if (opt.value && taken[opt.value]) {
+      if (opt.value && slotsData[opt.value]) {
         opt.disabled = true;
         opt.textContent = `${opt.value}번 (사용 중)`;
       } else if (opt.value) {
@@ -558,7 +399,7 @@ async function refreshSlots() {
     });
 
   } catch (e) {
-    grid.innerHTML = `<p style="grid-column:1/-1;color:var(--danger);font-size:0.85rem">오류: ${e.message}</p>`;
+    grid.innerHTML = `<p style="grid-column:1/-1;color:var(--danger);font-size:0.85rem">서버 연결 실패: ${e.message}</p>`;
   }
 }
 
@@ -571,7 +412,6 @@ function switchTab(name) {
   const idx = { student: 0, cancel: 1, admin: 2 }[name];
   document.querySelectorAll('.tab')[idx].classList.add('active');
   document.getElementById(`panel${name.charAt(0).toUpperCase() + name.slice(1)}`).classList.add('active');
-  // Clear alerts
   hideAlert('alertGlobal');
 }
 
@@ -597,39 +437,19 @@ async function submitOnboarding() {
   const studentId = document.getElementById('inputStudentId').value;
   const email = document.getElementById('inputEmail').value.trim();
 
-  // Client-side validation
   if (!passcode) return showAlert('alertStudent', 'error', '패스코드를 입력해주세요.');
-  if (passcode !== PASSCODE) return showAlert('alertStudent', 'error', '❌ 패스코드가 올바르지 않습니다.');
   if (!studentId) return showAlert('alertStudent', 'error', '학생 번호를 선택해주세요.');
   if (!email) return showAlert('alertStudent', 'error', '이메일 주소를 입력해주세요.');
   if (!/^[\w.+\-]+@[\w.\-]+\.\w+$/.test(email)) return showAlert('alertStudent', 'error', '유효한 이메일 주소를 입력해주세요.');
-
-  // Check if slot is taken
-  const taken = issuesCache.find(iss => {
-    const sid = parseStudentId(iss);
-    const st = getStatus(iss);
-    return sid === studentId && st !== 'rejected';
-  });
-  if (taken) return showAlert('alertStudent', 'error', `❌ ${studentId}번은 이미 사용 중입니다. 다른 번호를 선택해주세요.`);
-
-  // Check if all 50 are full
-  const usedCount = parseInt(document.getElementById('slotCount').textContent);
-  if (usedCount >= 50) return showAlert('alertStudent', 'error', '❌ 50명 모두 신청 완료되었습니다. 취소 후 재신청하거나 관리자에게 문의하세요.');
 
   const btn = document.getElementById('btnSubmit');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> 처리 중...';
 
   try {
-    const body = `PASSCODE: ${passcode}\nSTUDENT_ID: ${studentId}\nEMAIL: ${email}`;
-    await ghFetch('/issues', {
+    const result = await apiFetch('/onboard', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title: `[온보딩] 학생 ${studentId}번`,
-        body: body,
-        labels: ['onboarding']
-      })
+      body: JSON.stringify({ passcode, studentId, email })
     });
 
     showAlert('alertStudent', 'success',
@@ -643,7 +463,7 @@ async function submitOnboarding() {
     setTimeout(refreshSlots, 3000);
 
   } catch (e) {
-    showAlert('alertStudent', 'error', `❌ 오류가 발생했습니다: ${e.message}`);
+    showAlert('alertStudent', 'error', `❌ ${e.message}`);
   } finally {
     btn.disabled = false;
     btn.innerHTML = '온보딩 신청';
@@ -659,36 +479,18 @@ async function cancelOnboarding() {
   const studentId = document.getElementById('cancelStudentId').value;
 
   if (!passcode) return showAlert('alertCancel', 'error', '패스코드를 입력해주세요.');
-  if (passcode !== PASSCODE) return showAlert('alertCancel', 'error', '❌ 패스코드가 올바르지 않습니다.');
   if (!studentId) return showAlert('alertCancel', 'error', '취소할 학생 번호를 선택해주세요.');
 
-  // Find the active issue for this student
-  const issue = issuesCache.find(iss => {
-    const sid = parseStudentId(iss);
-    const st = getStatus(iss);
-    return sid === studentId && st !== 'rejected';
-  });
+  if (!slotsData[studentId]) {
+    return showAlert('alertCancel', 'warning', `${studentId}번에 대한 활성 신청이 없습니다.`);
+  }
 
-  if (!issue) return showAlert('alertCancel', 'warning', `${studentId}번에 대한 활성 신청이 없습니다.`);
-
-  if (!confirm(`${studentId}번의 온보딩 신청을 취소하시겠습니까?\n(이메일: ${parseEmail(issue) || '없음'})`)) return;
+  if (!confirm(`${studentId}번의 온보딩 신청을 취소하시겠습니까?`)) return;
 
   try {
-    // Close the issue and add rejected label
-    await ghFetch(`/issues/${issue.number}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        state: 'closed',
-        labels: ['onboarding', 'rejected']
-      })
-    });
-    await ghFetch(`/issues/${issue.number}/comments`, {
+    await apiFetch('/cancel', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        body: `↩️ 학생이 직접 취소했습니다. (프론트엔드에서 취소)`
-      })
+      body: JSON.stringify({ passcode, studentId })
     });
 
     showAlert('alertCancel', 'success', `✅ ${studentId}번 신청이 취소되었습니다. 이제 다시 신청할 수 있습니다.`);
@@ -697,27 +499,32 @@ async function cancelOnboarding() {
     setTimeout(refreshSlots, 2000);
 
   } catch (e) {
-    showAlert('alertCancel', 'error', `❌ 취소 실패: ${e.message}`);
+    showAlert('alertCancel', 'error', `❌ ${e.message}`);
   }
 }
 
 // ============================================================
 // ADMIN PANEL
 // ============================================================
-function adminAuth() {
+async function adminAuth() {
   hideAlert('alertAdmin');
   const pw = document.getElementById('adminPassword').value;
-  if (pw !== CONFIG.adminPw) {
-    return showAlert('alertAdmin', 'error', '❌ 관리자 비밀번호가 틀렸습니다.');
+  if (!pw) return showAlert('alertAdmin', 'error', '비밀번호를 입력해주세요.');
+
+  try {
+    // Verify by calling admin endpoint
+    adminPw = pw;
+    await adminRefresh();
+    document.getElementById('adminLogin').classList.add('hidden');
+    document.getElementById('adminDashboard').classList.remove('hidden');
+  } catch (e) {
+    adminPw = '';
+    showAlert('alertAdmin', 'error', `❌ ${e.message}`);
   }
-  adminLoggedIn = true;
-  document.getElementById('adminLogin').classList.add('hidden');
-  document.getElementById('adminDashboard').classList.remove('hidden');
-  adminRefresh();
 }
 
 function adminLogout() {
-  adminLoggedIn = false;
+  adminPw = '';
   document.getElementById('adminLogin').classList.remove('hidden');
   document.getElementById('adminDashboard').classList.add('hidden');
   document.getElementById('adminPassword').value = '';
@@ -727,89 +534,53 @@ async function adminRefresh() {
   const tbody = document.getElementById('adminTableBody');
   tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray-500)">로딩 중...</td></tr>';
 
-  try {
-    const issues = await fetchOnboardingIssues();
-    const rows = issues
-      .map(iss => {
-        const sid = parseStudentId(iss);
-        const email = parseEmail(iss);
-        const status = getStatus(iss);
-        return { sid, email, status, issue: iss };
-      })
-      .filter(r => r.sid)
-      .sort((a, b) => a.sid.localeCompare(b.sid));
+  const data = await apiFetch('/admin/list', {
+    method: 'POST',
+    body: JSON.stringify({ adminPw })
+  });
 
-    // Stats
-    const done = rows.filter(r => r.status === 'done').length;
-    const pending = rows.filter(r => r.status === 'pending').length;
-    const rejected = rows.filter(r => r.status === 'rejected').length;
-    document.getElementById('adminTotal').textContent = rows.length;
-    document.getElementById('adminDone').textContent = done;
-    document.getElementById('adminPending').textContent = pending;
-    document.getElementById('adminRejected').textContent = rejected;
+  const { entries, stats } = data;
+  document.getElementById('adminTotal').textContent = stats.total;
+  document.getElementById('adminDone').textContent = stats.done;
+  document.getElementById('adminPending').textContent = stats.pending;
+  document.getElementById('adminRejected').textContent = stats.rejected;
 
-    if (rows.length === 0) {
-      tbody.innerHTML = '';
-      document.getElementById('adminEmpty').classList.remove('hidden');
-      return;
-    }
-    document.getElementById('adminEmpty').classList.add('hidden');
-
-    tbody.innerHTML = rows.map(r => {
-      const badgeClass = { done: 'badge-done', pending: 'badge-pending', rejected: 'badge-rejected', closed: 'badge-rejected' }[r.status] || '';
-      const statusText = { done: '완료', pending: '대기', rejected: '거부/취소', closed: '닫힘' }[r.status] || r.status;
-      const cancelBtn = (r.status !== 'rejected')
-        ? `<button class="btn btn-danger btn-sm" onclick="adminCancel(${r.issue.number}, '${r.sid}')">취소</button>`
-        : '<span style="color:var(--gray-500)">-</span>';
-      return `<tr>
-        <td><b>${r.sid}</b></td>
-        <td>${r.email || '-'}</td>
-        <td><span class="badge ${badgeClass}">${statusText}</span></td>
-        <td><a href="${r.issue.html_url}" target="_blank">#${r.issue.number}</a></td>
-        <td>${cancelBtn}</td>
-      </tr>`;
-    }).join('');
-
-  } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger)">${e.message}</td></tr>`;
+  if (entries.length === 0) {
+    tbody.innerHTML = '';
+    document.getElementById('adminEmpty').classList.remove('hidden');
+    return;
   }
+  document.getElementById('adminEmpty').classList.add('hidden');
+
+  tbody.innerHTML = entries.map(r => {
+    const badgeClass = { done: 'badge-done', pending: 'badge-pending', rejected: 'badge-rejected', closed: 'badge-rejected' }[r.status] || '';
+    const statusText = { done: '완료', pending: '대기', rejected: '거부/취소', closed: '닫힘' }[r.status] || r.status;
+    const cancelBtn = (r.status !== 'rejected')
+      ? `<button class="btn btn-danger btn-sm" onclick="adminCancel('${r.studentId}')">취소</button>`
+      : '<span style="color:var(--gray-500)">-</span>';
+    return `<tr>
+      <td><b>${r.studentId}</b></td>
+      <td>${r.email || '-'}</td>
+      <td><span class="badge ${badgeClass}">${statusText}</span></td>
+      <td><a href="${r.issueUrl}" target="_blank">#${r.issueNumber}</a></td>
+      <td>${cancelBtn}</td>
+    </tr>`;
+  }).join('');
 }
 
-async function adminCancel(issueNumber, sid) {
-  if (!confirm(`${sid}번의 온보딩을 관리자 권한으로 취소하시겠습니까?`)) return;
+async function adminCancel(studentId) {
+  if (!confirm(`${studentId}번의 온보딩을 관리자 권한으로 취소하시겠습니까?`)) return;
   try {
-    await ghFetch(`/issues/${issueNumber}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        state: 'closed',
-        labels: ['onboarding', 'rejected']
-      })
-    });
-    await ghFetch(`/issues/${issueNumber}/comments`, {
+    await apiFetch('/cancel', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        body: `🔐 관리자가 취소했습니다.`
-      })
+      body: JSON.stringify({ studentId, isAdmin: true, adminPw })
     });
-    showAlert('alertGlobal', 'success', `✅ ${sid}번 취소 완료`);
+    showAlert('alertGlobal', 'success', `✅ ${studentId}번 취소 완료`);
     adminRefresh();
     refreshSlots();
   } catch (e) {
-    showAlert('alertGlobal', 'error', `❌ 취소 실패: ${e.message}`);
+    showAlert('alertGlobal', 'error', `❌ ${e.message}`);
   }
-}
-
-// ============================================================
-// RESET SETUP (for admin)
-// ============================================================
-function resetSetup() {
-  if (!confirm('초기 설정(GitHub PAT, 관리자 비밀번호)을 초기화하시겠습니까?')) return;
-  localStorage.removeItem('onboard_repo');
-  localStorage.removeItem('onboard_pat');
-  localStorage.removeItem('onboard_admin_pw');
-  location.reload();
 }
 </script>
 </body>

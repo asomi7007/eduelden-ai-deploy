@@ -13,6 +13,9 @@ secrets/
 # Node
 node_modules/
 
+# Azure Functions 로컬 설정 (시크릿 포함)
+local.settings.json
+
 # Python
 __pycache__/
 *.pyc
