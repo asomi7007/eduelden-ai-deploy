@@ -51,7 +51,7 @@ async def chat(req: ChatRequest):
     headers = {"Content-Type": "application/json", "api-key": API_KEY}
     body = {
         "messages": [{"role": "user", "content": req.message}],
-        "max_tokens": 500,
+        "max_completion_tokens": 500,
         "temperature": 0.7,
     }
 
