@@ -89,34 +89,25 @@ Write-Host "  Config saved: $configDir\config.json" -ForegroundColor Green
 $env:AI_CLASS_API_KEY = $ApiKey
 Write-Host "  API Key saved to env var: AI_CLASS_API_KEY" -ForegroundColor Green
 
-# 3-b. Auto-inject Cline settings into VS Code
-Write-Host "  Configuring Cline in VS Code..." -ForegroundColor Yellow
-$vsCodeSettingsDir = "$env:APPDATA\Code\User"
-if (Test-Path $vsCodeSettingsDir) {
-    $vsCodeSettingsFile = "$vsCodeSettingsDir\settings.json"
-    if (Test-Path $vsCodeSettingsFile) {
-        $existingSettings = Get-Content $vsCodeSettingsFile -Raw | ConvertFrom-Json
-    } else {
-        $existingSettings = [PSCustomObject]@{}
-    }
+# 3-b. Auto-inject Cline provider settings (~/.cline/data/settings/providers.json)
+Write-Host "  Configuring Cline API provider..." -ForegroundColor Yellow
+$clineConfigDir = "$env:USERPROFILE\.cline\data\settings"
+New-Item -ItemType Directory -Force -Path $clineConfigDir | Out-Null
 
-    $clineConfig = [PSCustomObject]@{
+$providerConfig = @{
+    apiProvider = "openai-compatible"
+    openAiCompatible = @{
         baseUrl = "$APIM_BASE_URL/openai/v1"
         apiKey  = $ApiKey
         modelId = "gpt-54-mini"
     }
+} | ConvertTo-Json -Depth 5
 
-    $existingSettings | Add-Member -NotePropertyName "cline.apiProvider" -NotePropertyValue "openai-compatible" -Force
-    $existingSettings | Add-Member -NotePropertyName "cline.openAiCompatibleApiConfiguration" -NotePropertyValue $clineConfig -Force
-
-    $existingSettings | ConvertTo-Json -Depth 10 | Out-File -FilePath $vsCodeSettingsFile -Encoding utf8
-    Write-Host "  Cline configured: $vsCodeSettingsFile" -ForegroundColor Green
-    Write-Host "  -> Provider: openai-compatible" -ForegroundColor Gray
-    Write-Host "  -> Base URL: $APIM_BASE_URL/openai/v1" -ForegroundColor Gray
-    Write-Host "  -> Model: gpt-54-mini (you can switch to gpt-55 or deepseek-v4-flash)" -ForegroundColor Gray
-} else {
-    Write-Host "  VS Code settings folder not found. Please launch VS Code once first." -ForegroundColor Yellow
-}
+$providerConfig | Out-File -FilePath "$clineConfigDir\providers.json" -Encoding utf8
+Write-Host "  Cline configured: $clineConfigDir\providers.json" -ForegroundColor Green
+Write-Host "  -> Provider: openai-compatible" -ForegroundColor Gray
+Write-Host "  -> Base URL: $APIM_BASE_URL/openai/v1" -ForegroundColor Gray
+Write-Host "  -> Model: gpt-54-mini (you can switch to gpt-55 or deepseek-v4-flash)" -ForegroundColor Gray
 
 # 4. Connection test
 Write-Host "[4/4] Testing API connection..." -ForegroundColor Yellow
