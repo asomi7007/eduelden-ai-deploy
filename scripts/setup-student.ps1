@@ -123,7 +123,7 @@ Write-Host "[4/4] Testing API connection..." -ForegroundColor Yellow
 
 $headers = @{
     "Content-Type" = "application/json"
-    "api-key" = $ApiKey
+    "Authorization" = "Bearer $ApiKey"
 }
 
 $testBody = @{
