@@ -112,6 +112,63 @@ app.http('onboard', {
       }
 
       const issue = await createResp.json();
+
+      // ── 중복 방지: 이슈 생성 직후 같은 번호의 다른 이슈가 있는지 재확인 ──
+      // 두 명이 동시에 같은 번호를 선택하면 둘 다 이슈가 생기는데,
+      // 이슈 번호가 더 큰(나중에 만들어진) 쪽을 자동으로 닫는다.
+      try {
+        const recheckResp = await fetch(
+          `https://api.github.com/repos/${repo}/issues?labels=onboarding&state=open&per_page=100`,
+          { headers: ghHeaders }
+        );
+        const openIssues = await recheckResp.json();
+        const duplicates = openIssues.filter(iss => {
+          const m = iss.title.match(/학생\s*(\d{2})번/);
+          return m && m[1] === studentId && !iss.labels.some(l => l.name === 'rejected');
+        });
+
+        if (duplicates.length > 1) {
+          // 이슈 번호가 가장 작은(먼저 생성된) 것만 살리고, 나머지 닫기
+          duplicates.sort((a, b) => a.number - b.number);
+          const keepIssue = duplicates[0];
+
+          if (issue.number !== keepIssue.number) {
+            // 내가 만든 이슈가 나중 것이면 → 닫고 에러 반환
+            await fetch(`https://api.github.com/repos/${repo}/issues/${issue.number}`, {
+              method: 'PATCH',
+              headers: ghHeaders,
+              body: JSON.stringify({ state: 'closed', labels: ['onboarding', 'rejected'] })
+            });
+            await fetch(`https://api.github.com/repos/${repo}/issues/${issue.number}/comments`, {
+              method: 'POST',
+              headers: ghHeaders,
+              body: JSON.stringify({ body: '⚠️ 동시 신청 감지 — 먼저 접수된 신청이 우선 처리됩니다.' })
+            });
+            return {
+              status: 409,
+              jsonBody: { error: `${studentId}번이 동시에 신청되어 먼저 접수된 건이 처리됩니다. 다른 번호를 선택해주세요.` },
+              headers: corsHeaders
+            };
+          }
+
+          // 내가 먼저인 경우, 나머지 중복 닫기
+          for (let i = 1; i < duplicates.length; i++) {
+            await fetch(`https://api.github.com/repos/${repo}/issues/${duplicates[i].number}`, {
+              method: 'PATCH',
+              headers: ghHeaders,
+              body: JSON.stringify({ state: 'closed', labels: ['onboarding', 'rejected'] })
+            });
+            await fetch(`https://api.github.com/repos/${repo}/issues/${duplicates[i].number}/comments`, {
+              method: 'POST',
+              headers: ghHeaders,
+              body: JSON.stringify({ body: '⚠️ 동시 신청 감지 — 중복 이슈 자동 닫힘.' })
+            });
+          }
+        }
+      } catch (dupErr) {
+        context.warn('Duplicate check failed (non-critical):', dupErr.message);
+      }
+
       return {
         status: 201,
         jsonBody: {

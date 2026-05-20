@@ -534,7 +534,7 @@ async function adminRefresh() {
   const tbody = document.getElementById('adminTableBody');
   tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--gray-500)">로딩 중...</td></tr>';
 
-  const data = await apiFetch('/admin-list', {
+  const data = await apiFetch('/adminlist', {
     method: 'POST',
     body: JSON.stringify({ adminPw })
   });
