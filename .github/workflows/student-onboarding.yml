@@ -178,9 +178,18 @@ jobs:
             <ul style="line-height:1.8">
               <li>✅ VS Code가 없으면 자동 설치</li>
               <li>✅ Cline 확장(saoudrizwan.claude-dev)이 없으면 자동 설치</li>
-              <li>✅ Cline에 API Base URL, Key, 모델 자동 구성</li>
+              <li>✅ Cline에 API Base URL, Key, 기본 모델(gpt-54-mini) 자동 구성</li>
+              <li>✅ 3개 모델 설정 파일 생성 (<code>~/.ai-class/config.json</code>)</li>
               <li>✅ API 연결 테스트 (GPT-5.4-mini에 "Hello" 전송)</li>
             </ul>
+            <p><b>자동 구성되는 모델 3개:</b></p>
+            <table ${tbl}>
+              <tr style="background:#f8fafc"><th>모델</th><th>Model ID</th><th>Base URL</th></tr>
+              <tr><td>GPT-5.4-mini ⭐기본</td><td>${code('gpt-54-mini')}</td><td>${code(apimUrl + '/openai')}</td></tr>
+              <tr><td>GPT-5.5</td><td>${code('gpt-55')}</td><td>${code(apimUrl + '/openai')}</td></tr>
+              <tr><td>DeepSeek V4</td><td>${code('deepseek-v4-flash')}</td><td>${code(apimUrl + '/deepseek')}</td></tr>
+            </table>
+            <p style="color:#6b7280;font-size:0.85em">※ Cline 기본값은 gpt-54-mini로 설정됩니다. 모델 변경은 아래 "모델 변경" 섹션 참고.</p>
 
             <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
 
@@ -198,7 +207,7 @@ jobs:
               <li><b>Cline</b> (saoudrizwan.claude-dev) 설치</li>
             </ol>
 
-            <h3>③ Cline API 설정</h3>
+            <h3>③ Cline API 설정 (기본 모델: GPT-5.4-mini)</h3>
             <ol style="line-height:1.8">
               <li>왼쪽 사이드바에서 <b>Cline</b> 아이콘 클릭</li>
               <li>설정(⚙️) 열기</li>
@@ -210,6 +219,16 @@ jobs:
 
             <h3>④ 테스트</h3>
             <p>Cline 채팅창에 <b>"안녕하세요"</b> 입력 → AI 응답이 오면 설정 완료!</p>
+
+            <h3>⑤ 다른 모델 사용하기</h3>
+            <p>Cline 설정에서 <b>Base URL</b>과 <b>Model ID</b>를 아래 값으로 변경하면 됩니다. <b>API Key는 동일</b>합니다.</p>
+            <table ${tbl}>
+              <tr style="background:#f8fafc"><th>모델</th><th>Base URL</th><th>Model ID</th></tr>
+              <tr style="background:#f0fdf4"><td><b>GPT-5.4-mini</b> ⭐기본</td><td>${code(apimUrl + '/openai/v1')}</td><td>${code('gpt-54-mini')}</td></tr>
+              <tr><td><b>GPT-5.5</b> (고품질)</td><td>${code(apimUrl + '/openai/v1')}</td><td>${code('gpt-55')}</td></tr>
+              <tr style="background:#f0f7ff"><td><b>DeepSeek V4</b></td><td>${code(apimUrl + '/deepseek/v1')}</td><td>${code('deepseek-v4-flash')}</td></tr>
+            </table>
+            <p style="color:#6b7280;font-size:0.85em">※ GPT 모델과 DeepSeek 모델은 <b>Base URL이 다릅니다</b> (/openai vs /deepseek). 변경 시 주의!</p>
 
             <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
 
