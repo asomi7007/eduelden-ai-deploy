@@ -137,31 +137,97 @@ jobs:
             const azAccount = `${studentId}@eduelden.kr`;
             const azPassword = '!!ed7788';
 
-            const html = `<div style="font-family:Pretendard,sans-serif;max-width:640px;margin:auto">
-              <h2 style="color:#1a56db">🚀 Azure AI Foundry 바이브코딩 실습</h2>
-              <p>안녕하세요, <b>${studentId}번</b> 학생!</p><hr/>
-              <h3>👤 Azure 계정 정보</h3>
-              <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%">
-                <tr style="background:#f0f7ff"><td><b>계정</b></td><td><code>${azAccount}</code></td></tr>
-                <tr><td><b>초기 비밀번호</b></td><td><code>${azPassword}</code></td></tr>
-              </table>
-              <p style="color:#dc2626;font-size:0.9em">⚠️ 첫 로그인 시 비밀번호를 변경해야 합니다.</p>
-              <h3>🔑 API 설정 정보</h3>
-              <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%">
-                <tr style="background:#f0fdf4"><td><b>Base URL</b></td><td><code>${apimUrl}/openai/v1</code></td></tr>
-                <tr><td><b>API Key</b></td><td><code>${apiKey}</code></td></tr>
-                <tr><td><b>기본 모델</b></td><td><code>gpt-54-mini</code></td></tr>
-              </table>
-              <h3>⚡ 자동 설정 (권장)</h3>
-              <p>PowerShell을 <b>관리자 모드</b>로 열고 아래 복사-붙여넣기:</p>
-              <pre style="background:#1e293b;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto">powershell -ExecutionPolicy Bypass -Command ". ./setup-student.ps1 -StudentId ${studentId} -ApiKey '${apiKey}'"</pre>
-              <h3>🔄 모델 변경</h3>
-              <table border="1" cellpadding="6" style="border-collapse:collapse;width:100%">
-                <tr style="background:#f8fafc"><th>모델</th><th>Model ID</th><th>특징</th></tr>
-                <tr><td>GPT-5.4-mini</td><td><code>gpt-54-mini</code></td><td>범용, 빠름 ⭐기본</td></tr>
-                <tr><td>GPT-5.5</td><td><code>gpt-55</code></td><td>고품질, 느림</td></tr>
-                <tr><td>DeepSeek</td><td><code>deepseek-v4-flash</code></td><td>대안 모델</td></tr>
-              </table></div>`;
+            const scriptUrl = 'https://raw.githubusercontent.com/asomi7007/eduelden-ai-deploy/main/scripts/setup-student.ps1';
+            const tbl = 'border="1" cellpadding="8" style="border-collapse:collapse;width:100%"';
+            const code = (t) => `<code style="background:#f1f5f9;padding:2px 6px;border-radius:4px">${t}</code>`;
+            const pre = (t) => `<pre style="background:#1e293b;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;font-size:13px">${t}</pre>`;
+
+            const html = `<div style="font-family:'Segoe UI',Pretendard,sans-serif;max-width:680px;margin:auto;color:#1e293b">
+            <div style="background:linear-gradient(135deg,#1a56db,#7c3aed);padding:24px;border-radius:12px 12px 0 0;text-align:center">
+              <h1 style="color:#fff;margin:0;font-size:22px">🚀 Azure AI Foundry 바이브코딩 실습</h1>
+              <p style="color:#e0e7ff;margin:8px 0 0;font-size:14px">VS Code + Cline으로 AI 바이브코딩을 시작하세요!</p>
+            </div>
+            <div style="padding:24px;background:#fff;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px">
+
+            <p>안녕하세요, <b>${studentId}번</b> 학생! 실습 환경 설정에 필요한 모든 정보입니다.</p>
+
+            <h2 style="color:#1a56db;border-bottom:2px solid #1a56db;padding-bottom:6px">📋 내 정보</h2>
+            <table ${tbl}>
+              <tr style="background:#f0f7ff"><td style="width:140px"><b>Azure 계정</b></td><td>${code(azAccount)}</td></tr>
+              <tr><td><b>초기 비밀번호</b></td><td>${code(azPassword)}</td></tr>
+              <tr style="background:#f0fdf4"><td><b>API Base URL</b></td><td>${code(apimUrl + '/openai/v1')}</td></tr>
+              <tr><td><b>API Key</b></td><td>${code(apiKey)}</td></tr>
+              <tr style="background:#f0f7ff"><td><b>기본 모델</b></td><td>${code('gpt-54-mini')}</td></tr>
+            </table>
+            <p style="color:#dc2626;font-size:0.9em">⚠️ Azure 첫 로그인 시 비밀번호를 반드시 변경해야 합니다.</p>
+
+            <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+
+            <h2 style="color:#16a34a;border-bottom:2px solid #16a34a;padding-bottom:6px">⚡ 방법 1: 자동 설정 (권장)</h2>
+            <p>아래 스크립트가 <b>VS Code 설치 → Cline 확장 설치 → API 설정 → 연결 테스트</b>까지 한번에 처리합니다.</p>
+
+            <p><b>Step 1.</b> 설정 스크립트 다운로드</p>
+            <p>👉 <a href="${scriptUrl}" style="color:#1a56db;font-weight:bold">setup-student.ps1 다운로드 링크</a></p>
+            <p style="color:#6b7280;font-size:0.85em">※ 브라우저가 차단하면: 링크 우클릭 → "다른 이름으로 링크 저장" 또는 아래 PowerShell 명령으로 직접 다운로드</p>
+            ${pre('Invoke-WebRequest -Uri "' + scriptUrl + '" -OutFile setup-student.ps1')}
+
+            <p><b>Step 2.</b> PowerShell을 <b style="color:#dc2626">관리자 모드</b>로 열고, 다운로드한 폴더에서 실행</p>
+            ${pre('Set-ExecutionPolicy Bypass -Scope Process -Force\n.\\setup-student.ps1 -StudentId ' + studentId + ' -ApiKey "' + apiKey + '"')}
+
+            <p><b>자동 설정이 하는 일:</b></p>
+            <ul style="line-height:1.8">
+              <li>✅ VS Code가 없으면 자동 설치</li>
+              <li>✅ Cline 확장(saoudrizwan.claude-dev)이 없으면 자동 설치</li>
+              <li>✅ Cline에 API Base URL, Key, 모델 자동 구성</li>
+              <li>✅ API 연결 테스트 (GPT-5.4-mini에 "Hello" 전송)</li>
+            </ul>
+
+            <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+
+            <h2 style="color:#7c3aed;border-bottom:2px solid #7c3aed;padding-bottom:6px">🔧 방법 2: 수동 설정</h2>
+            <p>자동 설정이 안 될 경우 아래 순서로 직접 설정하세요.</p>
+
+            <h3>① VS Code 설치</h3>
+            <p><a href="https://code.visualstudio.com/download" style="color:#1a56db">https://code.visualstudio.com/download</a> 에서 Windows 64bit 버전 다운로드 후 설치</p>
+
+            <h3>② Cline 확장 설치</h3>
+            <ol style="line-height:1.8">
+              <li>VS Code 실행</li>
+              <li>왼쪽 사이드바에서 <b>확장(Extensions)</b> 아이콘 클릭 (또는 ${code('Ctrl+Shift+X')})</li>
+              <li>검색창에 ${code('Cline')} 입력</li>
+              <li><b>Cline</b> (saoudrizwan.claude-dev) 설치</li>
+            </ol>
+
+            <h3>③ Cline API 설정</h3>
+            <ol style="line-height:1.8">
+              <li>왼쪽 사이드바에서 <b>Cline</b> 아이콘 클릭</li>
+              <li>설정(⚙️) 열기</li>
+              <li><b>API Provider</b>: ${code('OpenAI Compatible')} 선택</li>
+              <li><b>Base URL</b>: ${code(apimUrl + '/openai/v1')}</li>
+              <li><b>API Key</b>: ${code(apiKey)}</li>
+              <li><b>Model ID</b>: ${code('gpt-54-mini')}</li>
+            </ol>
+
+            <h3>④ 테스트</h3>
+            <p>Cline 채팅창에 <b>"안녕하세요"</b> 입력 → AI 응답이 오면 설정 완료!</p>
+
+            <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+
+            <h2 style="color:#0891b2;border-bottom:2px solid #0891b2;padding-bottom:6px">🔄 사용 가능한 모델</h2>
+            <p>Cline 설정에서 <b>Model ID</b>만 바꾸면 모델 전환 가능 (API Key는 동일)</p>
+            <table ${tbl}>
+              <tr style="background:#f8fafc"><th>모델</th><th>Model ID</th><th>특징</th></tr>
+              <tr><td>GPT-5.4-mini</td><td>${code('gpt-54-mini')}</td><td>범용, 빠름 ⭐ <b>기본</b></td></tr>
+              <tr><td>GPT-5.5</td><td>${code('gpt-55')}</td><td>고품질, 느림 (복잡한 작업용)</td></tr>
+              <tr><td>DeepSeek V4</td><td>${code('deepseek-v4-flash')}</td><td>대안 모델</td></tr>
+            </table>
+
+            <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px;margin-top:20px">
+              <b>💡 문제가 있나요?</b><br/>
+              강사에게 문의하거나 온보딩 페이지에서 취소/재신청할 수 있습니다.
+            </div>
+
+            </div></div>`;
 
             // Parse ACS connection string
             const connStr = process.env.ACS_CONNECTION_STRING;
