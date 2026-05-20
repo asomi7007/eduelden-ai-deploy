@@ -4,6 +4,7 @@ const { app } = require('@azure/functions');
 app.http('adminlist', {
   methods: ['GET', 'POST', 'OPTIONS'],
   authLevel: 'anonymous',
+  route: 'adminlist',
   handler: async (request, context) => {
     if (request.method === 'OPTIONS') {
       return {
