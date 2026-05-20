@@ -123,86 +123,89 @@ jobs:
           echo "primary_key=$PK" >> "$GITHUB_OUTPUT"
 
       - name: Send welcome email via ACS Email
+        uses: actions/github-script@v7
         env:
           ACS_CONNECTION_STRING: ${{ secrets.ACS_CONNECTION_STRING }}
           ACS_SENDER_ADDRESS: ${{ secrets.ACS_SENDER_ADDRESS }}
-        run: |
-          STUDENT_EMAIL="${{ steps.parse.outputs.student_email }}"
-          STUDENT_ID="${{ steps.parse.outputs.student_id }}"
-          API_KEY="${{ steps.key.outputs.primary_key }}"
-          APIM_URL="https://apim-eduelden-ai.azure-api.net"
-          AZURE_ACCOUNT="${STUDENT_ID}@eduelden.kr"
-          AZURE_PASSWORD='!!ed7788'
+        with:
+          script: |
+            const crypto = require('crypto');
+            const studentEmail = '${{ steps.parse.outputs.student_email }}';
+            const studentId = '${{ steps.parse.outputs.student_id }}';
+            const apiKey = '${{ steps.key.outputs.primary_key }}';
+            const apimUrl = 'https://apim-eduelden-ai.azure-api.net';
+            const azAccount = `${studentId}@eduelden.kr`;
+            const azPassword = '!!ed7788';
 
-          # ACS 연결 문자열에서 endpoint, accesskey 추출
-          ACS_ENDPOINT=$(echo "$ACS_CONNECTION_STRING" | grep -oP 'endpoint=\K[^;]+' | sed 's:/$::')
-          ACS_KEY=$(echo "$ACS_CONNECTION_STRING" | grep -oP 'accesskey=\K.*')
-          ACS_HOST=$(echo "$ACS_ENDPOINT" | sed 's|https://||')
+            const html = `<div style="font-family:Pretendard,sans-serif;max-width:640px;margin:auto">
+              <h2 style="color:#1a56db">🚀 Azure AI Foundry 바이브코딩 실습</h2>
+              <p>안녕하세요, <b>${studentId}번</b> 학생!</p><hr/>
+              <h3>👤 Azure 계정 정보</h3>
+              <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%">
+                <tr style="background:#f0f7ff"><td><b>계정</b></td><td><code>${azAccount}</code></td></tr>
+                <tr><td><b>초기 비밀번호</b></td><td><code>${azPassword}</code></td></tr>
+              </table>
+              <p style="color:#dc2626;font-size:0.9em">⚠️ 첫 로그인 시 비밀번호를 변경해야 합니다.</p>
+              <h3>🔑 API 설정 정보</h3>
+              <table border="1" cellpadding="8" style="border-collapse:collapse;width:100%">
+                <tr style="background:#f0fdf4"><td><b>Base URL</b></td><td><code>${apimUrl}/openai/v1</code></td></tr>
+                <tr><td><b>API Key</b></td><td><code>${apiKey}</code></td></tr>
+                <tr><td><b>기본 모델</b></td><td><code>gpt-54-mini</code></td></tr>
+              </table>
+              <h3>⚡ 자동 설정 (권장)</h3>
+              <p>PowerShell을 <b>관리자 모드</b>로 열고 아래 복사-붙여넣기:</p>
+              <pre style="background:#1e293b;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto">powershell -ExecutionPolicy Bypass -Command ". ./setup-student.ps1 -StudentId ${studentId} -ApiKey '${apiKey}'"</pre>
+              <h3>🔄 모델 변경</h3>
+              <table border="1" cellpadding="6" style="border-collapse:collapse;width:100%">
+                <tr style="background:#f8fafc"><th>모델</th><th>Model ID</th><th>특징</th></tr>
+                <tr><td>GPT-5.4-mini</td><td><code>gpt-54-mini</code></td><td>범용, 빠름 ⭐기본</td></tr>
+                <tr><td>GPT-5.5</td><td><code>gpt-55</code></td><td>고품질, 느림</td></tr>
+                <tr><td>DeepSeek</td><td><code>deepseek-v4-flash</code></td><td>대안 모델</td></tr>
+              </table></div>`;
 
-          EMAIL_HTML="<div style='font-family:Pretendard,sans-serif;max-width:640px;margin:auto'>"
-          EMAIL_HTML+="<h2 style='color:#1a56db'>🚀 Azure AI Foundry 바이브코딩 실습</h2>"
-          EMAIL_HTML+="<p>안녕하세요, <b>${STUDENT_ID}번</b> 학생!</p><hr/>"
+            // Parse ACS connection string
+            const connStr = process.env.ACS_CONNECTION_STRING;
+            const endpoint = connStr.match(/endpoint=([^;]+)/)[1].replace(/\/$/, '');
+            const accessKey = connStr.match(/accesskey=(.*)/)[1];
+            const host = endpoint.replace('https://', '');
+            const sender = process.env.ACS_SENDER_ADDRESS;
 
-          EMAIL_HTML+="<h3>👤 Azure 계정 정보</h3>"
-          EMAIL_HTML+="<table border='1' cellpadding='8' style='border-collapse:collapse;width:100%'>"
-          EMAIL_HTML+="<tr style='background:#f0f7ff'><td><b>계정</b></td><td><code>${AZURE_ACCOUNT}</code></td></tr>"
-          EMAIL_HTML+="<tr><td><b>초기 비밀번호</b></td><td><code>${AZURE_PASSWORD}</code></td></tr>"
-          EMAIL_HTML+="</table>"
-          EMAIL_HTML+="<p style='color:#dc2626;font-size:0.9em'>⚠️ 첫 로그인 시 비밀번호를 변경해야 합니다.</p>"
+            const body = JSON.stringify({
+              senderAddress: sender,
+              content: { subject: `[AI 실습] 학생 ${studentId}번 환경 설정 안내`, html },
+              recipients: { to: [{ address: studentEmail }] }
+            });
 
-          EMAIL_HTML+="<h3>🔑 API 설정 정보</h3>"
-          EMAIL_HTML+="<table border='1' cellpadding='8' style='border-collapse:collapse;width:100%'>"
-          EMAIL_HTML+="<tr style='background:#f0fdf4'><td><b>Base URL</b></td><td><code>${APIM_URL}/openai/v1</code></td></tr>"
-          EMAIL_HTML+="<tr><td><b>API Key</b></td><td><code>${API_KEY}</code></td></tr>"
-          EMAIL_HTML+="<tr><td><b>기본 모델</b></td><td><code>gpt-54-mini</code></td></tr>"
-          EMAIL_HTML+="</table>"
+            // HMAC-SHA256 auth
+            const url = new URL(`${endpoint}/emails:send?api-version=2023-03-31`);
+            const dateStr = new Date().toUTCString();
+            const contentHash = crypto.createHash('sha256').update(body).digest('base64');
+            const pathAndQuery = url.pathname + url.search;
+            const stringToSign = `POST\n${pathAndQuery}\n${dateStr};${host};${contentHash}`;
+            const signature = crypto.createHmac('sha256', Buffer.from(accessKey, 'base64'))
+              .update(stringToSign).digest('base64');
 
-          EMAIL_HTML+="<h3>⚡ 자동 설정 (권장)</h3>"
-          EMAIL_HTML+="<p>PowerShell을 <b>관리자 모드</b>로 열고 아래 복사-붙여넣기:</p>"
-          EMAIL_HTML+="<pre style='background:#1e293b;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto'>"
-          EMAIL_HTML+="powershell -ExecutionPolicy Bypass -Command \". ./setup-student.ps1 -StudentId ${STUDENT_ID} -ApiKey '${API_KEY}'\"</pre>"
+            const resp = await fetch(url.toString(), {
+              method: 'POST',
+              headers: {
+                'x-ms-date': dateStr,
+                'x-ms-content-sha256': contentHash,
+                'Authorization': `HMAC-SHA256 SignedHeaders=x-ms-date;host;x-ms-content-sha256&Signature=${signature}`,
+                'Content-Type': 'application/json',
+                'repeatability-request-id': crypto.randomUUID(),
+                'repeatability-first-sent': dateStr
+              },
+              body
+            });
 
-          EMAIL_HTML+="<h3>🔄 모델 변경</h3>"
-          EMAIL_HTML+="<table border='1' cellpadding='6' style='border-collapse:collapse;width:100%'>"
-          EMAIL_HTML+="<tr style='background:#f8fafc'><th>모델</th><th>Model ID</th><th>특징</th></tr>"
-          EMAIL_HTML+="<tr><td>GPT-5.4-mini</td><td><code>gpt-54-mini</code></td><td>범용, 빠름 ⭐기본</td></tr>"
-          EMAIL_HTML+="<tr><td>GPT-5.5</td><td><code>gpt-55</code></td><td>고품질, 느림</td></tr>"
-          EMAIL_HTML+="<tr><td>DeepSeek</td><td><code>deepseek-v4-flash</code></td><td>대안 모델</td></tr>"
-          EMAIL_HTML+="</table></div>"
-
-          # ACS Email JSON 생성
-          jq -n --arg sender "$ACS_SENDER_ADDRESS" \
-                --arg subj "[AI 실습] 학생 ${STUDENT_ID}번 환경 설정 안내" \
-                --arg html "$EMAIL_HTML" \
-                --arg to "$STUDENT_EMAIL" \
-            '{senderAddress:$sender,content:{subject:$subj,html:$html},recipients:{to:[{address:$to}]}}' \
-            > /tmp/email.json
-
-          # HMAC-SHA256 인증
-          DATE_STR=$(date -u '+%a, %d %b %Y %H:%M:%S GMT')
-          CONTENT_HASH=$(cat /tmp/email.json | openssl dgst -sha256 -binary | base64)
-          PATH_QUERY="/emails:send?api-version=2023-03-31"
-          STRING_TO_SIGN="POST\n${PATH_QUERY}\n${DATE_STR};${ACS_HOST};${CONTENT_HASH}"
-          SIGNATURE=$(printf '%b' "$STRING_TO_SIGN" | openssl dgst -sha256 -hmac "$(echo "$ACS_KEY" | base64 -d)" -binary | base64)
-
-          HTTP_CODE=$(curl -s -o /tmp/email-resp.txt -w "%{http_code}" -X POST \
-            "${ACS_ENDPOINT}/emails:send?api-version=2023-03-31" \
-            -H "x-ms-date: ${DATE_STR}" \
-            -H "x-ms-content-sha256: ${CONTENT_HASH}" \
-            -H "Authorization: HMAC-SHA256 SignedHeaders=x-ms-date;host;x-ms-content-sha256&Signature=${SIGNATURE}" \
-            -H "Content-Type: application/json" \
-            -H "repeatability-request-id: $(uuidgen)" \
-            -H "repeatability-first-sent: ${DATE_STR}" \
-            -d @/tmp/email.json)
-
-          if [ "$HTTP_CODE" = "202" ]; then
-            echo "Email sent to $STUDENT_EMAIL via ACS (HTTP $HTTP_CODE)"
-            cat /tmp/email-resp.txt
-          else
-            echo "Email send failed (HTTP $HTTP_CODE)"
-            cat /tmp/email-resp.txt
-            exit 1
-          fi
+            const result = await resp.text();
+            console.log(`ACS Email response: HTTP ${resp.status}`);
+            console.log(result);
+            if (resp.status !== 202) {
+              core.setFailed(`Email send failed: HTTP ${resp.status} - ${result}`);
+            } else {
+              console.log(`Email sent to ${studentEmail} via ACS`);
+            }
 
       - name: Comment on issue
         uses: actions/github-script@v7
