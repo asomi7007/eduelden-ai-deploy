@@ -1,10 +1,10 @@
 const { app } = require('@azure/functions');
 
 // POST /api/admin/list — 관리자 전체 목록 조회
-app.http('adminlist', {
+app.http('manage', {
   methods: ['GET', 'POST', 'OPTIONS'],
   authLevel: 'anonymous',
-  route: 'adminlist',
+  route: 'manage',
   handler: async (request, context) => {
     if (request.method === 'OPTIONS') {
       return {
