@@ -106,16 +106,14 @@ jobs:
             core.setOutput('student_id', studentId);
             core.setOutput('student_email', emailMatch[1].trim());
 
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Get APIM subscription key
         id: key
-        env:
-          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
         run: |
-          echo "$AZURE_CREDENTIALS" | az login --service-principal \
-            --username $(echo "$AZURE_CREDENTIALS" | jq -r .clientId) \
-            --password $(echo "$AZURE_CREDENTIALS" | jq -r .clientSecret) \
-            --tenant $(echo "$AZURE_CREDENTIALS" | jq -r .tenantId)
-
           SID="sub-student-${{ steps.parse.outputs.student_id }}"
           KEYS=$(az rest --method POST \
             --url "https://management.azure.com/subscriptions/3354f2f5-e261-49af-9ead-2c6938f447a3/resourceGroups/rg-powerplatform-billing/providers/Microsoft.ApiManagement/service/apim-eduelden-ai/subscriptions/${SID}/listSecrets?api-version=2022-08-01" \
@@ -136,7 +134,6 @@ jobs:
             -d "client_id=$GRAPH_CLIENT_ID" \
             -d "client_secret=$GRAPH_CLIENT_SECRET" \
             -d "scope=https://graph.microsoft.com/.default" \
-            -d "grant_type=client_credentials" \
             -d "grant_type=client_credentials" | jq -r '.access_token')
 
           STUDENT_EMAIL="${{ steps.parse.outputs.student_email }}"
