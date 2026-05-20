@@ -122,26 +122,22 @@ jobs:
           echo "::add-mask::$PK"
           echo "primary_key=$PK" >> "$GITHUB_OUTPUT"
 
-      - name: Send welcome email via Graph API
+      - name: Send welcome email via ACS Email
         env:
-          GRAPH_CLIENT_ID: ${{ secrets.GRAPH_CLIENT_ID }}
-          GRAPH_CLIENT_SECRET: ${{ secrets.GRAPH_CLIENT_SECRET }}
-          GRAPH_TENANT_ID: ${{ secrets.GRAPH_TENANT_ID }}
-          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          ACS_CONNECTION_STRING: ${{ secrets.ACS_CONNECTION_STRING }}
+          ACS_SENDER_ADDRESS: ${{ secrets.ACS_SENDER_ADDRESS }}
         run: |
-          TOKEN=$(curl -s -X POST \
-            "https://login.microsoftonline.com/$GRAPH_TENANT_ID/oauth2/v2.0/token" \
-            -d "client_id=$GRAPH_CLIENT_ID" \
-            -d "client_secret=$GRAPH_CLIENT_SECRET" \
-            -d "scope=https://graph.microsoft.com/.default" \
-            -d "grant_type=client_credentials" | jq -r '.access_token')
-
           STUDENT_EMAIL="${{ steps.parse.outputs.student_email }}"
           STUDENT_ID="${{ steps.parse.outputs.student_id }}"
           API_KEY="${{ steps.key.outputs.primary_key }}"
           APIM_URL="https://apim-eduelden-ai.azure-api.net"
           AZURE_ACCOUNT="${STUDENT_ID}@eduelden.kr"
           AZURE_PASSWORD='!!ed7788'
+
+          # ACS 연결 문자열에서 endpoint, accesskey 추출
+          ACS_ENDPOINT=$(echo "$ACS_CONNECTION_STRING" | grep -oP 'endpoint=\K[^;]+' | sed 's:/$::')
+          ACS_KEY=$(echo "$ACS_CONNECTION_STRING" | grep -oP 'accesskey=\K.*')
+          ACS_HOST=$(echo "$ACS_ENDPOINT" | sed 's|https://||')
 
           EMAIL_HTML="<div style='font-family:Pretendard,sans-serif;max-width:640px;margin:auto'>"
           EMAIL_HTML+="<h2 style='color:#1a56db'>🚀 Azure AI Foundry 바이브코딩 실습</h2>"
@@ -174,20 +170,34 @@ jobs:
           EMAIL_HTML+="<tr><td>DeepSeek</td><td><code>deepseek-v4-flash</code></td><td>대안 모델</td></tr>"
           EMAIL_HTML+="</table></div>"
 
-          jq -n --arg subj "[AI 실습] 학생 ${STUDENT_ID}번 환경 설정 안내" \
-                 --arg html "$EMAIL_HTML" \
-                 --arg to "$STUDENT_EMAIL" \
-            '{message:{subject:$subj,body:{contentType:"HTML",content:$html},toRecipients:[{emailAddress:{address:$to}}]}}' \
+          # ACS Email JSON 생성
+          jq -n --arg sender "$ACS_SENDER_ADDRESS" \
+                --arg subj "[AI 실습] 학생 ${STUDENT_ID}번 환경 설정 안내" \
+                --arg html "$EMAIL_HTML" \
+                --arg to "$STUDENT_EMAIL" \
+            '{senderAddress:$sender,content:{subject:$subj,html:$html},recipients:{to:[{address:$to}]}}' \
             > /tmp/email.json
 
+          # HMAC-SHA256 인증
+          DATE_STR=$(date -u '+%a, %d %b %Y %H:%M:%S GMT')
+          CONTENT_HASH=$(cat /tmp/email.json | openssl dgst -sha256 -binary | base64)
+          PATH_QUERY="/emails:send?api-version=2023-03-31"
+          STRING_TO_SIGN="POST\n${PATH_QUERY}\n${DATE_STR};${ACS_HOST};${CONTENT_HASH}"
+          SIGNATURE=$(printf '%b' "$STRING_TO_SIGN" | openssl dgst -sha256 -hmac "$(echo "$ACS_KEY" | base64 -d)" -binary | base64)
+
           HTTP_CODE=$(curl -s -o /tmp/email-resp.txt -w "%{http_code}" -X POST \
-            "https://graph.microsoft.com/v1.0/users/$SENDER_EMAIL/sendMail" \
-            -H "Authorization: Bearer $TOKEN" \
+            "${ACS_ENDPOINT}/emails:send?api-version=2023-03-31" \
+            -H "x-ms-date: ${DATE_STR}" \
+            -H "x-ms-content-sha256: ${CONTENT_HASH}" \
+            -H "Authorization: HMAC-SHA256 SignedHeaders=x-ms-date;host;x-ms-content-sha256&Signature=${SIGNATURE}" \
             -H "Content-Type: application/json" \
+            -H "repeatability-request-id: $(uuidgen)" \
+            -H "repeatability-first-sent: ${DATE_STR}" \
             -d @/tmp/email.json)
 
-          if [ "$HTTP_CODE" = "202" ] || [ "$HTTP_CODE" = "200" ]; then
-            echo "Email sent to $STUDENT_EMAIL (HTTP $HTTP_CODE)"
+          if [ "$HTTP_CODE" = "202" ]; then
+            echo "Email sent to $STUDENT_EMAIL via ACS (HTTP $HTTP_CODE)"
+            cat /tmp/email-resp.txt
           else
             echo "Email send failed (HTTP $HTTP_CODE)"
             cat /tmp/email-resp.txt
