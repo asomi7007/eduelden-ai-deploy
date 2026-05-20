@@ -89,55 +89,50 @@ Write-Host "  Config saved: $configDir\config.json" -ForegroundColor Green
 $env:AI_CLASS_API_KEY = $ApiKey
 Write-Host "  API Key saved to env var: AI_CLASS_API_KEY" -ForegroundColor Green
 
-# 3-b. Auto-inject Cline provider settings
+# 3-b. Auto-inject Cline provider config (~/.cline/data/)
 Write-Host "  Configuring Cline API provider..." -ForegroundColor Yellow
 
-# Method 1: ~/.cline/data/settings/providers.json (Cline shared config)
-$clineConfigDir = "$env:USERPROFILE\.cline\data\settings"
-New-Item -ItemType Directory -Force -Path $clineConfigDir | Out-Null
+$clineDataDir = "$env:USERPROFILE\.cline\data"
+New-Item -ItemType Directory -Force -Path $clineDataDir | Out-Null
 
-$timestamp = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
-$providerConfig = @{
-    version = 1
-    lastUsedProvider = "openai-compatible"
-    providers = @{
-        "openai-compatible" = @{
-            settings = @{
-                provider = "openai-compatible"
-                baseUrl = "$APIM_BASE_URL/openai/v1"
-                apiKey = $ApiKey
-                modelId = "gpt-54-mini"
-            }
-            updatedAt = $timestamp
-            tokenSource = "manual"
-        }
-    }
-} | ConvertTo-Json -Depth 5
-
-$providerConfig | Out-File -FilePath "$clineConfigDir\providers.json" -Encoding utf8
-Write-Host "  Cline config (shared): $clineConfigDir\providers.json" -ForegroundColor Green
-
-# Method 2: VS Code settings.json (extension settings fallback)
-$vsCodeSettingsDir = "$env:APPDATA\Code\User"
-if (-not (Test-Path $vsCodeSettingsDir)) {
-    New-Item -ItemType Directory -Force -Path $vsCodeSettingsDir | Out-Null
-}
-$vsCodeSettingsFile = "$vsCodeSettingsDir\settings.json"
-if (Test-Path $vsCodeSettingsFile) {
-    $existingSettings = Get-Content $vsCodeSettingsFile -Raw | ConvertFrom-Json
+# Read existing globalState.json or create base
+$gsFile = "$clineDataDir\globalState.json"
+if (Test-Path $gsFile) {
+    $gs = Get-Content $gsFile -Raw | ConvertFrom-Json
 } else {
-    $existingSettings = [PSCustomObject]@{}
+    $gs = [PSCustomObject]@{}
 }
-$existingSettings | Add-Member -NotePropertyName "cline.apiProvider" -NotePropertyValue "openai-compatible" -Force
-$existingSettings | Add-Member -NotePropertyName "cline.openAiCompatible.baseUrl" -NotePropertyValue "$APIM_BASE_URL/openai/v1" -Force
-$existingSettings | Add-Member -NotePropertyName "cline.openAiCompatible.apiKey" -NotePropertyValue $ApiKey -Force
-$existingSettings | Add-Member -NotePropertyName "cline.openAiCompatible.modelId" -NotePropertyValue "gpt-54-mini" -Force
-$existingSettings | ConvertTo-Json -Depth 10 | Out-File -FilePath $vsCodeSettingsFile -Encoding utf8
-Write-Host "  Cline config (VS Code): $vsCodeSettingsFile" -ForegroundColor Green
 
-Write-Host "  -> Provider: openai-compatible" -ForegroundColor Gray
+# Set OpenAI Compatible as the active provider (both plan & act modes)
+$gs | Add-Member -NotePropertyName "actModeApiProvider" -NotePropertyValue "openai-compatible" -Force
+$gs | Add-Member -NotePropertyName "planModeApiProvider" -NotePropertyValue "openai-compatible" -Force
+$gs | Add-Member -NotePropertyName "planActSeparateModelsSetting" -NotePropertyValue $false -Force
+$gs | Add-Member -NotePropertyName "openAiCompatibleBaseUrl" -NotePropertyValue "$APIM_BASE_URL/openai/v1" -Force
+$gs | Add-Member -NotePropertyName "openAiCompatibleModelId" -NotePropertyValue "gpt-54-mini" -Force
+$gs | Add-Member -NotePropertyName "actModeOpenAiCompatibleModelId" -NotePropertyValue "gpt-54-mini" -Force
+$gs | Add-Member -NotePropertyName "planModeOpenAiCompatibleModelId" -NotePropertyValue "gpt-54-mini" -Force
+$gs | Add-Member -NotePropertyName "actModeOpenAiCompatibleBaseUrl" -NotePropertyValue "$APIM_BASE_URL/openai/v1" -Force
+$gs | Add-Member -NotePropertyName "planModeOpenAiCompatibleBaseUrl" -NotePropertyValue "$APIM_BASE_URL/openai/v1" -Force
+
+$gs | ConvertTo-Json -Depth 10 | Out-File -FilePath $gsFile -Encoding utf8
+Write-Host "  Cline globalState: $gsFile" -ForegroundColor Green
+
+# Store API key in secrets.json
+$secFile = "$clineDataDir\secrets.json"
+if (Test-Path $secFile) {
+    $sec = Get-Content $secFile -Raw | ConvertFrom-Json
+} else {
+    $sec = [PSCustomObject]@{}
+}
+$sec | Add-Member -NotePropertyName "openAiCompatibleApiKey" -NotePropertyValue $ApiKey -Force
+$sec | ConvertTo-Json -Depth 5 | Out-File -FilePath $secFile -Encoding utf8
+Write-Host "  Cline secrets: $secFile" -ForegroundColor Green
+
+Write-Host "  -> Provider: OpenAI Compatible" -ForegroundColor Gray
 Write-Host "  -> Base URL: $APIM_BASE_URL/openai/v1" -ForegroundColor Gray
-Write-Host "  -> Model: gpt-54-mini (you can switch to gpt-55 or deepseek-v4-flash)" -ForegroundColor Gray
+Write-Host "  -> Default Model: gpt-54-mini" -ForegroundColor Gray
+Write-Host "  -> To switch models in Cline settings:" -ForegroundColor Gray
+Write-Host "     gpt-55 (high quality) | deepseek-v4-flash (Base URL: /deepseek/v1)" -ForegroundColor Gray
 
 # 4. Connection test
 Write-Host "[4/4] Testing API connection..." -ForegroundColor Yellow
