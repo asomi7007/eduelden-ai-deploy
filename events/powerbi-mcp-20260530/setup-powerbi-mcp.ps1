@@ -40,11 +40,20 @@ $ErrorActionPreference = "Stop"
 $APIM_BASE_URL = $ApimUrl.TrimEnd('/')
 $OPENAI_ENDPOINT = "$APIM_BASE_URL/openai"
 $TOTAL_STEPS = 8
+$totalTimer = [System.Diagnostics.Stopwatch]::StartNew()
+$stepTimer  = [System.Diagnostics.Stopwatch]::new()
+
+# --- Desktop path (safe for non-ASCII usernames like Korean) ---
+$DesktopPath = [Environment]::GetFolderPath("Desktop")
+if (-not $DesktopPath -or -not (Test-Path $DesktopPath)) {
+    $DesktopPath = "$env:USERPROFILE\Desktop"
+}
 
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "  AI-Driven Power BI: MCP Workshop - Environment Setup" -ForegroundColor Cyan
 Write-Host "  Date: 2026-05-30 | Student ID: $StudentId" -ForegroundColor Cyan
+Write-Host "  Desktop: $DesktopPath" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -58,12 +67,21 @@ function Write-Utf8NoBom($path, $content) {
     [System.IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false))
 }
 
+# --- Helper: Format elapsed time ---
+function Format-Elapsed($sw) {
+    $ts = $sw.Elapsed
+    if ($ts.TotalSeconds -lt 1)   { return "{0:N0}ms" -f $ts.TotalMilliseconds }
+    if ($ts.TotalSeconds -lt 60)  { return "{0:N1}s"  -f $ts.TotalSeconds }
+    return "{0}m {1:N0}s" -f [int][math]::Floor($ts.TotalMinutes), $ts.Seconds
+}
+
 # ===========================================================
 # STEP 1: VS Code
 # ===========================================================
+$stepTimer.Restart()
 if (-not $SkipInstall) {
     if (Test-CommandExists "code") {
-        Write-Host "[1/$TOTAL_STEPS] VS Code already installed" -ForegroundColor Green
+        Write-Host "[1/$TOTAL_STEPS] VS Code already installed  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
     } else {
         Write-Host "[1/$TOTAL_STEPS] Installing VS Code..." -ForegroundColor Yellow
         $installer = "$env:TEMP\vscode-setup.exe"
@@ -71,33 +89,35 @@ if (-not $SkipInstall) {
         Start-Process -FilePath $installer -ArgumentList "/verysilent /norestart /mergetasks=!runcode,addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath" -Wait
         # Refresh PATH
         $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
-        Write-Host "  VS Code installed" -ForegroundColor Green
+        Write-Host "  VS Code installed  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
     }
 } else {
-    Write-Host "[1/$TOTAL_STEPS] Skipped (SkipInstall)" -ForegroundColor Gray
+    Write-Host "[1/$TOTAL_STEPS] Skipped (SkipInstall)  ($(Format-Elapsed $stepTimer))" -ForegroundColor Gray
 }
 
 # ===========================================================
 # STEP 2: Cline Extension
 # ===========================================================
+$stepTimer.Restart()
 if (-not $SkipInstall) {
     Write-Host "[2/$TOTAL_STEPS] Installing Cline extension..." -ForegroundColor Yellow
     code --install-extension saoudrizwan.claude-dev --force 2>$null
-    Write-Host "  Cline extension installed" -ForegroundColor Green
+    Write-Host "  Cline extension installed  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
 } else {
-    Write-Host "[2/$TOTAL_STEPS] Skipped (SkipInstall)" -ForegroundColor Gray
+    Write-Host "[2/$TOTAL_STEPS] Skipped (SkipInstall)  ($(Format-Elapsed $stepTimer))" -ForegroundColor Gray
 }
 
 # ===========================================================
 # STEP 3: Node.js 22+ (MCP servers require it)
 # ===========================================================
+$stepTimer.Restart()
 if (-not $SkipInstall) {
     $nodeOk = $false
     if (Test-CommandExists "node") {
         $nodeVer = (node --version) -replace '^v', ''
         $major = [int]($nodeVer.Split('.')[0])
         if ($major -ge 22) {
-            Write-Host "[3/$TOTAL_STEPS] Node.js $nodeVer already installed (>= 22)" -ForegroundColor Green
+            Write-Host "[3/$TOTAL_STEPS] Node.js $nodeVer already installed (>= 22)  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
             $nodeOk = $true
         }
     }
@@ -113,15 +133,16 @@ if (-not $SkipInstall) {
         }
         # Refresh PATH
         $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
-        Write-Host "  Node.js installed" -ForegroundColor Green
+        Write-Host "  Node.js installed  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
     }
 } else {
-    Write-Host "[3/$TOTAL_STEPS] Skipped (SkipInstall)" -ForegroundColor Gray
+    Write-Host "[3/$TOTAL_STEPS] Skipped (SkipInstall)  ($(Format-Elapsed $stepTimer))" -ForegroundColor Gray
 }
 
 # ===========================================================
 # STEP 4: Power BI Desktop
 # ===========================================================
+$stepTimer.Restart()
 if (-not $SkipInstall) {
     $pbiPath = Get-Command "PBIDesktop" -ErrorAction SilentlyContinue
     if (-not $pbiPath) {
@@ -134,12 +155,12 @@ if (-not $SkipInstall) {
         $pbiFound = $pbiPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
     }
     if ($pbiPath -or $pbiFound) {
-        Write-Host "[4/$TOTAL_STEPS] Power BI Desktop already installed" -ForegroundColor Green
+        Write-Host "[4/$TOTAL_STEPS] Power BI Desktop already installed  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
     } else {
         Write-Host "[4/$TOTAL_STEPS] Installing Power BI Desktop..." -ForegroundColor Yellow
         if (Test-CommandExists "winget") {
             winget install Microsoft.PowerBI --accept-package-agreements --accept-source-agreements --silent 2>$null
-            Write-Host "  Power BI Desktop installed via winget" -ForegroundColor Green
+            Write-Host "  Power BI Desktop installed via winget  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
         } else {
             Write-Host "  winget not available. Please install Power BI Desktop manually:" -ForegroundColor Red
             Write-Host "  https://aka.ms/pbidesktopstore" -ForegroundColor Yellow
@@ -147,12 +168,13 @@ if (-not $SkipInstall) {
         }
     }
 } else {
-    Write-Host "[4/$TOTAL_STEPS] Skipped (SkipInstall)" -ForegroundColor Gray
+    Write-Host "[4/$TOTAL_STEPS] Skipped (SkipInstall)  ($(Format-Elapsed $stepTimer))" -ForegroundColor Gray
 }
 
 # ===========================================================
 # STEP 5: API Configuration (config.json + env var)
 # ===========================================================
+$stepTimer.Restart()
 Write-Host "[5/$TOTAL_STEPS] Creating API config..." -ForegroundColor Yellow
 
 $configDir = "$env:USERPROFILE\.ai-class"
@@ -182,11 +204,12 @@ Write-Host "  Config: $configDir\config.json" -ForegroundColor Green
 # Save API key as user environment variable
 [System.Environment]::SetEnvironmentVariable("AI_CLASS_API_KEY", $ApiKey, "User")
 $env:AI_CLASS_API_KEY = $ApiKey
-Write-Host "  API Key saved to env: AI_CLASS_API_KEY" -ForegroundColor Green
+Write-Host "  API Key saved to env: AI_CLASS_API_KEY  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
 
 # ===========================================================
 # STEP 6: Cline Provider + MCP Server Configuration
 # ===========================================================
+$stepTimer.Restart()
 Write-Host "[6/$TOTAL_STEPS] Configuring Cline (API provider + MCP servers)..." -ForegroundColor Yellow
 
 $clineDataDir = "$env:USERPROFILE\.cline\data"
@@ -258,10 +281,9 @@ $mcp.mcpServers | Add-Member -NotePropertyName "playwright" -NotePropertyValue (
 }) -Force
 
 # Filesystem MCP Server (access to practice files directory)
-$practiceDir = "$env:USERPROFILE\Desktop"
 $mcp.mcpServers | Add-Member -NotePropertyName "filesystem" -NotePropertyValue ([PSCustomObject]@{
     command = "npx"
-    args = @("-y", "@anthropic/mcp-server-filesystem", $practiceDir)
+    args = @("-y", "@anthropic/mcp-server-filesystem", $DesktopPath)
     env = [PSCustomObject]@{}
     disabled = $false
     autoApprove = @()
@@ -271,22 +293,22 @@ Write-Utf8NoBom $mcpFile ($mcp | ConvertTo-Json -Depth 10)
 Write-Host "  MCP servers configured:" -ForegroundColor Green
 Write-Host "    - powerbi  : @anthropic/mcp-server-powerbi" -ForegroundColor Gray
 Write-Host "    - playwright: @anthropic/mcp-server-playwright" -ForegroundColor Gray
-Write-Host "    - filesystem: @anthropic/mcp-server-filesystem ($practiceDir)" -ForegroundColor Gray
+Write-Host "    - filesystem: @anthropic/mcp-server-filesystem ($DesktopPath)  ($(Format-Elapsed $stepTimer))" -ForegroundColor Gray
 
 # ===========================================================
 # STEP 7: Download Practice File (.pbix)
 # ===========================================================
+$stepTimer.Restart()
 Write-Host "[7/$TOTAL_STEPS] Downloading practice file..." -ForegroundColor Yellow
 
-$destDir = "$env:USERPROFILE\Desktop"
-$destFile = "$destDir\practice.pbix"
+$destFile = Join-Path $DesktopPath "practice.pbix"
 
 if (Test-Path $destFile) {
-    Write-Host "  Practice file already exists: $destFile" -ForegroundColor Green
+    Write-Host "  Practice file already exists: $destFile  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
 } else {
     try {
         Invoke-WebRequest -Uri $PracticeFileUrl -OutFile $destFile -TimeoutSec 60
-        Write-Host "  Downloaded: $destFile" -ForegroundColor Green
+        Write-Host "  Downloaded: $destFile  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
     } catch {
         Write-Host "  Download failed: $($_.Exception.Message)" -ForegroundColor Red
         Write-Host "  Please download manually from the onboarding email link" -ForegroundColor Yellow
@@ -296,6 +318,7 @@ if (Test-Path $destFile) {
 # ===========================================================
 # STEP 8: Connection Test
 # ===========================================================
+$stepTimer.Restart()
 Write-Host "[8/$TOTAL_STEPS] Testing API connection..." -ForegroundColor Yellow
 
 $headers = @{
@@ -305,15 +328,15 @@ $headers = @{
 
 $testBody = @{
     model = "gpt-54-mini"
-    messages = @(@{ role = "user"; content = "Say hello in Korean" })
-    max_completion_tokens = 50
+    messages = @(@{ role = "user"; content = "Reply with exactly: Connection OK" })
+    max_completion_tokens = 20
 } | ConvertTo-Json
 
 try {
     $response = Invoke-RestMethod -Uri "$OPENAI_ENDPOINT/v1/chat/completions" `
         -Method POST -Headers $headers -Body $testBody -TimeoutSec 30
     $reply = $response.choices[0].message.content
-    Write-Host "  API response: $reply" -ForegroundColor Green
+    Write-Host "  API response: $reply  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
 } catch {
     Write-Host "  Connection test failed: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "  This may be normal if APIM is still deploying." -ForegroundColor Yellow
@@ -323,9 +346,11 @@ try {
 # ===========================================================
 # DONE
 # ===========================================================
+$totalTimer.Stop()
+$totalElapsed = Format-Elapsed $totalTimer
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "  Setup Complete!" -ForegroundColor Cyan
+Write-Host "  Setup Complete!  (Total: $totalElapsed)" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "  Installed:" -ForegroundColor White
@@ -339,6 +364,7 @@ Write-Host "    - Base URL: $APIM_BASE_URL/openai/v1" -ForegroundColor Gray
 Write-Host "    - Model: gpt-54-mini" -ForegroundColor Gray
 Write-Host "    - MCP: powerbi, playwright, filesystem" -ForegroundColor Gray
 Write-Host ""
+Write-Host "  Desktop: $DesktopPath" -ForegroundColor White
 Write-Host "  Practice file: $destFile" -ForegroundColor White
 Write-Host ""
 Write-Host "  Next steps:" -ForegroundColor Yellow
