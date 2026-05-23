@@ -187,7 +187,7 @@ jobs:
                 <tr><td style="padding:10px 0;vertical-align:top;width:38px">${stepCircle('1','#F2C811')}</td>
                 <td style="padding:10px 0 10px 10px">
                   <b>PowerShell을 <span style="color:#dc2626">관리자 모드</span>로 실행</b><br/>
-                  <span style="font-size:13px;color:#555">시작 메뉴 → "PowerShell" 검색 → 관리자 권한으로 실행</span>
+                  <span style="font-size:13px;color:#555">시작 메뉴 > "PowerShell" 검색 > 관리자 권한으로 실행</span>
                 </td></tr>
                 <tr><td style="padding:10px 0;vertical-align:top">${stepCircle('2','#F2C811')}</td>
                 <td style="padding:10px 0 10px 10px">
@@ -197,8 +197,8 @@ jobs:
                 <tr><td style="padding:10px 0;vertical-align:top">${stepCircle('3','#F2C811')}</td>
                 <td style="padding:10px 0 10px 10px">
                   <b>스크립트 다운로드</b>
-                  ${codeBox('Invoke-WebRequest -Uri "<a href="' + scriptUrl + '" style="color:#93c5fd;text-decoration:underline">' + scriptUrl + '</a>" -OutFile setup-powerbi-mcp.ps1')}
-                  <p style="color:#6b7280;font-size:0.85em;margin:4px 0 0">💡 또는 <a href="${scriptUrl}" style="color:#1a56db;font-weight:600">이 링크</a>를 우클릭 → "다른 이름으로 링크 저장" (Downloads 폴더에 저장)</p>
+                  ${codeBox('Invoke-WebRequest -Uri "' + scriptUrl + '" -OutFile setup-powerbi-mcp.ps1')}
+                  <p style="color:#6b7280;font-size:0.85em;margin:4px 0 0">또는 <a href="${scriptUrl}" style="color:#1a56db;font-weight:600">이 링크</a>를 우클릭 > Downloads 폴더에 저장</p>
                 </td></tr>
                 <tr><td style="padding:10px 0;vertical-align:top">${stepCircle('4','#F2C811')}</td>
                 <td style="padding:10px 0 10px 10px">
@@ -442,4 +442,3 @@ jobs:
               state: 'closed',
               labels: ['onboarding', 'done']
             });
-            // workflow end
