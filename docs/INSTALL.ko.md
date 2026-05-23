@@ -8,10 +8,43 @@
 ## 사전 준비
 
 - Owner 권한이 있는 Azure 구독
-- Azure CLI 설치 및 로그인 (`az login`)
-- GitHub 계정 + `gh` CLI 설치
+- Azure CLI 2.50+ 설치 및 로그인 (`az login`) — `az --version`으로 확인
+- GitHub 계정 + `gh` CLI 2.0+ 설치 — `gh --version`으로 확인
 - 학생 계정이 미리 생성된 도메인 (`01@도메인` ~ `50@도메인`)
-- Node.js 18+ (SWA API 개발용)
+- Node.js 18.x 또는 20.x LTS (SWA API 개발용) — `node --version`으로 확인
+- PowerShell 5.1+ (학생 설정 스크립트에 필요) — `$PSVersionTable.PSVersion`으로 확인
+
+---
+
+## 빠른 시작 (자동 배포)
+
+각 Phase를 수동으로 따라가는 대신, 한 번에 모두 배포하고 싶다면:
+
+### 1. 설정
+```bash
+cp config.env.template config.env
+# config.env를 조직에 맞는 값으로 편집하세요
+```
+
+### 2. 배포
+```bash
+chmod +x scripts/deploy-all.sh
+./scripts/deploy-all.sh
+```
+
+### 3. 특정 Phase부터 재개
+```bash
+./scripts/deploy-all.sh --phase 4    # Phase 4부터 재개
+./scripts/deploy-all.sh --dry-run    # 실행하지 않고 미리보기
+```
+
+> 자동 스크립트는 Phase 1-7을 처리해요. 다음 작업은 직접 해야 해요:
+> - APIM 정책 수동 적용 (Phase 4 — PRD.ko.md 섹션 4.3 참고)
+> - Portal에서 ACS Email 도메인 설정 완료 (Phase 5)
+> - SWA 구성에서 `GITHUB_PAT` 설정 (Phase 7)
+> - 엔드투엔드 테스트 실행 (Phase 8)
+
+단계별로 직접 제어하고 싶다면, 아래 수동 Phase를 계속 진행하세요.
 
 ---
 
@@ -23,7 +56,7 @@ az group create --name rg-{name} --location koreacentral
 
 # 2. 예산 생성 ($800, 월별)
 az consumption budget create \
-  --budget-name "ai-class-budget" \
+  --budget-name "eduelden-ai-budget" \
   --resource-group rg-{name} \
   --amount 800 --time-grain Monthly \
   --start-date $(date +%Y-%m-01) --end-date $(date -d "+6 months" +%Y-%m-01) \
@@ -70,8 +103,31 @@ az cognitiveservices account deployment create \
   --model-format OpenAI \
   --sku-name Standard --sku-capacity 50
 
-# DeepSeek (마켓플레이스 -- 약관 동의를 위해 Portal이 필요할 수 있음)
-# 부하 분산을 위해 2개 인스턴스 배포
+# DeepSeek (마켓플레이스 모델 — 약관 동의 필요)
+# 중요: CLI 배포 전에 Azure Portal에서 약관을 수락하세요:
+#   1. Portal > AI Foundry > 모델 카탈로그 > "DeepSeek-V4-Flash" 검색
+#   2. "배포" 클릭 > 마켓플레이스 약관 수락
+#   3. Portal 배포를 취소하세요 (CLI로 배포하거나 Portal 배포를 그대로 사용)
+#   4. CLI에서 "MarketplaceTermsNotAccepted" 오류 발생 시, 1-2단계를 먼저 완료하세요
+#
+# 부하 분산을 위해 2개 인스턴스 배포:
+az cognitiveservices account deployment create \
+  --name {ai-resource-name} \
+  --resource-group rg-{name} \
+  --deployment-name deepseek-v4-flash-1 \
+  --model-name DeepSeek-V4-Flash \
+  --model-version "latest" \
+  --model-format OpenAI \
+  --sku-name Standard --sku-capacity 1
+
+az cognitiveservices account deployment create \
+  --name {ai-resource-name} \
+  --resource-group rg-{name} \
+  --deployment-name deepseek-v4-flash-2 \
+  --model-name DeepSeek-V4-Flash \
+  --model-version "latest" \
+  --model-format OpenAI \
+  --sku-name Standard --sku-capacity 1
 ```
 
 ---
@@ -107,6 +163,10 @@ az ad sp create-for-rbac --name github-actions-{name} \
   --scopes /subscriptions/{subscription-id}/resourceGroups/rg-{name} \
   --sdk-auth
 # 출력된 JSON을 저장하세요 -- AZURE_CREDENTIALS 시크릿이 될 거예요
+# 참고: --sdk-auth는 Azure CLI 2.30+에서 더 이상 사용되지 않으며 경고가 표시돼요.
+# 이것은 정상이에요 — 출력 JSON 형식은 azure/login@v2에서 여전히 필요해요.
+# 사용 중단 경고를 무시하거나, 보다 현대적인 방식인 OpenID Connect
+# 페더레이션 자격 증명으로 마이그레이션을 고려하세요.
 ```
 
 ---
@@ -122,10 +182,24 @@ az apim create --name apim-{name}-ai \
   --sku-name Developer \
   --location {region}
 
+# ⚠️ 중요: APIM 프로비저닝에 30-45분이 소요돼요.
+# 프로비저닝이 완료될 때까지 2단계로 넘어가지 마세요.
+# 상태 확인:
+az apim show --name apim-{name}-ai --resource-group rg-{name} \
+  --query provisioningState -o tsv
+# 출력이 "Succeeded"가 될 때까지 기다리세요.
+
 # 2. Azure OpenAI 키 가져오기 (APIM 백엔드 정책용)
 AOAI_KEY=$(az cognitiveservices account keys list \
   --name {ai-resource-name} --resource-group rg-{name} \
   --query key1 -o tsv)
+
+# 2.5 키를 APIM Named Value로 등록 (정책에서 {{real-azure-openai-key}}로 사용)
+az apim nv create --service-name apim-{name}-ai \
+  --resource-group rg-{name} \
+  --named-value-id real-azure-openai-key \
+  --display-name "Azure OpenAI Key" \
+  --value "$AOAI_KEY" --secret true
 
 # 3. OpenAI API 생성
 az apim api create --service-name apim-{name}-ai \
@@ -143,6 +217,14 @@ az apim api operation create --service-name apim-{name}-ai \
   --display-name "All OpenAI" \
   --method POST --url-template "/*"
 
+# 4b. GET 오퍼레이션 추가 (Cline이 조회할 수 있는 /models 엔드포인트용)
+az apim api operation create --service-name apim-{name}-ai \
+  --resource-group rg-{name} \
+  --api-id openai-api \
+  --operation-id openai-get \
+  --display-name "GET OpenAI" \
+  --method GET --url-template "/*"
+
 # 5. DeepSeek API 생성 (같은 패턴, 다른 경로)
 az apim api create --service-name apim-{name}-ai \
   --resource-group rg-{name} \
@@ -157,6 +239,14 @@ az apim api operation create --service-name apim-{name}-ai \
   --operation-id deepseek-all \
   --display-name "All DeepSeek" \
   --method POST --url-template "/*"
+
+# 5b. DeepSeek GET 오퍼레이션 추가 (Cline이 조회할 수 있는 /models 엔드포인트용)
+az apim api operation create --service-name apim-{name}-ai \
+  --resource-group rg-{name} \
+  --api-id deepseek-api \
+  --operation-id deepseek-get \
+  --display-name "GET DeepSeek" \
+  --method GET --url-template "/*"
 
 # 6. APIM 정책 적용 -- 전체 XML은 PRD.ko.md 섹션 4.3 참고
 # Azure Portal > APIM > APIs > openai-api > Inbound processing > Code editor 사용
@@ -207,11 +297,13 @@ az communication create --name acs-{name}-email \
   --resource-group rg-{name} \
   --location Global --data-location Korea
 
-# 2. Email Communication Service 생성 (Portal 필요)
-# Portal > Communication Services > acs-{name}-email > Email > Setup
-# - Email Communication Service 생성
-# - Azure 관리형 도메인 추가 (*.azurecomm.net)
-# - 발신자 주소 확인: donotreply@{guid}.azurecomm.net
+# 2. Email Communication Service 생성 (Portal 필요 — 상세 단계)
+# 2a단계: Portal > "Email Communication Services" 검색 > 만들기
+#          이름: acs-{name}-email-svc, 데이터 위치: Korea
+# 2b단계: 생성 후 > "도메인 프로비전" > "Azure 관리형 도메인 추가"
+# 2c단계: Communication Services 리소스로 이동 > "도메인" > "도메인 연결"
+#          > 2b단계에서 만든 도메인 선택
+# 2d단계: MailFrom 주소에서 발신자 확인: donotreply@{guid}.azurecomm.net
 
 # 3. 연결 문자열 가져오기
 ACS_CONN=$(az communication list-key --name acs-{name}-email \
@@ -251,6 +343,8 @@ gh label create done --color 1D76DB
 gh label create rejected --color D93F0B
 gh label create error --color B60205
 gh label create pending --color FBCA04
+gh label create cost-alert --color FF6600
+gh label create urgent --color E11D48
 ```
 
 ---
@@ -267,11 +361,14 @@ az staticwebapp create --name swa-{name}-onboard \
   --api-location "/api" \
   --location eastus2
 
-# 2. SWA 환경 변수 설정 (Portal > SWA > Configuration)
-# GITHUB_PAT = (repo + issues 범위의 PAT)
-# GITHUB_REPO = {owner}/eduelden-ai-deploy
-# CLASS_PASSCODE = (GitHub 시크릿과 동일)
-# ADMIN_PASSWORD = (관리자 대시보드 비밀번호)
+# 2. SWA 환경 변수 설정
+az staticwebapp appsettings set --name swa-{name}-onboard \
+  --resource-group rg-{name} \
+  --setting-names \
+    GITHUB_PAT="{your-pat}" \
+    GITHUB_REPO="{owner}/eduelden-ai-deploy" \
+    CLASS_PASSCODE="{your-passcode}" \
+    ADMIN_PASSWORD="{your-admin-password}"
 
 # 3. docs/에 staticwebapp.config.json이 있는지 확인
 cat docs/staticwebapp.config.json
@@ -318,6 +415,20 @@ curl -X POST "https://apim-{name}-ai.azure-api.net/deepseek/chat/completions" \
 
 ---
 
+## 헬퍼 스크립트
+
+| 스크립트 | 용도 | 사용법 |
+|---|---|---|
+| `scripts/deploy-all.sh` | 전체 자동 배포 (Phase 1-7) | `./scripts/deploy-all.sh` |
+| `scripts/01_deploy_foundry.sh` | AI 모델만 배포 | `./scripts/01_deploy_foundry.sh` |
+| `scripts/02_manage_keys.sh` | 학생 APIM 키 관리 | `./scripts/02_manage_keys.sh {create\|export\|list\|disable\|enable\|regenerate}` |
+| `scripts/cost-monitor.sh` | 현재 지출 확인 | `./scripts/cost-monitor.sh` |
+| `scripts/setup-student.ps1` | 학생 PC 자동 설정 | `.\setup-student.ps1 -StudentId 01 -ApiKey "key"` |
+
+모든 bash 스크립트는 프로젝트 루트의 `config.env`를 읽어요. 실행 전에 `config.env.template`을 복사하고 값을 채우세요.
+
+---
+
 ## 문제 해결 빠른 참조
 
 | 증상 | 원인 | 해결 방법 |
@@ -329,3 +440,9 @@ curl -X POST "https://apim-{name}-ai.azure-api.net/deepseek/chat/completions" \
 | PowerShell 스크립트에 깨진 글자 표시 | 한국어 인코딩 문제 | 스크립트는 영문만 사용 |
 | Cline에 빈 설정 표시 | 잘못된 설정 경로 | `settings.json`이 아닌 `~/.cline/data/globalState.json`에 작성 |
 | 이메일이 수신되지 않음 | Exchange 라이선스 문제 | Graph API 대신 ACS Email 사용 |
+| GitHub Actions 워크플로우 트리거 안 됨 | `onboarding` 라벨 누락 또는 워크플로우가 기본 브랜치에 없음 | Issue에 `onboarding` 라벨이 있는지 확인. `.github/workflows/student-onboarding.yml`이 `main` 브랜치에 있고 Actions 탭에서 워크플로우가 활성화되어 있는지 확인 |
+| APIM에서 `SubscriptionNotFound` | 학생 ID 형식 불일치 (01 vs 1) | APIM 구독이 0-패딩된 ID를 사용하는지 확인 (`sub-student-01`). `seq -w 1 50`이 이를 올바르게 처리함 |
+| ACS 이메일 `403 Forbidden` | 이메일 도메인이 ACS 리소스에 연결되지 않음 | Portal > Communication Services > 도메인 > 도메인이 "연결됨" 상태인지 확인 |
+| SWA에서 `502 Bad Gateway` | `GITHUB_PAT`이 설정되지 않았거나 만료됨 | SWA > 구성에서 GITHUB_PAT 확인. PAT에 `repo` 범위가 있고 만료되지 않았는지 확인 |
+| 삭제 후 APIM 재생성 불가 | APIM 일시 삭제 (48시간 보존) | 먼저 제거: `az apim deletedservice purge --service-name apim-{name}-ai --location {region}` |
+| DeepSeek 배포 시 `MarketplaceTermsNotAccepted` | 마켓플레이스 약관 미수락 | Portal에서 약관 수락: AI Foundry > 모델 카탈로그 > DeepSeek > 배포 > 약관 수락 |

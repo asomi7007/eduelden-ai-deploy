@@ -1,0 +1,50 @@
+{
+  "event_name": "AI-Driven Power BI: MCP로 쉽게 만드는 대시보드",
+  "event_code": "powerbi-mcp-20260530",
+  "event_date": "2026-05-30",
+  "instructor": "허석",
+  "student_count": 50,
+  "student_account_domain": "eduelden.kr",
+  "student_id_range": "01-50",
+  "default_password": "Eduelden2025!",
+
+  "apim": {
+    "base_url": "https://apim-eduelden-ai.azure-api.net",
+    "openai_path": "/openai/v1",
+    "default_model": "gpt-54-mini"
+  },
+
+  "software": {
+    "vscode": true,
+    "cline_extension": "saoudrizwan.claude-dev",
+    "powerbi_desktop": true,
+    "nodejs_min_version": "22.0.0"
+  },
+
+  "mcp_servers": {
+    "powerbi": {
+      "package": "@anthropic/mcp-server-powerbi",
+      "description": "Power BI Desktop 제어 (DAX, 모델링, 시각화)"
+    },
+    "playwright": {
+      "package": "@anthropic/mcp-server-playwright",
+      "description": "웹 브라우저 자동화 (디자인 참조, 데이터 수집)"
+    },
+    "filesystem": {
+      "package": "@anthropic/mcp-server-filesystem",
+      "description": "파일 시스템 접근 (실습 파일 읽기/쓰기)",
+      "args_extra": ["D:\\실습"]
+    }
+  },
+
+  "practice_file": {
+    "filename": "실습파일.pbix",
+    "download_url": "https://github.com/asomi7007/eduelden-ai-deploy/raw/main/events/powerbi-mcp-20260530/files/실습파일.pbix",
+    "local_dest": "Desktop"
+  },
+
+  "onboarding": {
+    "email_template": "email-template.html",
+    "setup_script": "setup-powerbi-mcp.ps1"
+  }
+}

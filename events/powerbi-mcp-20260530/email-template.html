@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Power BI MCP Workshop - 사전 안내</title>
+<style>
+  body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f4f4; color: #333; }
+  .container { max-width: 640px; margin: 0 auto; background: #fff; }
+  .header { background: linear-gradient(135deg, #F2C811 0%, #E8A500 100%); padding: 32px 40px; text-align: center; }
+  .header h1 { color: #1a1a1a; font-size: 22px; margin: 0 0 8px 0; }
+  .header p { color: #333; font-size: 14px; margin: 0; }
+  .body-content { padding: 32px 40px; }
+  .section { margin-bottom: 28px; }
+  .section h2 { font-size: 16px; color: #1a1a1a; border-bottom: 2px solid #F2C811; padding-bottom: 6px; margin-bottom: 12px; }
+  .info-box { background: #FFF8E1; border-left: 4px solid #F2C811; padding: 14px 18px; border-radius: 4px; margin: 12px 0; }
+  .info-box strong { color: #1a1a1a; }
+  .step-list { counter-reset: steps; list-style: none; padding: 0; }
+  .step-list li { counter-increment: steps; padding: 10px 0 10px 48px; position: relative; border-bottom: 1px solid #eee; }
+  .step-list li::before { content: counter(steps); position: absolute; left: 0; top: 8px; width: 32px; height: 32px; background: #F2C811; color: #1a1a1a; border-radius: 50%; text-align: center; line-height: 32px; font-weight: bold; font-size: 14px; }
+  .step-list li:last-child { border-bottom: none; }
+  .btn { display: inline-block; background: #F2C811; color: #1a1a1a; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px; margin: 6px 4px; }
+  .btn-outline { background: transparent; border: 2px solid #F2C811; }
+  .code-block { background: #1e1e1e; color: #d4d4d4; padding: 14px 18px; border-radius: 6px; font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 13px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { padding: 6px 0 6px 28px; position: relative; }
+  .checklist li::before { content: "☐"; position: absolute; left: 0; color: #F2C811; font-size: 16px; }
+  .warning { background: #FFF3E0; border-left: 4px solid #FF9800; padding: 12px 16px; border-radius: 4px; margin: 12px 0; font-size: 13px; }
+  .footer { background: #f8f8f8; padding: 20px 40px; text-align: center; font-size: 12px; color: #888; border-top: 1px solid #eee; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+  td { padding: 6px 10px; border: 1px solid #eee; font-size: 13px; }
+  td:first-child { background: #fafafa; font-weight: 600; width: 120px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>AI-Driven Power BI Workshop</h1>
+    <p>MCP로 쉽게 만드는 대시보드 | 2026년 5월 30일</p>
+  </div>
+
+  <div class="body-content">
+
+    <!-- 인사말 -->
+    <div class="section">
+      <p>{{STUDENT_NAME}}님, 안녕하세요!</p>
+      <p>5월 30일 <strong>AI-Driven Power BI Workshop</strong>에 참가해 주셔서 감사합니다.<br>
+         원활한 실습을 위해 <strong>사전 환경 설정</strong>을 안내드립니다.</p>
+    </div>
+
+    <!-- 행사 정보 -->
+    <div class="section">
+      <h2>행사 정보</h2>
+      <table>
+        <tr><td>일시</td><td>2026년 5월 30일 (금)</td></tr>
+        <tr><td>주제</td><td>AI + MCP로 Power BI 대시보드 자동 생성</td></tr>
+        <tr><td>강사</td><td>허석</td></tr>
+        <tr><td>계정</td><td>{{STUDENT_ID}}@eduelden.kr</td></tr>
+      </table>
+    </div>
+
+    <!-- 자동 설치 -->
+    <div class="section">
+      <h2>환경 설정 (자동 설치)</h2>
+      <p>아래 명령어 하나로 모든 소프트웨어가 자동 설치됩니다.</p>
+
+      <div class="info-box">
+        <strong>PowerShell을 관리자 권한으로 실행</strong>한 후 아래 명령어를 복사하여 실행하세요.
+      </div>
+
+      <div class="code-block">irm https://raw.githubusercontent.com/asomi7007/eduelden-ai-deploy/main/events/powerbi-mcp-20260530/setup-powerbi-mcp.ps1 | iex -StudentId "{{STUDENT_NUM}}" -ApiKey "{{API_KEY}}"</div>
+
+      <p style="font-size:13px; color:#666; margin-top:8px;">
+        또는 스크립트를 다운로드해서 직접 실행할 수도 있습니다:
+      </p>
+      <div class="code-block">.\setup-powerbi-mcp.ps1 -StudentId "{{STUDENT_NUM}}" -ApiKey "{{API_KEY}}"</div>
+    </div>
+
+    <!-- 설치되는 것들 -->
+    <div class="section">
+      <h2>자동 설치 항목</h2>
+      <ol class="step-list">
+        <li><strong>VS Code</strong> — 코드 에디터 + AI 에이전트 실행 환경</li>
+        <li><strong>Cline 확장</strong> — VS Code에서 AI 에이전트 구동</li>
+        <li><strong>Node.js 22+</strong> — MCP 서버 실행에 필요</li>
+        <li><strong>Power BI Desktop</strong> — 대시보드 제작 도구</li>
+        <li><strong>MCP 서버 3종</strong>
+          <ul style="font-size:13px; color:#555; margin-top:4px;">
+            <li><strong>Power BI MCP</strong> — AI가 Power BI를 직접 제어</li>
+            <li><strong>Playwright MCP</strong> — AI가 웹 브라우저를 자동화</li>
+            <li><strong>Filesystem MCP</strong> — AI가 실습 파일에 접근</li>
+          </ul>
+        </li>
+        <li><strong>API 연결 설정</strong> — APIM 게이트웨이 + AI 모델 연동</li>
+        <li><strong>실습 파일</strong> — 바탕화면에 실습파일.pbix 다운로드</li>
+        <li><strong>연결 테스트</strong> — AI 응답 확인</li>
+      </ol>
+    </div>
+
+    <!-- 수동 설치 (대안) -->
+    <div class="section">
+      <h2>수동 설치 (자동 설치가 안 될 경우)</h2>
+      <p style="font-size:13px;">자동 설치가 되지 않는 경우, 아래 소프트웨어를 직접 설치해 주세요:</p>
+      <ul style="font-size:13px;">
+        <li><a href="https://code.visualstudio.com/download">VS Code 다운로드</a></li>
+        <li><a href="https://nodejs.org/en/download">Node.js 22 LTS 다운로드</a></li>
+        <li><a href="https://aka.ms/pbidesktopstore">Power BI Desktop (Microsoft Store)</a></li>
+        <li>VS Code에서 Cline 확장 설치: Extensions > "Cline" 검색 > Install</li>
+      </ul>
+    </div>
+
+    <!-- 당일 준비물 -->
+    <div class="section">
+      <h2>당일 준비물 체크리스트</h2>
+      <ul class="checklist">
+        <li>노트북 (Windows 10/11, 64bit)</li>
+        <li>VS Code 설치 완료</li>
+        <li>Cline 확장 설치 완료</li>
+        <li>Node.js 22+ 설치 완료 (터미널에서 <code>node -v</code> 확인)</li>
+        <li>Power BI Desktop 설치 완료</li>
+        <li>실습파일.pbix 바탕화면에 다운로드 완료</li>
+        <li>인터넷 연결 가능</li>
+      </ul>
+    </div>
+
+    <!-- 트러블슈팅 -->
+    <div class="section">
+      <h2>문제 해결</h2>
+
+      <div class="warning">
+        <strong>Power BI Desktop 설치 오류</strong><br>
+        Microsoft Store 접근이 안 되는 경우, winget을 사용하세요:<br>
+        <code>winget install Microsoft.PowerBI</code>
+      </div>
+
+      <div class="warning">
+        <strong>Node.js 버전이 22 미만</strong><br>
+        기존 Node.js를 삭제 후 22 LTS를 설치하거나:<br>
+        <code>winget install OpenJS.NodeJS.LTS</code>
+      </div>
+
+      <div class="warning">
+        <strong>MCP 서버가 Cline에서 안 보임</strong><br>
+        VS Code를 완전히 종료 후 다시 열어 주세요.<br>
+        Cline 사이드바 > MCP Servers 탭에서 3개 서버가 보여야 합니다.
+      </div>
+
+      <div class="warning">
+        <strong>API 연결 테스트 실패</strong><br>
+        APIM이 아직 배포 중일 수 있습니다. 당일 강사가 확인해 드립니다.
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="section" style="text-align:center; padding: 16px 0;">
+      <a href="https://github.com/asomi7007/eduelden-ai-deploy/raw/main/events/powerbi-mcp-20260530/setup-powerbi-mcp.ps1" class="btn">스크립트 다운로드</a>
+      <a href="https://github.com/asomi7007/eduelden-ai-deploy/raw/main/events/powerbi-mcp-20260530/files/%EC%8B%A4%EC%8A%B5%ED%8C%8C%EC%9D%BC.pbix" class="btn btn-outline">실습 파일 다운로드</a>
+    </div>
+
+    <!-- 문의 -->
+    <div class="section">
+      <p style="font-size:13px; color:#666;">
+        설치 관련 문의: <a href="mailto:admin@eldensoluton.kr">admin@eldensoluton.kr</a><br>
+        설치가 어려우시면 당일 행사장에서 도움을 드리겠습니다.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>AI-Driven Power BI Workshop | 2026-05-30</p>
+    <p>Eduelden AI Lab</p>
+  </div>
+
+</div>
+
+</body>
+</html>

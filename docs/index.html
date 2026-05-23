@@ -118,11 +118,25 @@
     border: 1px solid var(--gray-200);
     background: #fff;
     color: var(--gray-700);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .slot:hover:not(.taken) {
+    border-color: var(--success);
+    background: #f0fdf4;
   }
   .slot.taken {
     background: var(--primary-light);
     color: var(--primary);
     border-color: #93bbfd;
+    cursor: not-allowed;
+  }
+  .slot.selected {
+    background: var(--success-light);
+    color: var(--success);
+    border-color: var(--success);
+    box-shadow: 0 0 0 2px rgba(5,150,105,0.3);
   }
 
   .spinner {
@@ -195,6 +209,41 @@
   }
   .hidden { display: none !important; }
 
+  .qr-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .qr-box {
+    background: #fff;
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    line-height: 0;
+  }
+  .qr-info {
+    text-align: left;
+    min-width: 180px;
+  }
+  .qr-info .qr-label {
+    font-size: 0.78rem;
+    color: var(--gray-500);
+    margin-bottom: 4px;
+  }
+  .qr-info .qr-url {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gray-900);
+    word-break: break-all;
+  }
+  .qr-info .qr-hint {
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    margin-top: 4px;
+  }
+
   @media (max-width: 480px) {
     .slot-grid { grid-template-columns: repeat(5, 1fr); }
     .container { padding: 12px 8px; }
@@ -205,9 +254,23 @@
 
 <div class="container">
   <header>
-    <h1>🚀 Azure AI Foundry 바이브코딩 실습</h1>
-    <p>온보딩 신청 페이지 — 학생 번호와 이메일을 입력하면 API 키가 발송됩니다</p>
+    <h1 id="pageTitle">🚀 Azure AI Foundry 바이브코딩 실습</h1>
+    <p id="pageSubtitle">온보딩 신청 페이지 — 학생 번호와 이메일을 입력하면 API 키가 발송됩니다</p>
   </header>
+
+  <!-- QR Code -->
+  <div class="card">
+    <div class="qr-card">
+      <div class="qr-box">
+        <canvas id="qrCanvas" width="140" height="140"></canvas>
+      </div>
+      <div class="qr-info">
+        <div class="qr-label">이 페이지 주소</div>
+        <div class="qr-url" id="pageUrl"></div>
+        <div class="qr-hint">스마트폰으로 QR을 스캔하면 이 페이지가 열립니다</div>
+      </div>
+    </div>
+  </div>
 
   <div class="tabs">
     <div class="tab active" onclick="switchTab('student')">🎓 학생 온보딩</div>
@@ -227,7 +290,7 @@
       </p>
       <div id="slotGrid" class="slot-grid"></div>
       <p style="font-size:0.78rem;color:var(--gray-500);margin-top:4px">
-        ⬜ 빈 자리 &nbsp; 🟦 사용 중
+        ⬜ 빈 자리 &nbsp; 🟩 내 선택 &nbsp; 🟦 사용 중
       </p>
     </div>
 
@@ -239,10 +302,11 @@
         <input type="password" id="inputPasscode" placeholder="패스코드 입력" autocomplete="off">
       </div>
       <div class="field">
-        <label>학생 번호 <span class="hint">(01~50)</span></label>
-        <select id="inputStudentId">
-          <option value="">번호 선택...</option>
-        </select>
+        <label>학생 번호 <span class="hint">(위 현황판에서 빈 자리를 클릭하세요)</span></label>
+        <div id="selectedSlotDisplay" style="padding:10px 14px;border:1px solid var(--gray-300);border-radius:8px;font-size:0.95rem;color:var(--gray-500);background:var(--gray-50)">
+          아직 선택하지 않았습니다
+        </div>
+        <input type="hidden" id="inputStudentId" value="">
       </div>
       <div class="field">
         <label>이메일 <span class="hint">(API 키를 받을 이메일 주소)</span></label>
@@ -294,6 +358,7 @@
       <div class="card">
         <h2>📊 관리자 대시보드
           <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="adminRefresh()">새로고침</button>
+          <button class="btn btn-danger btn-sm" onclick="adminResetAll()">전체 초기화</button>
           <button class="btn btn-outline btn-sm" onclick="adminLogout()">로그아웃</button>
         </h2>
         <p style="font-size:0.88rem;color:var(--gray-500);margin-bottom:12px">
@@ -328,23 +393,64 @@ const API_BASE = window.ONBOARD_API_BASE || '/api';
 
 let slotsData = {};
 let adminPw = '';
+let selectedSlot = '';
 
 // ============================================================
 // INIT
 // ============================================================
 window.addEventListener('DOMContentLoaded', () => {
-  const selects = [document.getElementById('inputStudentId'), document.getElementById('cancelStudentId')];
+  // Cancel dropdown (학생 드롭다운은 슬롯 클릭으로 대체됨)
+  const cancelSel = document.getElementById('cancelStudentId');
   for (let i = 1; i <= 50; i++) {
     const val = String(i).padStart(2, '0');
-    selects.forEach(sel => {
-      const opt = document.createElement('option');
-      opt.value = val;
-      opt.textContent = `${val}번`;
-      sel.appendChild(opt);
-    });
+    const opt = document.createElement('option');
+    opt.value = val;
+    opt.textContent = `${val}번`;
+    cancelSel.appendChild(opt);
   }
+
+  // URL 파라미터로 제목 동적 변경
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('title')) {
+    document.getElementById('pageTitle').textContent = params.get('title');
+  }
+  if (params.get('subtitle')) {
+    document.getElementById('pageSubtitle').textContent = params.get('subtitle');
+  }
+  if (params.get('event')) {
+    document.title = params.get('event') + ' - 온보딩';
+  }
+
   refreshSlots();
+  generateQR();
 });
+
+// ============================================================
+// QR CODE
+// ============================================================
+function generateQR() {
+  const url = window.location.href;
+  document.getElementById('pageUrl').textContent = url;
+  const canvas = document.getElementById('qrCanvas');
+  const size = 140;
+  canvas.width = size;
+  canvas.height = size;
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = function() {
+    canvas.getContext('2d').drawImage(img, 0, 0, size, size);
+  };
+  img.onerror = function() {
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#f3f4f6';
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#6b7280';
+    ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('QR 로딩 실패', size/2, size/2);
+  };
+  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&margin=8`;
+}
 
 // ============================================================
 // API HELPER
@@ -379,28 +485,67 @@ async function refreshSlots() {
       div.textContent = id;
       if (slotsData[id]) {
         div.classList.add('taken');
-        div.title = `${id}번: ${slotsData[id].email || ''} (${slotsData[id].status})`;
+        div.title = `${id}번: 사용 중`;
         count++;
+      } else {
+        div.title = `${id}번: 빈 자리 (클릭하여 선택)`;
+        div.addEventListener('click', () => selectSlot(id));
+      }
+      // 이전에 선택한 슬롯 복원
+      if (id === selectedSlot && !slotsData[id]) {
+        div.classList.add('selected');
+        div.textContent = `${id} ✓`;
       }
       grid.appendChild(div);
     }
     document.getElementById('slotCount').textContent = count;
 
-    // Update student select
-    const sel = document.getElementById('inputStudentId');
-    Array.from(sel.options).forEach(opt => {
-      if (opt.value && slotsData[opt.value]) {
-        opt.disabled = true;
-        opt.textContent = `${opt.value}번 (사용 중)`;
-      } else if (opt.value) {
-        opt.disabled = false;
-        opt.textContent = `${opt.value}번`;
-      }
-    });
-
   } catch (e) {
     grid.innerHTML = `<p style="grid-column:1/-1;color:var(--danger);font-size:0.85rem">서버 연결 실패: ${e.message}</p>`;
   }
+}
+
+// ============================================================
+// SLOT SELECTION (그리드에서 직접 클릭)
+// ============================================================
+function selectSlot(id) {
+  // 이미 사용 중인 슬롯은 선택 불가
+  if (slotsData[id]) return;
+
+  // 이전 선택 해제
+  document.querySelectorAll('.slot.selected').forEach(el => {
+    el.classList.remove('selected');
+    el.textContent = el.textContent.replace(' ✓', '');
+  });
+
+  // 같은 슬롯 다시 클릭하면 선택 해제
+  if (selectedSlot === id) {
+    selectedSlot = '';
+    document.getElementById('inputStudentId').value = '';
+    document.getElementById('selectedSlotDisplay').innerHTML =
+      '<span style="color:var(--gray-500)">아직 선택하지 않았습니다</span>';
+    return;
+  }
+
+  // 새 슬롯 선택
+  selectedSlot = id;
+  document.getElementById('inputStudentId').value = id;
+
+  // 그리드에서 선택 표시
+  const slots = document.querySelectorAll('.slot');
+  slots.forEach(el => {
+    if (el.textContent.replace(' ✓', '') === id) {
+      el.classList.add('selected');
+      el.textContent = `${id} ✓`;
+    }
+  });
+
+  // 선택 표시 업데이트
+  document.getElementById('selectedSlotDisplay').innerHTML =
+    `<span style="color:var(--success);font-weight:700">✅ ${id}번 선택됨</span>`;
+
+  // 학생 패널로 스크롤 (현황판에서 선택 후)
+  document.getElementById('inputPasscode').focus();
 }
 
 // ============================================================
@@ -460,6 +605,9 @@ async function submitOnboarding() {
     document.getElementById('inputPasscode').value = '';
     document.getElementById('inputStudentId').value = '';
     document.getElementById('inputEmail').value = '';
+    selectedSlot = '';
+    document.getElementById('selectedSlotDisplay').innerHTML =
+      '<span style="color:var(--gray-500)">아직 선택하지 않았습니다</span>';
     setTimeout(refreshSlots, 3000);
 
   } catch (e) {
@@ -566,6 +714,24 @@ async function adminRefresh() {
       <td>${cancelBtn}</td>
     </tr>`;
   }).join('');
+}
+
+async function adminResetAll() {
+  if (!confirm('⚠️ 전체 초기화: 모든 온보딩 신청이 취소됩니다.\n\n정말 실행하시겠습니까?')) return;
+  if (!confirm('🔴 최종 확인: 이 작업은 되돌릴 수 없습니다.\n모든 학생의 신청이 초기화됩니다.\n\n계속하시겠습니까?')) return;
+
+  try {
+    showAlert('alertGlobal', 'warning', '⏳ 전체 초기화 진행 중... 잠시 기다려주세요.');
+    const result = await apiFetch('/reset', {
+      method: 'POST',
+      body: JSON.stringify({ adminPw, confirm: 'RESET_ALL' })
+    });
+    showAlert('alertGlobal', 'success', `✅ ${result.message}`);
+    adminRefresh();
+    refreshSlots();
+  } catch (e) {
+    showAlert('alertGlobal', 'error', `❌ 초기화 실패: ${e.message}`);
+  }
 }
 
 async function adminCancel(studentId) {

@@ -13,6 +13,7 @@ on:
           - regenerate-all
           - disable-student
           - enable-student
+          - regenerate-student
       student_id:
         description: 'Student ID (for single student actions, e.g., 01)'
         required: false
@@ -38,8 +39,8 @@ jobs:
 
       - name: Execute key management
         run: |
-          RG="rg-powerplatform-billing"
-          APIM="apim-eduelden-ai"
+          RG="${{ vars.RG_NAME || 'rg-powerplatform-billing' }}"
+          APIM="${{ vars.APIM_NAME || 'apim-eduelden-ai' }}"
           ACTION="${{ github.event.inputs.action }}"
           SID="${{ github.event.inputs.student_id }}"
 
@@ -74,5 +75,12 @@ jobs:
               [ -z "$SID" ] && echo "Student ID required" && exit 1
               az apim subscription update --resource-group "$RG" --service-name "$APIM" \
                 --subscription-id "sub-student-$SID" --state active
+              ;;
+            regenerate-student)
+              [ -z "$SID" ] && echo "Student ID required" && exit 1
+              az apim subscription keys regenerate-primary-key --resource-group "$RG" \
+                --service-name "$APIM" --subscription-id "sub-student-$SID" --output none
+              echo "Regenerated key for sub-student-$SID"
+              echo "⚠️ Student must receive the new key. Run the onboarding workflow or manually send the key."
               ;;
           esac

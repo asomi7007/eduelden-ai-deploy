@@ -44,13 +44,17 @@ GitHub Actions 워크플로우:
   - 수동 설정 안내
 ```
 
+> **참고**: GitHub Free 플랜은 동시 워크플로우 작업 20개를 허용해요. 50명의 학생이 
+> 동시에 신청하면 일부는 대기열에 들어가요 (2-5분 지연). 10명씩 그룹으로 나눠서 
+> 신청하도록 안내하는 것을 권장해요.
+
 ### 1.3 키 관리
 
 #### 학생 키 회전
 ```bash
 # GitHub Actions를 통해
 # Actions > key-management.yml > Run workflow
-# 입력: student ID, action: rotate
+# 입력: student ID, action: regenerate-student
 
 # CLI를 통해
 az rest --method POST \
@@ -106,6 +110,10 @@ curl -X POST "https://{swa-url}/api/cancel" \
 3. APIM 인스턴스 삭제 (~$50/월 비용 중단)
 4. 선택적으로 전체 리소스 그룹 삭제
 
+> **경고**: APIM 삭제 후 48시간 동안 일시 삭제(soft-delete) 상태로 유지돼요. 
+> 이 기간 동안 같은 이름으로 APIM을 다시 만들 수 없어요.
+> 즉시 제거하려면: `az apim deletedservice purge --service-name apim-{name}-ai --location {region}`
+
 ---
 
 ## 파트 2: 학생 가이드
@@ -121,6 +129,11 @@ curl -X POST "https://{swa-url}/api/cancel" \
 6. 이메일을 확인하세요 (스팸 폴더도 확인해 주세요)
 
 #### 2단계: 설정 스크립트 다운로드 및 실행
+
+> **중요**: VS Code가 아직 설치되어 있지 않다면 PowerShell을 **관리자 권한**으로 
+> 실행하세요 (PowerShell 우클릭 > "관리자 권한으로 실행"). VS Code가 이미 설치되어 
+> 있다면 일반 사용자 권한으로 충분해요.
+
 PowerShell을 열고 아래 명령어를 붙여넣으세요:
 ```powershell
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/{owner}/{repo}/main/scripts/setup-student.ps1" -OutFile setup-student.ps1
@@ -171,9 +184,9 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 
 | 모델 | Base URL | Model ID | 적합한 용도 |
 |---|---|---|---|
-| **GPT-5.4-mini** (기본) | `.../openai/v1` | `gpt-54-mini` | 일반 코딩, 빠른 응답 |
-| **GPT-5.5** | `.../openai/v1` | `gpt-55` | 복잡한 작업, 높은 품질 |
-| **DeepSeek V4** | `.../deepseek/v1` | `deepseek-v4-flash` | 다른 관점의 답변 |
+| **GPT-5.4-mini** (기본) | `https://apim-{name}-ai.azure-api.net/openai/v1` | `gpt-54-mini` | 일반 코딩, 빠른 응답 |
+| **GPT-5.5** | `https://apim-{name}-ai.azure-api.net/openai/v1` | `gpt-55` | 복잡한 작업, 높은 품질 |
+| **DeepSeek V4** | `https://apim-{name}-ai.azure-api.net/deepseek/v1` | `deepseek-v4-flash` | 다른 관점의 답변 |
 
 > **중요**: GPT와 DeepSeek는 **다른 Base URL**을 사용해요 (`/openai/v1` vs `/deepseek/v1`). DeepSeek로 전환할 때 Base URL도 꼭 변경하세요.
 
@@ -197,6 +210,9 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 | Cline이 응답하지 않음 | 인터넷 연결을 확인하세요. Retry 버튼을 클릭해 보세요. |
 | 스크립트가 실행되지 않음 | 먼저 `Set-ExecutionPolicy Bypass -Scope Process -Force`를 실행하세요 |
 | 설치 후 VS Code를 찾을 수 없음 | PowerShell을 닫고 다시 열어서 PATH를 갱신하세요 |
+| Cline이 설정을 읽지 못함 | 설정 파일의 UTF-8 BOM 문제. 다시 저장: `[IO.File]::WriteAllText("$env:USERPROFILE\.cline\data\globalState.json", (Get-Content ... -Raw), [Text.UTF8Encoding]::new($false))` |
+| DeepSeek 첫 요청이 매우 느림 | 서버리스 콜드 스타트 (10-30초). 첫 요청에서 정상적인 현상이에요. 기다린 후 재시도하세요. Cline 타임아웃을 60초 이상으로 설정하세요 |
+| 온보딩 완료된 학생을 취소함 | 취소는 Issue만 닫고 APIM 키는 비활성화하지 않아요. key-management 워크플로우에서 `disable-student` 액션을 실행하여 키도 비활성화하세요 |
 
 ---
 
@@ -224,7 +240,7 @@ Azure OpenAI / DeepSeek (AI 모델)
 |---|---|---|
 | 수업 패스코드 | 학생 온보딩 폼 | GitHub Secret + SWA 환경 변수 |
 | 관리자 비밀번호 | 관리자 대시보드 | SWA 환경 변수 |
-| GitHub PAT | SWA API → GitHub Issues | SWA 환경 변수 |
+| GitHub PAT | SWA API → GitHub Issues | SWA 환경 변수. 필요한 범위: `repo` (또는 세분화: Issues R/W + Contents R) |
 | AZURE_CREDENTIALS | GitHub Actions → Azure | GitHub Secret |
 | ACS_CONNECTION_STRING | GitHub Actions → 이메일 | GitHub Secret |
 | ACS_SENDER_ADDRESS | 이메일 발신 주소 | GitHub Secret |

@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-Driven Power BI Workshop - Setup</title>
+<style>
+  :root {
+    --pbi-yellow: #F2C811;
+    --pbi-dark: #1a1a1a;
+    --pbi-gray: #333;
+    --bg: #f8f9fa;
+    --card-bg: #fff;
+    --success: #059669;
+    --success-bg: #d1fae5;
+    --warning: #d97706;
+    --warning-bg: #fef3c7;
+    --danger: #dc2626;
+    --danger-bg: #fee2e2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Pretendard', 'Segoe UI', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--pbi-gray);
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .hero {
+    background: linear-gradient(135deg, #F2C811 0%, #E8A500 50%, #D4960A 100%);
+    padding: 48px 24px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -40%; right: -20%;
+    width: 500px; height: 500px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 50%;
+  }
+  .hero h1 {
+    font-size: 28px;
+    color: var(--pbi-dark);
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .hero p {
+    color: #444;
+    font-size: 15px;
+    position: relative;
+  }
+  .hero .badge {
+    display: inline-block;
+    background: rgba(0,0,0,0.12);
+    color: var(--pbi-dark);
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    margin-top: 12px;
+    position: relative;
+  }
+
+  /* QR Section */
+  .qr-section {
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 24px 16px;
+    text-align: center;
+  }
+  .qr-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .qr-box {
+    background: #fff;
+    padding: 12px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: inline-block;
+  }
+  .qr-box canvas { display: block; }
+  .qr-text {
+    text-align: left;
+    max-width: 320px;
+  }
+  .qr-text .label {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 4px;
+  }
+  .qr-text .url {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--pbi-dark);
+    word-break: break-all;
+  }
+  .qr-text .hint {
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 6px;
+  }
+
+  /* Container */
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    border: 1px solid #e5e7eb;
+  }
+  .card h2 {
+    font-size: 18px;
+    color: var(--pbi-dark);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--pbi-yellow);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Setup Form */
+  .form-group {
+    margin-bottom: 16px;
+  }
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 6px;
+  }
+  .form-group input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 15px;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus {
+    outline: none;
+    border-color: var(--pbi-yellow);
+    box-shadow: 0 0 0 3px rgba(242,200,17,0.2);
+  }
+
+  /* Command Box */
+  .cmd-box {
+    background: #1e1e1e;
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin: 12px 0;
+    position: relative;
+    overflow-x: auto;
+  }
+  .cmd-box code {
+    color: #d4d4d4;
+    font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.6;
+  }
+  .cmd-box .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #3c3c3c;
+    color: #ccc;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .cmd-box .copy-btn:hover {
+    background: #555;
+    color: #fff;
+  }
+
+  /* Steps */
+  .steps {
+    counter-reset: step-counter;
+    list-style: none;
+    padding: 0;
+  }
+  .steps li {
+    counter-increment: step-counter;
+    padding: 14px 0 14px 52px;
+    position: relative;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .steps li:last-child { border-bottom: none; }
+  .steps li::before {
+    content: counter(step-counter);
+    position: absolute;
+    left: 0; top: 12px;
+    width: 36px; height: 36px;
+    background: var(--pbi-yellow);
+    color: var(--pbi-dark);
+    border-radius: 50%;
+    text-align: center;
+    line-height: 36px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .steps li strong { color: var(--pbi-dark); }
+  .steps li .desc { font-size: 13px; color: #666; margin-top: 2px; }
+
+  /* Status indicator */
+  .status {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .status-ready { background: var(--success-bg); color: var(--success); }
+  .status-wait { background: var(--warning-bg); color: var(--warning); }
+
+  /* Buttons */
+  .btn {
+    display: inline-block;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+  .btn-primary {
+    background: var(--pbi-yellow);
+    color: var(--pbi-dark);
+  }
+  .btn-primary:hover {
+    background: #e0b800;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(242,200,17,0.3);
+  }
+  .btn-outline {
+    background: transparent;
+    color: var(--pbi-dark);
+    border: 2px solid var(--pbi-yellow);
+  }
+  .btn-outline:hover {
+    background: rgba(242,200,17,0.1);
+  }
+  .btn-group {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  /* Checklist */
+  .checklist { list-style: none; padding: 0; }
+  .checklist li {
+    padding: 8px 0 8px 32px;
+    position: relative;
+    font-size: 14px;
+  }
+  .checklist li::before {
+    content: '';
+    position: absolute;
+    left: 4px; top: 10px;
+    width: 18px; height: 18px;
+    border: 2px solid #d1d5db;
+    border-radius: 4px;
+  }
+  .checklist li.checked::before {
+    background: var(--success);
+    border-color: var(--success);
+    content: '\2713';
+    color: #fff;
+    font-size: 12px;
+    text-align: center;
+    line-height: 18px;
+  }
+
+  /* Alert boxes */
+  .alert {
+    padding: 14px 16px;
+    border-radius: 8px;
+    margin: 12px 0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .alert-warning {
+    background: var(--warning-bg);
+    border-left: 4px solid var(--warning);
+  }
+  .alert-info {
+    background: #e0f2fe;
+    border-left: 4px solid #0284c7;
+  }
+
+  /* MCP cards */
+  .mcp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .mcp-item {
+    background: #fafafa;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 14px;
+    text-align: center;
+  }
+  .mcp-item .icon { font-size: 28px; margin-bottom: 6px; }
+  .mcp-item .name { font-weight: 700; font-size: 14px; color: var(--pbi-dark); }
+  .mcp-item .pkg { font-size: 11px; color: #888; font-family: monospace; margin-top: 4px; }
+  .mcp-item .use { font-size: 12px; color: #666; margin-top: 6px; }
+
+  /* Accordion */
+  details {
+    margin: 8px 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  details summary {
+    padding: 12px 16px;
+    background: #fafafa;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  details summary::before {
+    content: '\25B6';
+    font-size: 10px;
+    transition: transform 0.2s;
+  }
+  details[open] summary::before {
+    transform: rotate(90deg);
+  }
+  details .detail-body {
+    padding: 14px 16px;
+    font-size: 13px;
+    line-height: 1.6;
+    background: #fff;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 24px;
+    color: #999;
+    font-size: 12px;
+  }
+
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 22px; }
+    .container { padding: 16px 12px 40px; }
+    .card { padding: 18px; }
+    .btn-group { flex-direction: column; }
+    .mcp-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <h1>AI-Driven Power BI Workshop</h1>
+  <p>MCP로 쉽게 만드는 대시보드</p>
+  <div class="badge">2026년 5월 30일 (금)</div>
+</div>
+
+<!-- QR Code -->
+<div class="qr-section">
+  <div class="qr-wrap">
+    <div class="qr-box">
+      <canvas id="qrCanvas"></canvas>
+    </div>
+    <div class="qr-text">
+      <div class="label">이 페이지 주소</div>
+      <div class="url" id="pageUrl"></div>
+      <div class="hint">스마트폰으로 QR을 스캔하면 이 페이지가 열립니다</div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- 안내 -->
+  <div class="card">
+    <h2>환영합니다!</h2>
+    <p>이 워크숍에서는 <strong>AI가 Power BI를 직접 제어</strong>하여 대시보드를 자동으로 만드는 방법을 배웁니다.</p>
+    <p style="margin-top:8px; font-size:14px; color:#666;">아래 가이드에 따라 <strong>사전 환경 설정</strong>을 완료해 주세요. 약 5~10분 소요됩니다.</p>
+  </div>
+
+  <!-- 자동 설치 -->
+  <div class="card">
+    <h2>자동 설치</h2>
+
+    <div class="form-group">
+      <label>학생 번호 (01~50)</label>
+      <input type="text" id="studentId" placeholder="예: 01" maxlength="2" pattern="\d{2}">
+    </div>
+    <div class="form-group">
+      <label>API Key (이메일로 받은 키)</label>
+      <input type="text" id="apiKey" placeholder="이메일에서 받은 API Key를 입력하세요">
+    </div>
+
+    <div class="alert alert-info">
+      <strong>PowerShell을 관리자 권한으로 실행</strong>한 후, 아래 명령어를 복사하여 붙여넣으세요.
+    </div>
+
+    <div class="cmd-box">
+      <button class="copy-btn" onclick="copyCommand()">복사</button>
+      <code id="cmdOutput">.\setup-powerbi-mcp.ps1 -StudentId "<span class="sid-placeholder">01</span>" -ApiKey "<span class="key-placeholder">YOUR_KEY</span>"</code>
+    </div>
+
+    <p style="font-size:12px; color:#888; margin-top:8px;">스크립트를 먼저 다운로드한 후 실행하세요.</p>
+
+    <div class="btn-group">
+      <a href="https://github.com/asomi7007/eduelden-ai-deploy/raw/main/events/powerbi-mcp-20260530/setup-powerbi-mcp.ps1" class="btn btn-primary" download>스크립트 다운로드</a>
+      <a href="https://github.com/asomi7007/eduelden-ai-deploy/raw/main/events/powerbi-mcp-20260530/files/%EC%8B%A4%EC%8A%B5%ED%8C%8C%EC%9D%BC.pbix" class="btn btn-outline" download>실습 파일 다운로드</a>
+    </div>
+  </div>
+
+  <!-- 설치 항목 -->
+  <div class="card">
+    <h2>자동 설치 항목</h2>
+    <ol class="steps">
+      <li>
+        <strong>VS Code</strong>
+        <div class="desc">코드 에디터 + AI 에이전트 실행 환경</div>
+      </li>
+      <li>
+        <strong>Cline 확장</strong>
+        <div class="desc">VS Code에서 AI 에이전트를 구동하는 확장</div>
+      </li>
+      <li>
+        <strong>Node.js 22+</strong>
+        <div class="desc">MCP 서버 실행에 필요한 런타임</div>
+      </li>
+      <li>
+        <strong>Power BI Desktop</strong>
+        <div class="desc">대시보드 제작 도구 (winget으로 설치)</div>
+      </li>
+      <li>
+        <strong>MCP 서버 3종 + API 연결</strong>
+        <div class="desc">Cline에 MCP 서버와 AI 모델 자동 구성</div>
+      </li>
+      <li>
+        <strong>실습 파일</strong>
+        <div class="desc">바탕화면에 실습파일.pbix 다운로드</div>
+      </li>
+    </ol>
+  </div>
+
+  <!-- MCP 서버 -->
+  <div class="card">
+    <h2>MCP 서버</h2>
+    <p style="font-size:14px; color:#666; margin-bottom:12px;">AI가 사용하는 도구 서버 3종이 자동 구성됩니다.</p>
+    <div class="mcp-grid">
+      <div class="mcp-item">
+        <div class="icon">📊</div>
+        <div class="name">Power BI</div>
+        <div class="pkg">@anthropic/mcp-server-powerbi</div>
+        <div class="use">AI가 Power BI Desktop을 직접 제어</div>
+      </div>
+      <div class="mcp-item">
+        <div class="icon">🌐</div>
+        <div class="name">Playwright</div>
+        <div class="pkg">@anthropic/mcp-server-playwright</div>
+        <div class="use">웹 브라우저 자동화 (디자인 참조)</div>
+      </div>
+      <div class="mcp-item">
+        <div class="icon">📁</div>
+        <div class="name">Filesystem</div>
+        <div class="pkg">@anthropic/mcp-server-filesystem</div>
+        <div class="use">실습 파일 읽기/쓰기</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 당일 체크리스트 -->
+  <div class="card">
+    <h2>당일 준비물 체크리스트</h2>
+    <ul class="checklist" id="checklist">
+      <li onclick="this.classList.toggle('checked')">노트북 (Windows 10/11, 64bit)</li>
+      <li onclick="this.classList.toggle('checked')">VS Code 설치 완료</li>
+      <li onclick="this.classList.toggle('checked')">Cline 확장 설치 완료</li>
+      <li onclick="this.classList.toggle('checked')">Node.js 22+ 설치 완료 (<code>node -v</code>로 확인)</li>
+      <li onclick="this.classList.toggle('checked')">Power BI Desktop 설치 완료</li>
+      <li onclick="this.classList.toggle('checked')">실습파일.pbix 바탕화면에 다운로드 완료</li>
+      <li onclick="this.classList.toggle('checked')">인터넷 연결 가능</li>
+    </ul>
+  </div>
+
+  <!-- 수동 설치 -->
+  <div class="card">
+    <h2>수동 설치 (자동 설치 실패 시)</h2>
+
+    <details>
+      <summary>VS Code 수동 설치</summary>
+      <div class="detail-body">
+        <a href="https://code.visualstudio.com/download" target="_blank">https://code.visualstudio.com/download</a> 에서 Windows 64bit 버전을 다운로드하여 설치합니다.
+      </div>
+    </details>
+
+    <details>
+      <summary>Cline 확장 수동 설치</summary>
+      <div class="detail-body">
+        VS Code 실행 &rarr; 왼쪽 Extensions 아이콘 클릭 &rarr; "Cline" 검색 &rarr; Install 클릭
+      </div>
+    </details>
+
+    <details>
+      <summary>Node.js 22 수동 설치</summary>
+      <div class="detail-body">
+        <a href="https://nodejs.org/en/download" target="_blank">https://nodejs.org/en/download</a> 에서 22 LTS 버전을 다운로드하여 설치합니다.<br>
+        설치 후 터미널에서 <code>node -v</code>를 입력하여 v22 이상인지 확인합니다.
+      </div>
+    </details>
+
+    <details>
+      <summary>Power BI Desktop 수동 설치</summary>
+      <div class="detail-body">
+        <strong>방법 1:</strong> Microsoft Store에서 "Power BI Desktop" 검색하여 설치<br>
+        <strong>방법 2:</strong> <a href="https://aka.ms/pbidesktopstore" target="_blank">https://aka.ms/pbidesktopstore</a><br>
+        <strong>방법 3:</strong> 터미널에서 <code>winget install Microsoft.PowerBI</code>
+      </div>
+    </details>
+
+    <details>
+      <summary>MCP 서버 수동 구성</summary>
+      <div class="detail-body">
+        Cline 사이드바 &rarr; MCP Servers 탭 &rarr; 각 서버 추가:
+        <div class="cmd-box" style="margin-top:8px;">
+          <code>{
+  "mcpServers": {
+    "powerbi": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-powerbi"]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-playwright"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-server-filesystem", "C:\\Users\\사용자\\Desktop"]
+    }
+  }
+}</code>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <!-- 트러블슈팅 -->
+  <div class="card">
+    <h2>문제 해결</h2>
+
+    <div class="alert alert-warning">
+      <strong>Power BI Desktop 설치 실패</strong><br>
+      Microsoft Store 접근이 안 되면: <code>winget install Microsoft.PowerBI</code>
+    </div>
+
+    <div class="alert alert-warning">
+      <strong>Node.js 버전이 22 미만</strong><br>
+      기존 버전 삭제 후 다시 설치: <code>winget install OpenJS.NodeJS.LTS</code>
+    </div>
+
+    <div class="alert alert-warning">
+      <strong>MCP 서버가 Cline에서 안 보임</strong><br>
+      VS Code를 완전히 종료(Ctrl+Shift+P &rarr; "Close Window") 후 다시 열어주세요.<br>
+      Cline 사이드바 &gt; MCP Servers 탭에서 3개 서버가 보여야 합니다.
+    </div>
+
+    <div class="alert alert-warning">
+      <strong>API 연결 테스트 실패</strong><br>
+      APIM이 아직 배포 중일 수 있습니다. 당일 강사가 확인해 드립니다.
+    </div>
+
+    <div class="alert alert-warning">
+      <strong>스크립트 실행이 차단됨</strong><br>
+      PowerShell에서 먼저 실행: <code>Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned</code>
+    </div>
+  </div>
+
+  <!-- 문의 -->
+  <div class="card" style="text-align:center;">
+    <p>설치 관련 문의: <a href="mailto:admin@eldensoluton.kr">admin@eldensoluton.kr</a></p>
+    <p style="font-size:13px; color:#888; margin-top:6px;">설치가 어려우시면 당일 행사장에서 도움을 드리겠습니다.</p>
+  </div>
+
+</div>
+
+<div class="footer">
+  AI-Driven Power BI Workshop | 2026-05-30 | Eduelden AI Lab
+</div>
+
+<script>
+  // ─── QR Code Generator (lightweight, no external dependency) ───
+  // Minimal QR encoder — supports alphanumeric URLs up to ~120 chars
+  const QRCode = (function() {
+    // Using a CDN-free approach: draw QR via Google Charts API as image
+    function generate(text, canvas, size) {
+      size = size || 160;
+      canvas.width = size;
+      canvas.height = size;
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = function() {
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, size, size);
+      };
+      img.onerror = function() {
+        // Fallback: show URL text if image fails
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#f0f0f0';
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = '#333';
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('QR loading failed', size/2, size/2);
+      };
+      img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}&margin=8`;
+    }
+    return { generate };
+  })();
+
+  // Generate QR on load
+  const pageUrl = window.location.href;
+  document.getElementById('pageUrl').textContent = pageUrl;
+  QRCode.generate(pageUrl, document.getElementById('qrCanvas'), 160);
+
+  // Live-update command with student inputs
+  const sidInput = document.getElementById('studentId');
+  const keyInput = document.getElementById('apiKey');
+
+  function updateCommand() {
+    const sid = sidInput.value || '01';
+    const key = keyInput.value || 'YOUR_KEY';
+    document.getElementById('cmdOutput').innerHTML =
+      `.\\setup-powerbi-mcp.ps1 -StudentId "${sid}" -ApiKey "${key}"`;
+  }
+
+  sidInput.addEventListener('input', updateCommand);
+  keyInput.addEventListener('input', updateCommand);
+
+  // Copy command
+  function copyCommand() {
+    const cmd = document.getElementById('cmdOutput').textContent;
+    navigator.clipboard.writeText(cmd).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = '복사됨!';
+      setTimeout(() => btn.textContent = '복사', 1500);
+    });
+  }
+</script>
+
+</body>
+</html>

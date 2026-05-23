@@ -27,9 +27,9 @@ jobs:
       - name: Check budget status
         id: budget
         run: |
-          RG="rg-powerplatform-billing"
+          RG="${{ vars.RG_NAME || 'rg-powerplatform-billing' }}"
           BUDGET=$(az consumption budget show \
-            --budget-name eduelden-ai-budget \
+            --budget-name "${{ vars.BUDGET_NAME || 'eduelden-ai-budget' }}" \
             --resource-group "$RG" \
             --output json 2>/dev/null || echo '{"amount":800}')
 
@@ -44,7 +44,7 @@ jobs:
           echo "percent=$PERCENT" >> "$GITHUB_OUTPUT"
 
           DEPLOYMENTS=$(az cognitiveservices account deployment list \
-            --name eduelden-ai-resource --resource-group "$RG" \
+            --name "${{ vars.AI_RESOURCE_NAME || 'eduelden-ai-resource' }}" --resource-group "$RG" \
             --query "[].{name:name,model:properties.model.name,state:properties.provisioningState}" \
             --output json)
           echo "deployments<<EOF" >> "$GITHUB_OUTPUT"

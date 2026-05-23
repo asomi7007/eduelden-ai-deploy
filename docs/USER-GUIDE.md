@@ -44,13 +44,17 @@ Student receives email with:
   - Manual setup instructions
 ```
 
+> **Note**: GitHub Free plan allows 20 concurrent workflow jobs. If 50 students 
+> apply simultaneously, some will queue (2-5 min delay). Recommend staggering: 
+> have students apply in groups of 10.
+
 ### 1.3 Key Management
 
 #### Rotate a Student's Key
 ```bash
 # Via GitHub Actions
 # Go to Actions > key-management.yml > Run workflow
-# Input: student ID, action: rotate
+# Input: student ID, action: regenerate-student
 
 # Via CLI
 az rest --method POST \
@@ -106,6 +110,10 @@ See `docs/resource-cleanup.md` for full procedure. Key steps:
 3. Delete APIM instance (stops ~$50/mo charge)
 4. Optionally delete the entire resource group
 
+> **Warning**: After deleting APIM, it remains in soft-delete state for 48 hours. 
+> You cannot recreate an APIM with the same name during this period.
+> To purge immediately: `az apim deletedservice purge --service-name apim-{name}-ai --location {region}`
+
 ---
 
 ## Part 2: Student Guide
@@ -121,6 +129,11 @@ See `docs/resource-cleanup.md` for full procedure. Key steps:
 6. Check your email (check spam folder too)
 
 #### Step 2: Download & Run Setup Script
+
+> **Important**: If VS Code is not yet installed, run PowerShell as **Administrator** 
+> (right-click PowerShell > "Run as administrator"). If VS Code is already installed, 
+> normal user permissions are sufficient.
+
 Open PowerShell and paste:
 ```powershell
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/{owner}/{repo}/main/scripts/setup-student.ps1" -OutFile setup-student.ps1
@@ -171,9 +184,9 @@ You have access to 3 AI models. Change in Cline settings (gear icon):
 
 | Model | Base URL | Model ID | Best For |
 |---|---|---|---|
-| **GPT-5.4-mini** (default) | `.../openai/v1` | `gpt-54-mini` | General coding, fast responses |
-| **GPT-5.5** | `.../openai/v1` | `gpt-55` | Complex tasks, higher quality |
-| **DeepSeek V4** | `.../deepseek/v1` | `deepseek-v4-flash` | Alternative perspective |
+| **GPT-5.4-mini** (default) | `https://apim-{name}-ai.azure-api.net/openai/v1` | `gpt-54-mini` | General coding, fast responses |
+| **GPT-5.5** | `https://apim-{name}-ai.azure-api.net/openai/v1` | `gpt-55` | Complex tasks, higher quality |
+| **DeepSeek V4** | `https://apim-{name}-ai.azure-api.net/deepseek/v1` | `deepseek-v4-flash` | Alternative perspective |
 
 > **Important**: GPT and DeepSeek use **different Base URLs** (`/openai/v1` vs `/deepseek/v1`). Don't forget to change the Base URL when switching to DeepSeek.
 
@@ -197,6 +210,9 @@ Error message: `429 Too Many Requests`
 | Cline not responding | Check internet connection. Try clicking Retry. |
 | Script won't run | Run `Set-ExecutionPolicy Bypass -Scope Process -Force` first |
 | VS Code not found after install | Close and reopen PowerShell to refresh PATH |
+| Cline not reading config | UTF-8 BOM in config file. Re-save: `[IO.File]::WriteAllText("$env:USERPROFILE\.cline\data\globalState.json", (Get-Content ... -Raw), [Text.UTF8Encoding]::new($false))` |
+| DeepSeek first request very slow | Serverless cold start (10-30s). Normal for first request. Wait and retry. Set Cline timeout to 60s+ |
+| Already onboarded student cancelled | Cancel only closes issue, doesn't disable APIM key. Run key-management workflow with `disable-student` action to also disable the key |
 
 ---
 
@@ -224,7 +240,7 @@ Azure OpenAI / DeepSeek (AI models)
 |---|---|---|
 | Class Passcode | Student onboarding form | GitHub Secret + SWA env var |
 | Admin Password | Admin dashboard | SWA env var |
-| GitHub PAT | SWA API → GitHub Issues | SWA env var |
+| GitHub PAT | SWA API → GitHub Issues | SWA env var. Required scope: `repo` (or fine-grained: Issues R/W + Contents R) |
 | AZURE_CREDENTIALS | GitHub Actions → Azure | GitHub Secret |
 | ACS_CONNECTION_STRING | GitHub Actions → Email | GitHub Secret |
 | ACS_SENDER_ADDRESS | Email From address | GitHub Secret |

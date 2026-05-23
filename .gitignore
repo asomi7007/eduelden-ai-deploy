@@ -6,6 +6,10 @@ secrets/
 .env.*
 *.pem
 *.key
+config.env
+
+# 문서 검토 작업 파일
+_workspace/
 
 # Azure CLI 캐시
 .azure/

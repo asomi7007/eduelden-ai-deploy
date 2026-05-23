@@ -19,12 +19,15 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$ApiKey,
 
+    [Parameter(Mandatory=$false)]
+    [string]$ApimUrl = "https://apim-eduelden-ai.azure-api.net",
+
     [switch]$SkipInstall
 )
 
 $ErrorActionPreference = "Stop"
 
-$APIM_BASE_URL = "https://apim-eduelden-ai.azure-api.net"
+$APIM_BASE_URL = $ApimUrl.TrimEnd('/')
 $OPENAI_ENDPOINT = "$APIM_BASE_URL/openai"
 $DEEPSEEK_ENDPOINT = "$APIM_BASE_URL/deepseek"
 
@@ -81,7 +84,8 @@ $config = @{
     }
 } | ConvertTo-Json -Depth 5
 
-$config | Out-File -FilePath "$configDir\config.json" -Encoding utf8
+# Write without BOM (PS 5.1 Out-File -Encoding utf8 adds BOM which breaks JSON parsers)
+[System.IO.File]::WriteAllText("$configDir\config.json", $config, [System.Text.UTF8Encoding]::new($false))
 Write-Host "  Config saved: $configDir\config.json" -ForegroundColor Green
 
 # Save API key as user environment variable
@@ -114,7 +118,8 @@ $gs | Add-Member -NotePropertyName "planModeOpenAiCompatibleModelId" -NoteProper
 $gs | Add-Member -NotePropertyName "actModeOpenAiCompatibleBaseUrl" -NotePropertyValue "$APIM_BASE_URL/openai/v1" -Force
 $gs | Add-Member -NotePropertyName "planModeOpenAiCompatibleBaseUrl" -NotePropertyValue "$APIM_BASE_URL/openai/v1" -Force
 
-$gs | ConvertTo-Json -Depth 10 | Out-File -FilePath $gsFile -Encoding utf8
+$gsJson = $gs | ConvertTo-Json -Depth 10
+[System.IO.File]::WriteAllText($gsFile, $gsJson, [System.Text.UTF8Encoding]::new($false))
 Write-Host "  Cline globalState: $gsFile" -ForegroundColor Green
 
 # Store API key in secrets.json
@@ -125,7 +130,8 @@ if (Test-Path $secFile) {
     $sec = [PSCustomObject]@{}
 }
 $sec | Add-Member -NotePropertyName "openAiCompatibleApiKey" -NotePropertyValue $ApiKey -Force
-$sec | ConvertTo-Json -Depth 5 | Out-File -FilePath $secFile -Encoding utf8
+$secJson = $sec | ConvertTo-Json -Depth 5
+[System.IO.File]::WriteAllText($secFile, $secJson, [System.Text.UTF8Encoding]::new($false))
 Write-Host "  Cline secrets: $secFile" -ForegroundColor Green
 
 Write-Host "  -> Provider: OpenAI Compatible" -ForegroundColor Gray
@@ -143,12 +149,15 @@ $headers = @{
 }
 
 $testBody = @{
+    model = "gpt-54-mini"
     messages = @(@{ role = "user"; content = "Say hello in Korean" })
     max_completion_tokens = 50
 } | ConvertTo-Json
 
 try {
-    $response = Invoke-RestMethod -Uri "$OPENAI_ENDPOINT/deployments/gpt-54-mini/chat/completions?api-version=2024-10-21" -Method POST -Headers $headers -Body $testBody -TimeoutSec 30
+    # Test using the same URL format that Cline uses (OpenAI-compatible)
+    # APIM policy rewrites this to /deployments/gpt-54-mini/chat/completions
+    $response = Invoke-RestMethod -Uri "$OPENAI_ENDPOINT/v1/chat/completions" -Method POST -Headers $headers -Body $testBody -TimeoutSec 30
     $reply = $response.choices[0].message.content
     Write-Host "  GPT-5.4-mini response: $reply" -ForegroundColor Green
     Write-Host ""
@@ -157,8 +166,11 @@ try {
     Write-Host "  Base URL : $OPENAI_ENDPOINT/v1"
     Write-Host "  API Key  : (stored in env var AI_CLASS_API_KEY)"
     Write-Host "  Model    : gpt-54-mini (or gpt-55, deepseek-v4-flash)"
+    Write-Host ""
+    Write-Host "To switch to DeepSeek, change Base URL to: $DEEPSEEK_ENDPOINT/v1"
 } catch {
     Write-Host "  Connection test failed: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "  APIM may still be deploying, or the key may be incorrect." -ForegroundColor Yellow
-    Write-Host "  Manual test: curl $OPENAI_ENDPOINT/deployments/gpt-54-mini/chat/completions?api-version=2024-10-21" -ForegroundColor Yellow
+    Write-Host "  Manual test:" -ForegroundColor Yellow
+    Write-Host "    curl -X POST '$OPENAI_ENDPOINT/v1/chat/completions' -H 'Authorization: Bearer YOUR_KEY' -H 'Content-Type: application/json' -d '{""model"":""gpt-54-mini"",""messages"":[{""role"":""user"",""content"":""Hello""}]}'" -ForegroundColor Yellow
 }

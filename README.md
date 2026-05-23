@@ -207,10 +207,10 @@ eduelden-ai-deploy/
 ### 사전 준비
 
 - Azure 구독 (Owner 권한)
-- Azure CLI (`az login` 완료)
-- GitHub 계정 + `gh` CLI
+- Azure CLI 2.50+ (`az login` 완료) — `az --version`으로 확인
+- GitHub 계정 + `gh` CLI 2.0+ — `gh --version`으로 확인
 - 학생 계정 (`01@도메인` ~ `50@도메인`) 미리 생성
-- Node.js 18+
+- Node.js 18.x 또는 20.x LTS — `node --version`으로 확인
 
 ### 설치 순서
 
@@ -221,7 +221,7 @@ eduelden-ai-deploy/
 | 1 | 리소스 그룹 + 예산 설정 | 5분 |
 | 2 | AI Foundry 모델 배포 | 10분 |
 | 3 | Entra ID + RBAC 설정 | 10분 |
-| 4 | APIM 생성 + 정책 적용 | 30분 |
+| 4 | APIM 생성 + 정책 적용 | **30~45분** (프로비저닝 대기) |
 | 5 | ACS 이메일 서비스 설정 | 10분 |
 | 6 | GitHub 저장소 + 시크릿 설정 | 10분 |
 | 7 | Static Web App 배포 | 5분 |
@@ -232,6 +232,59 @@ eduelden-ai-deploy/
 1. 학생에게 온보딩 URL과 패스코드를 공유하세요.
 2. 학생이 웹 페이지에서 신청하면 자동으로 이메일이 발송돼요.
 3. 학생은 이메일의 안내에 따라 PowerShell 스크립트를 실행하면 끝이에요.
+
+### ⚠️ 주의사항
+
+- **APIM 프로비저닝**: Developer SKU 생성에 30~45분이 걸려요. 이 시간 동안 다음 단계를 실행하면 실패해요.
+- **DeepSeek 약관**: Marketplace 모델이므로 첫 배포 전에 Azure Portal에서 약관을 수락해야 해요.
+- **동시 온보딩**: GitHub Free 플랜에서는 최대 20개 워크플로우가 동시 실행돼요. 50명이 한꺼번에 신청하면 일부가 대기열에 들어갈 수 있으니, 10명씩 시간차를 두고 신청하도록 안내하세요.
+- **APIM 삭제 후 재생성**: 삭제 후 48시간 동안 같은 이름으로 재생성이 안 돼요. 즉시 재생성하려면 `purge` 명령이 필요해요.
+- **예산 모니터링**: 예산 이름이 `eduelden-ai-budget`으로 설정되어야 cost-monitor 워크플로우가 정상 동작해요.
+
+---
+
+## 다른 조직에서 사용하기
+
+이 시스템은 어떤 조직이든 재사용할 수 있도록 설계되었어요.
+
+### 1단계: 설정 파일 만들기
+```bash
+cp config.env.template config.env
+```
+
+`config.env`에서 바꿔야 할 핵심 값:
+
+| 항목 | 예시 | 설명 |
+|------|------|------|
+| `PROJECT_NAME` | `myaiclass` | 모든 Azure 리소스 이름의 기반 |
+| `STUDENT_DOMAIN` | `school.ac.kr` | 학생 이메일 도메인 |
+| `STUDENT_COUNT` | `30` | 학생 수 (기본 50) |
+| `ADMIN_EMAIL` | `admin@school.ac.kr` | 관리자 이메일 |
+| `BUDGET_AMOUNT` | `500` | 월 예산 (USD) |
+
+`PROJECT_NAME`을 바꾸면 모든 리소스 이름이 자동으로 바뀌어요:
+- APIM: `apim-{PROJECT_NAME}-ai`
+- SWA: `swa-{PROJECT_NAME}-onboard`
+- 예산: `{PROJECT_NAME}-ai-budget`
+
+### 2단계: 자동 배포
+```bash
+./scripts/deploy-all.sh
+```
+
+### 3단계: 워크플로우 설정
+GitHub Repository Variables에 다음 값을 설정하세요 (deploy-all.sh가 자동으로 설정):
+- `RG_NAME` — 리소스 그룹 이름
+- `APIM_NAME` — APIM 인스턴스 이름
+- `AI_RESOURCE_NAME` — AI 리소스 이름
+- `BUDGET_NAME` — 예산 이름
+- `STUDENT_DOMAIN` — 학생 도메인
+- `APIM_GATEWAY` — APIM 게이트웨이 URL
+
+> **학생 설정 스크립트**: `setup-student.ps1`은 `-ApimUrl` 매개변수로 APIM 주소를 변경할 수 있어요:
+> ```powershell
+> .\setup-student.ps1 -StudentId 01 -ApiKey "key" -ApimUrl "https://apim-myaiclass-ai.azure-api.net"
+> ```
 
 ---
 
@@ -275,6 +328,38 @@ eduelden-ai-deploy/
 | APIM | ~$50/월 | Developer SKU |
 | 버퍼 | $30 | 예비 |
 | **합계** | **$800** | 50%, 80%, 95% 단계별 알림 |
+
+---
+
+## 보안 모델
+
+이 시스템은 7개 계층의 보안 구조로 설계되었어요.
+
+| 구간 | 보안 방식 | 설명 |
+|------|---------|------|
+| 학생 → SWA API | 수업 패스코드 | 수업 참여자만 온보딩 가능 |
+| SWA API → GitHub | PAT 토큰 | repo scope로 Issue CRUD |
+| GitHub Actions → Azure | 서비스 주체 (RBAC) | Contributor 역할, 리소스 그룹 범위 |
+| GitHub Actions → ACS | 연결 문자열 (HMAC-SHA256) | 이메일 발송 인증 |
+| 학생 → APIM | APIM 구독 키 | 학생별 개별 키 발급 |
+| APIM → Azure OpenAI | 실제 API 키 | 정책에서 주입, 학생에게 노출 안 됨 |
+| 관리자 대시보드 | 별도 관리자 비밀번호 | 학생 패스코드와 분리 |
+
+> **핵심 원칙**: 학생은 절대로 진짜 Azure OpenAI 키를 볼 수 없어요. APIM이 학생의 키를 검증한 뒤, 백엔드에는 진짜 키를 주입해서 보내요.
+
+---
+
+## 자주 발생하는 문제와 해결법
+
+| 문제 | 원인 | 해결 |
+|------|------|------|
+| SWA API가 404를 반환 | SWA가 `/api/admin*` 경로를 예약함 | 라우트 이름에 `admin`을 사용하지 않음 (→ `/api/manage`) |
+| 학생이 401 Unauthorized | API 키가 잘못됨 | 이메일에서 키를 다시 복사 |
+| 학생이 404 Resource not found | Base URL 또는 Model ID 오류 | Base URL이 `/v1`로 끝나는지, Model ID가 정확한지 확인 |
+| 학생이 429 Too Many Requests | 속도 제한 초과 | 1분 후 재시도 (분당 10회 제한) |
+| PowerShell 스크립트 한글 깨짐 | cp949 인코딩 문제 | 스크립트 출력은 전부 영문 (설계상 의도) |
+| 이메일이 안 옴 | ACS 도메인 미연결 | Portal에서 Communication Services > Domains 확인 |
+| APIM 생성 후 API 오류 | 프로비저닝 미완료 (30~45분 소요) | `az apim show` 로 provisioningState 확인 |
 
 ---
 

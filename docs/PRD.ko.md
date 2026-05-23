@@ -63,6 +63,8 @@ Azure AI Foundry 바이브코딩 수업을 위한 **셀프서비스 학생 온�
 
 ```
 eduelden-ai-deploy/
+├── config.env.template             # 배포 설정 템플릿
+├── config.env                      # 사용자 설정 (git에서 제외)
 ├── docs/                           # SWA 프론트엔드
 │   ├── index.html                  # 온보딩 UI (학생 + 관리자)
 │   └── staticwebapp.config.json    # SWA 라우팅 설정
@@ -80,6 +82,10 @@ eduelden-ai-deploy/
 │   └── ISSUE_TEMPLATE/
 │       └── student-onboarding.yml  # Issue 템플릿
 ├── scripts/
+│   ├── deploy-all.sh               # 전체 자동 배포 (Phase 1-7)
+│   ├── 01_deploy_foundry.sh        # AI 모델 배포
+│   ├── 02_manage_keys.sh           # APIM 키 관리
+│   ├── cost-monitor.sh             # 비용 모니터링
 │   └── setup-student.ps1           # 학생 PC 자동 설정 (영문)
 └── ai-class-starter/               # 학생용 스타터 프로젝트
 ```
@@ -111,6 +117,8 @@ eduelden-ai-deploy/
 
 > **참고**: 모델 이름은 Azure 배포 이름이며, 실제 모델 식별자가 아니에요. 배포 전에 `az cognitiveservices account list-models` 명령으로 AI Foundry 카탈로그에서 사용 가능한 모델을 확인하세요.
 
+> **학생용 모델 ID**: 학생은 Cline에서 모델 ID로 `deepseek-v4-flash`를 사용해요. APIM 정책이 내부적으로 라운드로빈을 통해 `deepseek-v4-flash-1` 또는 `deepseek-v4-flash-2`로 라우팅해요. 학생은 두 개의 인스턴스에 대해 알 필요가 없어요.
+
 ### 3.3 Entra ID
 
 | 항목 | 값 |
@@ -130,6 +138,8 @@ eduelden-ai-deploy/
 |---|---|---|
 | `openai-api` | `/openai` | `https://{ai-resource}.openai.azure.com/openai` |
 | `deepseek-api` | `/deepseek` | 동일 (정책에서 `set-backend-service`로 분기) |
+
+> **Base URL 참고**: Cline의 "OpenAI Compatible" 프로바이더는 설정된 Base URL에 자동으로 `/v1`을 추가해요. 학생은 Cline에서 `https://apim-{name}-ai.azure-api.net/openai/v1`을 Base URL로 입력해요. APIM API 경로는 `/openai`이지만, 학생이 실제로 사용하는 전체 URL에는 Cline이 추가하는 `/v1` 접미사가 포함돼요.
 
 ### 4.2 구독
 
@@ -157,10 +167,13 @@ Cline은 `Authorization: Bearer <key>`를 보내고, curl은 `api-key`나 `Ocp-A
 ```
 
 #### 문제 2: URL 형식 변환
-Cline (OpenAI SDK)이 보내는 형식: `POST /openai/chat/completions` (본문에 `model` 포함)
+Cline (OpenAI SDK)은 프로바이더 설정에 따라 다음 두 가지 URL 패턴 중 하나를 보낼 수 있어요:
+- `POST /openai/v1/chat/completions` (`/v1` 포함 — Cline이 자동으로 추가)
+- `POST /openai/chat/completions` (`/v1` 없이)
+
 Azure OpenAI가 기대하는 형식: `POST /openai/deployments/{model}/chat/completions?api-version=2024-10-21`
 
-정책이 URL을 다시 작성해요:
+정책은 두 패턴 모두를 처리해야 해요. 조건문은 `/chat/completions`을 포함하면서 `/deployments/`를 포함하지 않는지 확인하는데, 이 방식은 `/v1`이 있든 없든 모두 동작해요:
 
 ```xml
 <choose>
@@ -189,6 +202,17 @@ Azure OpenAI가 기대하는 형식: `POST /openai/deployments/{model}/chat/comp
 </set-header>
 <set-header name="Authorization" exists-action="delete" />
 <set-header name="Ocp-Apim-Subscription-Key" exists-action="delete" />
+```
+
+#### 문제 4: DeepSeek 로드 밸런싱
+두 개의 DeepSeek 인스턴스(`deepseek-v4-flash-1`과 `deepseek-v4-flash-2`)는 APIM 인바운드 정책에서 라운드로빈으로 부하 분산돼요:
+
+```xml
+<!-- DeepSeek API inbound policy addition -->
+<set-variable name="ds-instance" value="@{
+  return new Random(context.RequestId.GetHashCode()).Next(2) == 0 
+    ? "deepseek-v4-flash-1" : "deepseek-v4-flash-2";
+}" />
 ```
 
 ### 4.4 속도 제한
@@ -334,7 +358,7 @@ PowerShell 스크립트를 GitHub에서 `Invoke-WebRequest`로 다운로드하�
 | GET | `/api/slots` | 없음 | 슬롯 가용성 그리드 |
 | POST | `/api/onboard` | 패스코드 | 온보딩 요청 제출 |
 | POST | `/api/cancel` | 패스코드 또는 관리자 | 온보딩 취소 |
-| POST | `/api/manage` | 관리자 비밀번호 | 관리자 대시보드 데이터 |
+| GET/POST | `/api/manage` | 관리자 비밀번호 | 관리자 대시보드 데이터 |
 
 ### 레이스 컨디션 처리
 
@@ -359,6 +383,8 @@ PowerShell 스크립트를 GitHub에서 `Invoke-WebRequest`로 다운로드하�
 | 8 | Cline 설정은 VS Code `settings.json`에 없음 | `~/.cline/data/globalState.json` + `secrets.json`에 작성 |
 | 9 | APIM 구독 검증이 정책보다 먼저 실행됨 | `subscriptionRequired` 비활성화, 정책에서 검증 |
 | 10 | `AZURE_CREDENTIALS`는 유효한 JSON이어야 함 | `az ad sp create-for-rbac --sdk-auth` 형식 사용 |
+| 11 | GitHub Actions Azure 로그인 방식이 워크플로우마다 다름 | `student-onboarding`은 `azure/login@v2` 사용, 나머지는 수동 `az login` 사용. 유지보수를 위해 통일 고려 |
+| 12 | `az ad sp create-for-rbac --sdk-auth`가 deprecated됨 | `--sdk-auth` 플래그는 경고를 표시하지만 `azure/login@v2`에 필요한 올바른 JSON 형식을 생성함. 경고를 무시하거나, OpenID Connect 페더레이션 자격 증명으로 전환 |
 
 ---
 
@@ -370,9 +396,9 @@ PowerShell 스크립트를 GitHub에서 `Invoke-WebRequest`로 다운로드하�
 | DeepSeek | $70 | 서버리스 종량제 |
 | APIM | ~$50/월 | Developer SKU |
 | 버퍼 | $30 | -- |
-| **합계** | **$800** | 50%, 80%, 95% 단계별 예산 알림 |
+| **합계** | **$800** | 예산 `eduelden-ai-budget`에서 50%, 80%, 95% 단계별 알림 |
 
-`cost-monitor.yml`을 통한 비용 모니터링 (매일 오전 09:00 KST 실행).
+`cost-monitor.yml`을 통한 비용 모니터링 (매일 오전 09:00 KST 실행, 예산 `eduelden-ai-budget` 확인).
 
 ---
 
@@ -389,3 +415,5 @@ PowerShell 스크립트를 GitHub에서 `Invoke-WebRequest`로 다운로드하�
 | 관리자 대시보드 | 별도 관리자 비밀번호 |
 
 **절대 평문으로 노출하지 마세요**: APIM 구독 키, Azure OpenAI 키, 서비스 주체 시크릿, ACS 연결 문자열.
+
+> **참고**: API 함수는 현재 개발 편의를 위해 `Access-Control-Allow-Origin: *`을 사용하고 있어요. 프로덕션 환경에서는 `staticwebapp.config.json`에서 SWA 도메인으로 제한하거나, API 코드에서 `Origin` 헤더를 검증하세요.

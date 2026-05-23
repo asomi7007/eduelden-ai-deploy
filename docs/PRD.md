@@ -63,6 +63,8 @@ A **self-service student onboarding platform** for an Azure AI Foundry vibe-codi
 
 ```
 eduelden-ai-deploy/
+├── config.env.template             # Deployment configuration template
+├── config.env                      # Your configuration (git-ignored)
 ├── docs/                           # SWA Frontend
 │   ├── index.html                  # Onboarding UI (student + admin)
 │   └── staticwebapp.config.json    # SWA routing config
@@ -80,6 +82,10 @@ eduelden-ai-deploy/
 │   └── ISSUE_TEMPLATE/
 │       └── student-onboarding.yml  # Issue template
 ├── scripts/
+│   ├── deploy-all.sh               # Full automated deployment (Phase 1-7)
+│   ├── 01_deploy_foundry.sh        # AI model deployment
+│   ├── 02_manage_keys.sh           # APIM key management
+│   ├── cost-monitor.sh             # Cost monitoring
 │   └── setup-student.ps1           # Student PC auto-setup (English)
 └── ai-class-starter/               # Starter project for students
 ```
@@ -111,6 +117,8 @@ eduelden-ai-deploy/
 
 > **Note**: Model names are Azure deployment names, not actual model identifiers. Verify available models in your AI Foundry catalog with `az cognitiveservices account list-models` before deploying.
 
+> **Student-facing Model ID**: Students use `deepseek-v4-flash` as the model ID in Cline. The APIM policy internally routes to either `deepseek-v4-flash-1` or `deepseek-v4-flash-2` via round-robin. Students do not need to know about the two instances.
+
 ### 3.3 Entra ID
 
 | Item | Value |
@@ -130,6 +138,8 @@ eduelden-ai-deploy/
 |---|---|---|
 | `openai-api` | `/openai` | `https://{ai-resource}.openai.azure.com/openai` |
 | `deepseek-api` | `/deepseek` | Same (with `set-backend-service` in policy) |
+
+> **Base URL Note**: Cline's "OpenAI Compatible" provider automatically appends `/v1` to the configured base URL. Students enter `https://apim-{name}-ai.azure-api.net/openai/v1` as their Base URL in Cline. The APIM API path is `/openai`, but the full student-facing URL includes the `/v1` suffix added by Cline.
 
 ### 4.2 Subscriptions
 
@@ -157,10 +167,13 @@ Cline sends `Authorization: Bearer <key>`, curl may send `api-key` or `Ocp-Apim-
 ```
 
 #### Problem 2: URL Format Translation
-Cline (OpenAI SDK) sends: `POST /openai/chat/completions` with `model` in body.
+Cline (OpenAI SDK) may send either of these URL patterns depending on the provider configuration:
+- `POST /openai/v1/chat/completions` (with `/v1` — Cline appends this automatically)
+- `POST /openai/chat/completions` (without `/v1`)
+
 Azure OpenAI expects: `POST /openai/deployments/{model}/chat/completions?api-version=2024-10-21`.
 
-The policy rewrites the URL:
+The policy must handle both patterns. The condition checks for `/chat/completions` not containing `/deployments/`, which works regardless of whether `/v1` is present:
 
 ```xml
 <choose>
@@ -189,6 +202,17 @@ Strip the student's auth headers and inject the real Azure OpenAI key:
 </set-header>
 <set-header name="Authorization" exists-action="delete" />
 <set-header name="Ocp-Apim-Subscription-Key" exists-action="delete" />
+```
+
+#### Problem 4: DeepSeek Load Balancing
+The two DeepSeek instances (`deepseek-v4-flash-1` and `deepseek-v4-flash-2`) are load-balanced via round-robin in the APIM inbound policy:
+
+```xml
+<!-- DeepSeek API inbound policy addition -->
+<set-variable name="ds-instance" value="@{
+  return new Random(context.RequestId.GetHashCode()).Next(2) == 0 
+    ? "deepseek-v4-flash-1" : "deepseek-v4-flash-2";
+}" />
 ```
 
 ### 4.4 Rate Limiting
@@ -334,7 +358,7 @@ Single-page HTML app (`docs/index.html`) with:
 | GET | `/api/slots` | None | Slot availability grid |
 | POST | `/api/onboard` | Passcode | Submit onboarding request |
 | POST | `/api/cancel` | Passcode or admin | Cancel onboarding |
-| POST | `/api/manage` | Admin password | Admin dashboard data |
+| GET/POST | `/api/manage` | Admin password | Admin dashboard data |
 
 ### Race Condition Handling
 
@@ -359,6 +383,8 @@ Single-page HTML app (`docs/index.html`) with:
 | 8 | Cline config is NOT in VS Code `settings.json` | Write to `~/.cline/data/globalState.json` + `secrets.json` |
 | 9 | APIM subscription validation runs before policies | Disable `subscriptionRequired`, validate in policy |
 | 10 | `AZURE_CREDENTIALS` must be valid JSON | Use `az ad sp create-for-rbac --sdk-auth` format |
+| 11 | GitHub Actions Azure login methods differ per workflow | `student-onboarding` uses `azure/login@v2`, others use manual `az login`. Consider unifying for maintainability |
+| 12 | `az ad sp create-for-rbac --sdk-auth` is deprecated | The `--sdk-auth` flag shows a warning but still produces the correct JSON format for `azure/login@v2`. Ignore the warning, or switch to OpenID Connect federated credentials |
 
 ---
 
@@ -370,9 +396,9 @@ Single-page HTML app (`docs/index.html`) with:
 | DeepSeek | $70 | Serverless pay-per-use |
 | APIM | ~$50/mo | Developer SKU |
 | Buffer | $30 | — |
-| **Total** | **$800** | Monthly budget alert at 50%, 80%, 95% |
+| **Total** | **$800** | Budget `eduelden-ai-budget` with alerts at 50%, 80%, 95% |
 
-Cost monitoring via `cost-monitor.yml` (daily cron at 09:00 KST).
+Cost monitoring via `cost-monitor.yml` (daily cron at 09:00 KST, checks budget `eduelden-ai-budget`).
 
 ---
 
@@ -389,3 +415,5 @@ Cost monitoring via `cost-monitor.yml` (daily cron at 09:00 KST).
 | Admin dashboard | Separate admin password |
 
 **Never expose in plaintext**: APIM subscription keys, Azure OpenAI keys, service principal secrets, ACS connection strings.
+
+> **Note**: API functions currently use `Access-Control-Allow-Origin: *` for development convenience. For production, restrict to the SWA domain in `staticwebapp.config.json` or validate the `Origin` header in API code.

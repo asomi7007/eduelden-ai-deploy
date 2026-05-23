@@ -8,10 +8,43 @@
 ## Prerequisites
 
 - Azure subscription with Owner access
-- Azure CLI installed and logged in (`az login`)
-- GitHub account with `gh` CLI installed
+- Azure CLI 2.50+ installed and logged in (`az login`) — check with `az --version`
+- GitHub account with `gh` CLI 2.0+ installed — check with `gh --version`
 - Domain with pre-created student accounts (`01@domain` ~ `50@domain`)
-- Node.js 18+ (for SWA API development)
+- Node.js 18.x or 20.x LTS (for SWA API development) — check with `node --version`
+- PowerShell 5.1+ (students need this for setup script) — check with `$PSVersionTable.PSVersion`
+
+---
+
+## Quick Start (Automated Deployment)
+
+If you want to deploy everything at once instead of following each phase manually:
+
+### 1. Configure
+```bash
+cp config.env.template config.env
+# Edit config.env with your organization's values
+```
+
+### 2. Deploy
+```bash
+chmod +x scripts/deploy-all.sh
+./scripts/deploy-all.sh
+```
+
+### 3. Resume from a specific phase
+```bash
+./scripts/deploy-all.sh --phase 4    # Resume from Phase 4
+./scripts/deploy-all.sh --dry-run    # Preview without executing
+```
+
+> The automated script handles Phases 1-7. You still need to:
+> - Apply APIM policies manually (Phase 4 — see PRD.md Section 4.3)
+> - Complete ACS Email domain setup in Portal (Phase 5)
+> - Set `GITHUB_PAT` in SWA Configuration (Phase 7)
+> - Run end-to-end test (Phase 8)
+
+If you prefer step-by-step control, continue with the manual phases below.
 
 ---
 
@@ -23,7 +56,7 @@ az group create --name rg-{name} --location koreacentral
 
 # 2. Create budget ($800, monthly)
 az consumption budget create \
-  --budget-name "ai-class-budget" \
+  --budget-name "eduelden-ai-budget" \
   --resource-group rg-{name} \
   --amount 800 --time-grain Monthly \
   --start-date $(date +%Y-%m-01) --end-date $(date -d "+6 months" +%Y-%m-01) \
@@ -70,8 +103,31 @@ az cognitiveservices account deployment create \
   --model-format OpenAI \
   --sku-name Standard --sku-capacity 50
 
-# DeepSeek (marketplace — may require portal for terms acceptance)
-# Deploy 2 instances for load balancing
+# DeepSeek (Marketplace model — requires terms acceptance)
+# IMPORTANT: Before CLI deployment, accept terms in Azure Portal:
+#   1. Portal > AI Foundry > Model catalog > Search "DeepSeek-V4-Flash"
+#   2. Click "Deploy" > Accept marketplace terms
+#   3. Cancel the portal deployment (we'll deploy via CLI or use the portal deployment)
+#   4. If CLI fails with "MarketplaceTermsNotAccepted", complete step 1-2 first
+#
+# Deploy 2 instances for load balancing:
+az cognitiveservices account deployment create \
+  --name {ai-resource-name} \
+  --resource-group rg-{name} \
+  --deployment-name deepseek-v4-flash-1 \
+  --model-name DeepSeek-V4-Flash \
+  --model-version "latest" \
+  --model-format OpenAI \
+  --sku-name Standard --sku-capacity 1
+
+az cognitiveservices account deployment create \
+  --name {ai-resource-name} \
+  --resource-group rg-{name} \
+  --deployment-name deepseek-v4-flash-2 \
+  --model-name DeepSeek-V4-Flash \
+  --model-version "latest" \
+  --model-format OpenAI \
+  --sku-name Standard --sku-capacity 1
 ```
 
 ---
@@ -107,6 +163,10 @@ az ad sp create-for-rbac --name github-actions-{name} \
   --scopes /subscriptions/{subscription-id}/resourceGroups/rg-{name} \
   --sdk-auth
 # Save the output JSON — this becomes AZURE_CREDENTIALS secret
+# Note: --sdk-auth is deprecated in Azure CLI 2.30+ and shows a warning.
+# This is expected — the output JSON format is still required by azure/login@v2.
+# Ignore the deprecation warning, or consider migrating to OpenID Connect
+# federated credentials for a more modern approach.
 ```
 
 ---
@@ -122,10 +182,24 @@ az apim create --name apim-{name}-ai \
   --sku-name Developer \
   --location {region}
 
+# ⚠️ IMPORTANT: APIM provisioning takes 30-45 minutes.
+# Do NOT proceed to step 2 until provisioning is complete.
+# Check status:
+az apim show --name apim-{name}-ai --resource-group rg-{name} \
+  --query provisioningState -o tsv
+# Wait until output is "Succeeded" before continuing.
+
 # 2. Get Azure OpenAI key (for APIM backend policy)
 AOAI_KEY=$(az cognitiveservices account keys list \
   --name {ai-resource-name} --resource-group rg-{name} \
   --query key1 -o tsv)
+
+# 2.5 Register the key as APIM Named Value (used in policy as {{real-azure-openai-key}})
+az apim nv create --service-name apim-{name}-ai \
+  --resource-group rg-{name} \
+  --named-value-id real-azure-openai-key \
+  --display-name "Azure OpenAI Key" \
+  --value "$AOAI_KEY" --secret true
 
 # 3. Create OpenAI API
 az apim api create --service-name apim-{name}-ai \
@@ -143,6 +217,14 @@ az apim api operation create --service-name apim-{name}-ai \
   --display-name "All OpenAI" \
   --method POST --url-template "/*"
 
+# 4b. Add GET operation (for /models endpoint that Cline may query)
+az apim api operation create --service-name apim-{name}-ai \
+  --resource-group rg-{name} \
+  --api-id openai-api \
+  --operation-id openai-get \
+  --display-name "GET OpenAI" \
+  --method GET --url-template "/*"
+
 # 5. Create DeepSeek API (same pattern, different path)
 az apim api create --service-name apim-{name}-ai \
   --resource-group rg-{name} \
@@ -157,6 +239,14 @@ az apim api operation create --service-name apim-{name}-ai \
   --operation-id deepseek-all \
   --display-name "All DeepSeek" \
   --method POST --url-template "/*"
+
+# 5b. Add GET operation for DeepSeek (for /models endpoint that Cline may query)
+az apim api operation create --service-name apim-{name}-ai \
+  --resource-group rg-{name} \
+  --api-id deepseek-api \
+  --operation-id deepseek-get \
+  --display-name "GET DeepSeek" \
+  --method GET --url-template "/*"
 
 # 6. Apply APIM policies — see PRD.md Section 4.3 for full XML
 # Use Azure Portal > APIM > APIs > openai-api > Inbound processing > Code editor
@@ -207,11 +297,13 @@ az communication create --name acs-{name}-email \
   --resource-group rg-{name} \
   --location Global --data-location Korea
 
-# 2. Create Email Communication Service (Portal required)
-# Portal > Communication Services > acs-{name}-email > Email > Setup
-# - Create Email Communication Service
-# - Add Azure-managed domain (*.azurecomm.net)
-# - Note the sender address: donotreply@{guid}.azurecomm.net
+# 2. Create Email Communication Service (Portal required — detailed steps)
+# Step 2a: Portal > search "Email Communication Services" > Create
+#          Name: acs-{name}-email-svc, Data location: Korea
+# Step 2b: After creation > "Provision domains" > "Add Azure managed domain"
+# Step 2c: Go to Communication Services resource > "Domains" > "Connect domain"
+#          > Select the domain from step 2b
+# Step 2d: Check MailFrom addresses for sender: donotreply@{guid}.azurecomm.net
 
 # 3. Get connection string
 ACS_CONN=$(az communication list-key --name acs-{name}-email \
@@ -251,6 +343,8 @@ gh label create done --color 1D76DB
 gh label create rejected --color D93F0B
 gh label create error --color B60205
 gh label create pending --color FBCA04
+gh label create cost-alert --color FF6600
+gh label create urgent --color E11D48
 ```
 
 ---
@@ -267,11 +361,14 @@ az staticwebapp create --name swa-{name}-onboard \
   --api-location "/api" \
   --location eastus2
 
-# 2. Set SWA environment variables (Portal > SWA > Configuration)
-# GITHUB_PAT = (your PAT with repo + issues scope)
-# GITHUB_REPO = {owner}/eduelden-ai-deploy
-# CLASS_PASSCODE = (same as GitHub secret)
-# ADMIN_PASSWORD = (admin dashboard password)
+# 2. Set SWA environment variables
+az staticwebapp appsettings set --name swa-{name}-onboard \
+  --resource-group rg-{name} \
+  --setting-names \
+    GITHUB_PAT="{your-pat}" \
+    GITHUB_REPO="{owner}/eduelden-ai-deploy" \
+    CLASS_PASSCODE="{your-passcode}" \
+    ADMIN_PASSWORD="{your-admin-password}"
 
 # 3. Verify staticwebapp.config.json exists in docs/
 cat docs/staticwebapp.config.json
@@ -318,6 +415,20 @@ curl -X POST "https://apim-{name}-ai.azure-api.net/deepseek/chat/completions" \
 
 ---
 
+## Helper Scripts
+
+| Script | Purpose | Usage |
+|---|---|---|
+| `scripts/deploy-all.sh` | Full automated deployment (Phase 1-7) | `./scripts/deploy-all.sh` |
+| `scripts/01_deploy_foundry.sh` | Deploy AI models only | `./scripts/01_deploy_foundry.sh` |
+| `scripts/02_manage_keys.sh` | Manage student APIM keys | `./scripts/02_manage_keys.sh {create\|export\|list\|disable\|enable\|regenerate}` |
+| `scripts/cost-monitor.sh` | Check current spending | `./scripts/cost-monitor.sh` |
+| `scripts/setup-student.ps1` | Student PC auto-setup | `.\setup-student.ps1 -StudentId 01 -ApiKey "key"` |
+
+All bash scripts read from `config.env` in the project root. Copy `config.env.template` and fill in your values before running.
+
+---
+
 ## Troubleshooting Quick Reference
 
 | Symptom | Cause | Fix |
@@ -329,3 +440,9 @@ curl -X POST "https://apim-{name}-ai.azure-api.net/deepseek/chat/completions" \
 | PowerShell script shows garbled text | Korean encoding issue | Script must be English-only |
 | Cline shows empty config | Wrong config path | Write to `~/.cline/data/globalState.json` not `settings.json` |
 | Email not received | Exchange license issue | Use ACS Email instead of Graph API |
+| GitHub Actions workflow not triggered | `onboarding` label missing or workflow not on default branch | Check issue has `onboarding` label. Ensure `.github/workflows/student-onboarding.yml` is on `main` branch and workflow is enabled in Actions tab |
+| `SubscriptionNotFound` from APIM | Student ID format mismatch (01 vs 1) | Ensure APIM subscriptions use 0-padded IDs (`sub-student-01`). `seq -w 1 50` handles this correctly |
+| ACS email `403 Forbidden` | Email domain not connected to ACS resource | Portal > Communication Services > Domains > verify domain shows "Connected" status |
+| `502 Bad Gateway` from SWA | `GITHUB_PAT` not set or expired | Check SWA > Configuration for GITHUB_PAT. Ensure PAT has `repo` scope and hasn't expired |
+| APIM cannot be recreated after deletion | APIM soft-delete (48hr retention) | Purge first: `az apim deletedservice purge --service-name apim-{name}-ai --location {region}` |
+| `MarketplaceTermsNotAccepted` on DeepSeek deploy | Marketplace terms not accepted | Accept terms in Portal: AI Foundry > Model catalog > DeepSeek > Deploy > Accept terms |

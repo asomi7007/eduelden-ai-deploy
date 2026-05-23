@@ -1,17 +1,27 @@
 #!/bin/bash
 set -euo pipefail
 
-APIM_NAME="apim-eduelden-ai"
-RG="rg-powerplatform-billing"
+# Load config
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$(dirname "$SCRIPT_DIR")/config.env"
+if [ -f "$CONFIG_FILE" ]; then
+  source "$CONFIG_FILE"
+else
+  echo "WARNING: config.env not found. Using defaults."
+fi
+
+APIM_NAME="${APIM_NAME:-apim-eduelden-ai}"
+RESOURCE_GROUP="${RESOURCE_GROUP:-rg-powerplatform-billing}"
+STUDENT_COUNT="${STUDENT_COUNT:-50}"
 ACTION="${1:-list}"
 
 case "$ACTION" in
   create)
-    echo "=== 학생 구독 50개 생성 ==="
-    for i in $(seq -w 1 50); do
+    echo "=== Creating $STUDENT_COUNT student subscriptions ==="
+    for i in $(seq -w 1 "$STUDENT_COUNT"); do
       echo "Creating sub-student-$i..."
       az apim subscription create \
-        --resource-group "$RG" \
+        --resource-group "$RESOURCE_GROUP" \
         --service-name "$APIM_NAME" \
         --subscription-id "sub-student-$i" \
         --display-name "Student $i" \
@@ -19,15 +29,15 @@ case "$ACTION" in
         --state active \
         --output none
     done
-    echo "=== 50개 구독 생성 완료 ==="
+    echo "=== $STUDENT_COUNT subscriptions created ==="
     ;;
   export)
-    echo "=== 학생 키 CSV 내보내기 ==="
+    echo "=== Exporting student keys to CSV ==="
     OUTPUT_FILE="${2:-student_keys.csv}"
     echo "student_id,subscription_id,primary_key,secondary_key" > "$OUTPUT_FILE"
-    for i in $(seq -w 1 50); do
+    for i in $(seq -w 1 "$STUDENT_COUNT"); do
       KEYS=$(az apim subscription keys list \
-        --resource-group "$RG" \
+        --resource-group "$RESOURCE_GROUP" \
         --service-name "$APIM_NAME" \
         --subscription-id "sub-student-$i" \
         --output json)
@@ -38,10 +48,10 @@ case "$ACTION" in
     echo "Exported to $OUTPUT_FILE"
     ;;
   disable)
-    echo "=== 학생 키 일괄 비활성화 ==="
-    for i in $(seq -w 1 50); do
+    echo "=== Disabling all student keys ==="
+    for i in $(seq -w 1 "$STUDENT_COUNT"); do
       az apim subscription update \
-        --resource-group "$RG" \
+        --resource-group "$RESOURCE_GROUP" \
         --service-name "$APIM_NAME" \
         --subscription-id "sub-student-$i" \
         --state suspended \
@@ -50,10 +60,10 @@ case "$ACTION" in
     done
     ;;
   enable)
-    echo "=== 학생 키 일괄 활성화 ==="
-    for i in $(seq -w 1 50); do
+    echo "=== Enabling all student keys ==="
+    for i in $(seq -w 1 "$STUDENT_COUNT"); do
       az apim subscription update \
-        --resource-group "$RG" \
+        --resource-group "$RESOURCE_GROUP" \
         --service-name "$APIM_NAME" \
         --subscription-id "sub-student-$i" \
         --state active \
@@ -62,10 +72,10 @@ case "$ACTION" in
     done
     ;;
   regenerate)
-    echo "=== 학생 키 일괄 재발급 ==="
-    for i in $(seq -w 1 50); do
+    echo "=== Regenerating all student keys ==="
+    for i in $(seq -w 1 "$STUDENT_COUNT"); do
       az apim subscription keys regenerate-primary-key \
-        --resource-group "$RG" \
+        --resource-group "$RESOURCE_GROUP" \
         --service-name "$APIM_NAME" \
         --subscription-id "sub-student-$i" \
         --output none
@@ -73,9 +83,9 @@ case "$ACTION" in
     done
     ;;
   list)
-    echo "=== 학생 구독 목록 ==="
+    echo "=== Student subscriptions ==="
     az apim subscription list \
-      --resource-group "$RG" \
+      --resource-group "$RESOURCE_GROUP" \
       --service-name "$APIM_NAME" \
       --query "[?starts_with(displayName,'Student')].{name:displayName,state:state,id:name}" \
       --output table
