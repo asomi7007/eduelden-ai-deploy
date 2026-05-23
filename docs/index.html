@@ -391,6 +391,10 @@
         <p style="font-size:0.88rem;color:var(--gray-500);margin-bottom:12px">
           총 <b id="adminTotal">0</b>건 | 완료 <b id="adminDone">0</b> | 대기 <b id="adminPending">0</b> | 거부 <b id="adminRejected">0</b>
         </p>
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <button id="btnToggleRejected" class="btn btn-outline btn-sm" onclick="toggleRejected()">거부/취소 보기</button>
+          <button id="btnSort" class="btn btn-outline btn-sm" onclick="toggleSort()">정렬: 번호순</button>
+        </div>
         <div style="overflow-x:auto">
           <table class="admin-table">
             <thead>
@@ -421,6 +425,9 @@ const API_BASE = window.ONBOARD_API_BASE || '/api';
 let slotsData = {};
 let adminPw = '';
 let selectedSlot = '';
+let showRejected = false;
+let sortMode = 'student'; // 'student' | 'issue'
+let adminEntries = [];
 
 // ============================================================
 // INIT
@@ -718,19 +725,38 @@ async function adminRefresh() {
   });
 
   const { entries, stats } = data;
+  adminEntries = entries;
   document.getElementById('adminTotal').textContent = stats.total;
   document.getElementById('adminDone').textContent = stats.done;
   document.getElementById('adminPending').textContent = stats.pending;
   document.getElementById('adminRejected').textContent = stats.rejected;
 
-  if (entries.length === 0) {
+  renderAdminTable();
+}
+
+function renderAdminTable() {
+  const tbody = document.getElementById('adminTableBody');
+
+  // 필터: 거부/취소 숨기기
+  let filtered = showRejected
+    ? [...adminEntries]
+    : adminEntries.filter(r => r.status !== 'rejected' && r.status !== 'closed');
+
+  // 정렬
+  if (sortMode === 'issue') {
+    filtered.sort((a, b) => a.issueNumber - b.issueNumber);
+  } else {
+    filtered.sort((a, b) => a.studentId.localeCompare(b.studentId));
+  }
+
+  if (filtered.length === 0) {
     tbody.innerHTML = '';
     document.getElementById('adminEmpty').classList.remove('hidden');
     return;
   }
   document.getElementById('adminEmpty').classList.add('hidden');
 
-  tbody.innerHTML = entries.map(r => {
+  tbody.innerHTML = filtered.map(r => {
     const badgeClass = { done: 'badge-done', pending: 'badge-pending', rejected: 'badge-rejected', closed: 'badge-rejected' }[r.status] || '';
     const statusText = { done: '완료', pending: '대기', rejected: '거부/취소', closed: '닫힘' }[r.status] || r.status;
     const cancelBtn = (r.status !== 'rejected')
@@ -744,6 +770,28 @@ async function adminRefresh() {
       <td>${cancelBtn}</td>
     </tr>`;
   }).join('');
+}
+
+function toggleRejected() {
+  showRejected = !showRejected;
+  const btn = document.getElementById('btnToggleRejected');
+  btn.textContent = showRejected ? '거부/취소 숨기기' : '거부/취소 보기';
+  btn.style.background = showRejected ? 'var(--danger-light)' : '';
+  btn.style.color = showRejected ? 'var(--danger)' : '';
+  btn.style.borderColor = showRejected ? 'var(--danger)' : '';
+  renderAdminTable();
+}
+
+function toggleSort() {
+  const btn = document.getElementById('btnSort');
+  if (sortMode === 'student') {
+    sortMode = 'issue';
+    btn.textContent = '정렬: 이슈순';
+  } else {
+    sortMode = 'student';
+    btn.textContent = '정렬: 번호순';
+  }
+  renderAdminTable();
 }
 
 async function adminResetAll() {
