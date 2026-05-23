@@ -142,7 +142,7 @@ jobs:
             const azAccount = `${studentId}@eduelden.kr`;
             const azPassword = '!!ed7788';
 
-            // ── 공통 스타일 헬퍼 ──
+            // Common style helpers
             const tbl = 'border="1" cellpadding="8" style="border-collapse:collapse;width:100%"';
             const code = (t) => `<code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-family:Consolas,monospace;font-size:13px">${t}</code>`;
             const codeBox = (t) => `<div style="background:#1e293b;border-radius:8px;padding:14px;margin:8px 0;overflow-x:auto"><code style="color:#e2e8f0;font-family:'Cascadia Code',Consolas,monospace;font-size:13px;line-height:1.6">${t}</code></div>`;
@@ -151,9 +151,7 @@ jobs:
 
             let html, emailSubject;
 
-            // ══════════════════════════════════════════════
-            // Power BI MCP Workshop 이메일
-            // ══════════════════════════════════════════════
+            // --- Power BI MCP Workshop email ---
             if (eventId === 'powerbi-mcp-20260530') {
               const scriptUrl = 'https://raw.githubusercontent.com/asomi7007/eduelden-ai-deploy/main/events/powerbi-mcp-20260530/setup-powerbi-mcp.ps1';
               const pbixUrl = 'https://github.com/asomi7007/eduelden-ai-deploy/raw/main/events/powerbi-mcp-20260530/files/%EC%8B%A4%EC%8A%B5%ED%8C%8C%EC%9D%BC.pbix';
@@ -286,9 +284,7 @@ jobs:
 
               </div></div>`;
 
-            // ══════════════════════════════════════════════
-            // 기본 이메일 (Azure AI Foundry 바이브코딩)
-            // ══════════════════════════════════════════════
+            // --- Default email (Azure AI Foundry) ---
             } else {
               const scriptUrl = 'https://raw.githubusercontent.com/asomi7007/eduelden-ai-deploy/main/scripts/setup-student.ps1';
               emailSubject = `[AI 실습] 학생 ${studentId}번 환경 설정 안내`;
