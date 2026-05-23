@@ -166,7 +166,7 @@ jobs:
               <div style="padding:24px;background:#fff;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px">
 
               <p>안녕하세요, <b>${studentId}번</b> 학생! 워크샵 참가 신청이 완료되었습니다.</p>
-              <p style="color:#555;font-size:14px">아래 안내에 따라 <b>당일 전까지</b> 환경 설정을 완료해 주세요.</p>
+              <p style="color:#555;font-size:14px">아래 안내에 따라 <b>실습 전까지</b> 환경 설정을 완료해 주세요.</p>
 
               <h2 style="color:#B8860B;border-bottom:2px solid #F2C811;padding-bottom:6px">📋 내 정보</h2>
               <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
@@ -176,7 +176,6 @@ jobs:
                 <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:600">API Base URL</td><td style="padding:8px 12px;border:1px solid #e5e7eb">${code(apimUrl + '/openai/v1')}</td></tr>
                 <tr style="background:#FFF8E1"><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:600">API Key</td><td style="padding:8px 12px;border:1px solid #e5e7eb;font-family:monospace;font-size:13px;word-break:break-all">${apiKey}</td></tr>
               </table>
-              <p style="color:#dc2626;font-size:0.9em">⚠️ Azure 첫 로그인 시 비밀번호를 반드시 변경하세요.</p>
 
               <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
 
