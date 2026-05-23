@@ -222,7 +222,25 @@
     border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     line-height: 0;
+    cursor: pointer;
+    transition: transform 0.15s;
   }
+  .qr-box:hover { transform: scale(1.05); }
+
+  /* QR Modal */
+  .qr-modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.7); align-items: center; justify-content: center;
+    cursor: pointer; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  }
+  .qr-modal-overlay.show { display: flex; }
+  .qr-modal-content {
+    background: #fff; border-radius: 16px; padding: 24px;
+    text-align: center; max-width: 90vw; cursor: default;
+  }
+  .qr-modal-content canvas { display: block; margin: 0 auto 12px; }
+  .qr-modal-content .qr-modal-url { font-size: 0.85rem; word-break: break-all; color: var(--gray-700); }
+  .qr-modal-content .qr-modal-hint { font-size: 0.75rem; color: var(--gray-500); margin-top: 10px; }
   .qr-info {
     text-align: left;
     min-width: 180px;
@@ -261,14 +279,23 @@
   <!-- QR Code -->
   <div class="card">
     <div class="qr-card">
-      <div class="qr-box">
+      <div class="qr-box" onclick="openQRModal()">
         <canvas id="qrCanvas" width="140" height="140"></canvas>
       </div>
       <div class="qr-info">
-        <div class="qr-label">이 페이지 주소</div>
+        <div class="qr-label">이 페이지 주소 (클릭하면 확대)</div>
         <div class="qr-url" id="pageUrl"></div>
-        <div class="qr-hint">스마트폰으로 QR을 스캔하면 이 페이지가 열립니다</div>
+        <div class="qr-hint">스마트폰으로 QR 스캔 또는 클릭하여 확대</div>
       </div>
+    </div>
+  </div>
+
+  <!-- QR Modal -->
+  <div class="qr-modal-overlay" id="qrModal" onclick="closeQRModal()">
+    <div class="qr-modal-content" onclick="event.stopPropagation()">
+      <canvas id="qrLarge" width="280" height="280"></canvas>
+      <div class="qr-modal-url" id="qrModalUrl"></div>
+      <div class="qr-modal-hint">아무 곳이나 터치하면 닫힙니다</div>
     </div>
   </div>
 
@@ -428,29 +455,30 @@ window.addEventListener('DOMContentLoaded', () => {
 // ============================================================
 // QR CODE
 // ============================================================
-function generateQR() {
+function drawQR(canvas, size) {
   const url = window.location.href;
-  document.getElementById('pageUrl').textContent = url;
-  const canvas = document.getElementById('qrCanvas');
-  const size = 140;
-  canvas.width = size;
-  canvas.height = size;
+  canvas.width = size; canvas.height = size;
   const img = new Image();
   img.crossOrigin = 'anonymous';
-  img.onload = function() {
-    canvas.getContext('2d').drawImage(img, 0, 0, size, size);
-  };
-  img.onerror = function() {
+  img.onload = () => canvas.getContext('2d').drawImage(img, 0, 0, size, size);
+  img.onerror = () => {
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#f3f4f6';
-    ctx.fillRect(0, 0, size, size);
-    ctx.fillStyle = '#6b7280';
-    ctx.font = '12px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('QR 로딩 실패', size/2, size/2);
+    ctx.fillStyle = '#f3f4f6'; ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = '#6b7280'; ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center'; ctx.fillText('QR 로딩 실패', size/2, size/2);
   };
-  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&margin=8`;
+  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&margin=6`;
 }
+function generateQR() {
+  document.getElementById('pageUrl').textContent = window.location.href;
+  drawQR(document.getElementById('qrCanvas'), 140);
+}
+function openQRModal() {
+  drawQR(document.getElementById('qrLarge'), 280);
+  document.getElementById('qrModalUrl').textContent = window.location.href;
+  document.getElementById('qrModal').classList.add('show');
+}
+function closeQRModal() { document.getElementById('qrModal').classList.remove('show'); }
 
 // ============================================================
 // API HELPER

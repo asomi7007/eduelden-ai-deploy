@@ -2,681 +2,521 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI-Driven Power BI Workshop - Setup</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AI-Driven Power BI Workshop - 온보딩</title>
 <style>
   :root {
-    --pbi-yellow: #F2C811;
-    --pbi-dark: #1a1a1a;
-    --pbi-gray: #333;
-    --bg: #f8f9fa;
-    --card-bg: #fff;
+    --pbi: #F2C811;
+    --pbi-hover: #e0b800;
+    --dark: #1a1a1a;
     --success: #059669;
     --success-bg: #d1fae5;
-    --warning: #d97706;
-    --warning-bg: #fef3c7;
     --danger: #dc2626;
     --danger-bg: #fee2e2;
+    --warn: #d97706;
+    --warn-bg: #fef3c7;
+    --info-bg: #e0f2fe;
+    --info: #0284c7;
+    --g50: #f9fafb; --g100: #f3f4f6; --g200: #e5e7eb;
+    --g300: #d1d5db; --g500: #6b7280; --g700: #374151; --g900: #111827;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: 'Pretendard', 'Segoe UI', -apple-system, sans-serif;
-    background: var(--bg);
-    color: var(--pbi-gray);
-    min-height: 100vh;
+    font-family: 'Pretendard', -apple-system, 'Segoe UI', sans-serif;
+    background: var(--g50); color: var(--g900);
+    min-height: 100vh; -webkit-tap-highlight-color: transparent;
   }
 
-  /* Header */
+  /* Hero */
   .hero {
-    background: linear-gradient(135deg, #F2C811 0%, #E8A500 50%, #D4960A 100%);
-    padding: 48px 24px 40px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
+    background: linear-gradient(135deg, #F2C811, #E8A500 60%, #D4960A);
+    padding: 40px 20px 32px; text-align: center;
   }
-  .hero::before {
-    content: '';
-    position: absolute;
-    top: -40%; right: -20%;
-    width: 500px; height: 500px;
-    background: rgba(255,255,255,0.08);
-    border-radius: 50%;
-  }
-  .hero h1 {
-    font-size: 28px;
-    color: var(--pbi-dark);
-    margin-bottom: 8px;
-    position: relative;
-  }
-  .hero p {
-    color: #444;
-    font-size: 15px;
-    position: relative;
-  }
+  .hero h1 { font-size: 1.5rem; color: var(--dark); margin-bottom: 6px; }
+  .hero p { color: #444; font-size: 0.9rem; }
   .hero .badge {
-    display: inline-block;
-    background: rgba(0,0,0,0.12);
-    color: var(--pbi-dark);
-    padding: 4px 14px;
-    border-radius: 20px;
-    font-size: 13px;
-    margin-top: 12px;
-    position: relative;
-  }
-
-  /* QR Section */
-  .qr-section {
-    background: #fff;
-    border-bottom: 1px solid #e5e7eb;
-    padding: 24px 16px;
-    text-align: center;
-  }
-  .qr-wrap {
-    display: inline-flex;
-    align-items: center;
-    gap: 24px;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  .qr-box {
-    background: #fff;
-    padding: 12px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    display: inline-block;
-  }
-  .qr-box canvas { display: block; }
-  .qr-text {
-    text-align: left;
-    max-width: 320px;
-  }
-  .qr-text .label {
-    font-size: 13px;
-    color: #888;
-    margin-bottom: 4px;
-  }
-  .qr-text .url {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--pbi-dark);
-    word-break: break-all;
-  }
-  .qr-text .hint {
-    font-size: 12px;
-    color: #aaa;
-    margin-top: 6px;
+    display: inline-block; background: rgba(0,0,0,0.1);
+    padding: 4px 14px; border-radius: 20px;
+    font-size: 0.8rem; margin-top: 10px; color: var(--dark);
   }
 
   /* Container */
-  .container {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 24px 16px 60px;
-  }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 16px 12px 48px; }
 
-  /* Cards */
+  /* Card */
   .card {
-    background: var(--card-bg);
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 20px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    border: 1px solid #e5e7eb;
+    background: #fff; border-radius: 12px; padding: 20px;
+    margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border: 1px solid var(--g200);
   }
   .card h2 {
-    font-size: 18px;
-    color: var(--pbi-dark);
-    margin-bottom: 16px;
-    padding-bottom: 8px;
-    border-bottom: 2px solid var(--pbi-yellow);
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    font-size: 1.05rem; margin-bottom: 14px; padding-bottom: 6px;
+    border-bottom: 2px solid var(--pbi);
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
   }
 
-  /* Setup Form */
-  .form-group {
-    margin-bottom: 16px;
+  /* QR */
+  .qr-row {
+    display: flex; align-items: center; gap: 14px;
+    flex-wrap: wrap; justify-content: center;
   }
-  .form-group label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    color: #555;
-    margin-bottom: 6px;
+  .qr-thumb {
+    width: 100px; height: 100px; border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12); cursor: pointer;
+    transition: transform 0.15s;
   }
-  .form-group input {
-    width: 100%;
-    padding: 10px 14px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 15px;
-    transition: border-color 0.2s;
-  }
-  .form-group input:focus {
-    outline: none;
-    border-color: var(--pbi-yellow);
-    box-shadow: 0 0 0 3px rgba(242,200,17,0.2);
-  }
+  .qr-thumb:hover { transform: scale(1.05); }
+  .qr-meta { text-align: left; min-width: 0; flex: 1; }
+  .qr-meta .lbl { font-size: 0.75rem; color: var(--g500); }
+  .qr-meta .url { font-size: 0.82rem; font-weight: 600; word-break: break-all; }
+  .qr-meta .hint { font-size: 0.72rem; color: var(--g500); margin-top: 2px; }
 
-  /* Command Box */
-  .cmd-box {
-    background: #1e1e1e;
-    border-radius: 8px;
-    padding: 16px 18px;
-    margin: 12px 0;
-    position: relative;
-    overflow-x: auto;
+  /* QR Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.7); align-items: center; justify-content: center;
+    cursor: pointer; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
   }
-  .cmd-box code {
-    color: #d4d4d4;
-    font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
-    font-size: 13px;
-    white-space: pre-wrap;
-    word-break: break-all;
-    line-height: 1.6;
+  .modal-overlay.show { display: flex; }
+  .modal-qr {
+    background: #fff; border-radius: 16px; padding: 24px;
+    text-align: center; max-width: 90vw; cursor: default;
   }
-  .cmd-box .copy-btn {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: #3c3c3c;
-    color: #ccc;
-    border: none;
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .cmd-box .copy-btn:hover {
-    background: #555;
-    color: #fff;
-  }
+  .modal-qr canvas { display: block; margin: 0 auto 12px; }
+  .modal-qr .url { font-size: 0.85rem; word-break: break-all; color: var(--g700); }
+  .modal-qr .close-hint { font-size: 0.75rem; color: var(--g500); margin-top: 10px; }
 
-  /* Steps */
-  .steps {
-    counter-reset: step-counter;
-    list-style: none;
-    padding: 0;
+  /* Slot Grid */
+  .slot-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 4px; margin: 10px 0;
   }
-  .steps li {
-    counter-increment: step-counter;
-    padding: 14px 0 14px 52px;
-    position: relative;
-    border-bottom: 1px solid #f0f0f0;
+  .slot {
+    text-align: center; padding: 8px 0; border-radius: 6px;
+    font-size: 0.78rem; font-weight: 700;
+    border: 1px solid var(--g200); background: #fff; color: var(--g700);
+    cursor: pointer; transition: all 0.12s; user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
-  .steps li:last-child { border-bottom: none; }
-  .steps li::before {
-    content: counter(step-counter);
-    position: absolute;
-    left: 0; top: 12px;
-    width: 36px; height: 36px;
-    background: var(--pbi-yellow);
-    color: var(--pbi-dark);
-    border-radius: 50%;
-    text-align: center;
-    line-height: 36px;
-    font-weight: 700;
-    font-size: 14px;
-  }
-  .steps li strong { color: var(--pbi-dark); }
-  .steps li .desc { font-size: 13px; color: #666; margin-top: 2px; }
+  .slot:active:not(.taken) { transform: scale(0.93); }
+  .slot.taken { background: #dbeafe; color: #1d4ed8; border-color: #93bbfd; cursor: not-allowed; }
+  .slot.selected { background: var(--success-bg); color: var(--success); border-color: var(--success); box-shadow: 0 0 0 2px rgba(5,150,105,0.3); }
 
-  /* Status indicator */
-  .status {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
+  /* Form */
+  .field { margin-bottom: 14px; }
+  label { display: block; font-weight: 600; font-size: 0.85rem; color: var(--g700); margin-bottom: 4px; }
+  label .hint { font-weight: 400; color: var(--g500); font-size: 0.78rem; }
+  input {
+    width: 100%; padding: 11px 14px; border: 1px solid var(--g300);
+    border-radius: 8px; font-size: 1rem; outline: none;
+    -webkit-appearance: none; appearance: none;
   }
-  .status-ready { background: var(--success-bg); color: var(--success); }
-  .status-wait { background: var(--warning-bg); color: var(--warning); }
+  input:focus { border-color: var(--pbi); box-shadow: 0 0 0 3px rgba(242,200,17,0.25); }
+  .selected-display {
+    padding: 11px 14px; border: 1px solid var(--g300); border-radius: 8px;
+    font-size: 0.9rem; background: var(--g50); color: var(--g500);
+    min-height: 44px; display: flex; align-items: center;
+  }
+  .selected-display.active { color: var(--success); font-weight: 700; }
 
   /* Buttons */
   .btn {
-    display: inline-block;
-    padding: 12px 28px;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 600;
-    text-decoration: none;
-    cursor: pointer;
-    border: none;
-    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; padding: 13px; border: none; border-radius: 8px;
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+    transition: opacity 0.12s; -webkit-tap-highlight-color: transparent;
   }
-  .btn-primary {
-    background: var(--pbi-yellow);
-    color: var(--pbi-dark);
-  }
-  .btn-primary:hover {
-    background: #e0b800;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(242,200,17,0.3);
-  }
-  .btn-outline {
-    background: transparent;
-    color: var(--pbi-dark);
-    border: 2px solid var(--pbi-yellow);
-  }
-  .btn-outline:hover {
-    background: rgba(242,200,17,0.1);
-  }
-  .btn-group {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-top: 16px;
-  }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary { background: var(--pbi); color: var(--dark); }
+  .btn-primary:active:not(:disabled) { background: var(--pbi-hover); }
+  .btn-outline { background: #fff; color: var(--g700); border: 1px solid var(--g300); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-sm { width: auto; padding: 7px 14px; font-size: 0.82rem; }
 
-  /* Checklist */
-  .checklist { list-style: none; padding: 0; }
-  .checklist li {
-    padding: 8px 0 8px 32px;
-    position: relative;
-    font-size: 14px;
-  }
-  .checklist li::before {
-    content: '';
-    position: absolute;
-    left: 4px; top: 10px;
-    width: 18px; height: 18px;
-    border: 2px solid #d1d5db;
-    border-radius: 4px;
-  }
-  .checklist li.checked::before {
-    background: var(--success);
-    border-color: var(--success);
-    content: '\2713';
-    color: #fff;
-    font-size: 12px;
-    text-align: center;
-    line-height: 18px;
-  }
+  /* Alert */
+  .alert { padding: 12px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 12px; display: none; }
+  .alert.show { display: block; }
+  .alert-success { background: var(--success-bg); color: #065f46; }
+  .alert-error { background: var(--danger-bg); color: #991b1b; }
+  .alert-warning { background: var(--warn-bg); color: #92400e; }
+  .alert-info { background: var(--info-bg); color: #1e40af; }
 
-  /* Alert boxes */
-  .alert {
-    padding: 14px 16px;
-    border-radius: 8px;
-    margin: 12px 0;
-    font-size: 13px;
-    line-height: 1.5;
+  /* Tabs */
+  .tabs { display: flex; border-bottom: 2px solid var(--g200); margin-bottom: 14px; overflow-x: auto; }
+  .tab {
+    padding: 10px 16px; cursor: pointer; font-weight: 600; font-size: 0.88rem;
+    color: var(--g500); border-bottom: 2px solid transparent;
+    margin-bottom: -2px; white-space: nowrap; transition: color 0.12s;
   }
-  .alert-warning {
-    background: var(--warning-bg);
-    border-left: 4px solid var(--warning);
-  }
-  .alert-info {
-    background: #e0f2fe;
-    border-left: 4px solid #0284c7;
-  }
+  .tab.active { color: var(--pbi-hover); border-bottom-color: var(--pbi); }
+  .panel { display: none; }
+  .panel.active { display: block; }
 
-  /* MCP cards */
-  .mcp-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px;
-    margin-top: 12px;
-  }
-  .mcp-item {
-    background: #fafafa;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 14px;
-    text-align: center;
-  }
-  .mcp-item .icon { font-size: 28px; margin-bottom: 6px; }
-  .mcp-item .name { font-weight: 700; font-size: 14px; color: var(--pbi-dark); }
-  .mcp-item .pkg { font-size: 11px; color: #888; font-family: monospace; margin-top: 4px; }
-  .mcp-item .use { font-size: 12px; color: #666; margin-top: 6px; }
+  /* Admin */
+  .admin-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .admin-table th { background: var(--g100); padding: 8px; text-align: left; font-weight: 600; border-bottom: 2px solid var(--g200); }
+  .admin-table td { padding: 8px; border-bottom: 1px solid var(--g200); }
+  .badge-s { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; }
+  .badge-done { background: var(--success-bg); color: var(--success); }
+  .badge-pending { background: var(--warn-bg); color: var(--warn); }
+  .badge-rejected { background: var(--danger-bg); color: var(--danger); }
+  .hidden { display: none !important; }
 
-  /* Accordion */
-  details {
-    margin: 8px 0;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  details summary {
-    padding: 12px 16px;
-    background: #fafafa;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 14px;
-    list-style: none;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  details summary::before {
-    content: '\25B6';
-    font-size: 10px;
-    transition: transform 0.2s;
-  }
-  details[open] summary::before {
-    transform: rotate(90deg);
-  }
-  details .detail-body {
-    padding: 14px 16px;
-    font-size: 13px;
-    line-height: 1.6;
-    background: #fff;
-  }
+  /* Spinner */
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(0,0,0,0.15); border-top-color: var(--dark); border-radius: 50%; animation: spin .5s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Footer */
-  .footer {
-    text-align: center;
-    padding: 24px;
-    color: #999;
-    font-size: 12px;
-  }
+  .footer { text-align: center; padding: 20px; color: var(--g500); font-size: 0.75rem; }
+  .legend { font-size: 0.75rem; color: var(--g500); margin-top: 4px; }
 
-  @media (max-width: 640px) {
-    .hero h1 { font-size: 22px; }
-    .container { padding: 16px 12px 40px; }
-    .card { padding: 18px; }
-    .btn-group { flex-direction: column; }
-    .mcp-grid { grid-template-columns: 1fr; }
+  /* Mobile */
+  @media (max-width: 480px) {
+    .hero h1 { font-size: 1.25rem; }
+    .hero { padding: 32px 16px 24px; }
+    .slot-grid { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .slot { padding: 10px 0; font-size: 0.85rem; }
+    .card { padding: 16px; }
+    .tabs { gap: 0; }
+    .tab { padding: 10px 12px; font-size: 0.82rem; }
+    .qr-row { flex-direction: column; text-align: center; }
+    .qr-meta { text-align: center; }
   }
 </style>
 </head>
 <body>
 
-<!-- Hero -->
 <div class="hero">
   <h1>AI-Driven Power BI Workshop</h1>
   <p>MCP로 쉽게 만드는 대시보드</p>
-  <div class="badge">2026년 5월 30일 (금)</div>
+  <div class="badge">2026년 5월 30일 (토)</div>
 </div>
 
-<!-- QR Code -->
-<div class="qr-section">
-  <div class="qr-wrap">
-    <div class="qr-box">
-      <canvas id="qrCanvas"></canvas>
-    </div>
-    <div class="qr-text">
-      <div class="label">이 페이지 주소</div>
-      <div class="url" id="pageUrl"></div>
-      <div class="hint">스마트폰으로 QR을 스캔하면 이 페이지가 열립니다</div>
-    </div>
-  </div>
-</div>
+<div class="wrap">
 
-<div class="container">
-
-  <!-- 안내 -->
+  <!-- QR -->
   <div class="card">
-    <h2>환영합니다!</h2>
-    <p>이 워크숍에서는 <strong>AI가 Power BI를 직접 제어</strong>하여 대시보드를 자동으로 만드는 방법을 배웁니다.</p>
-    <p style="margin-top:8px; font-size:14px; color:#666;">아래 가이드에 따라 <strong>사전 환경 설정</strong>을 완료해 주세요. 약 5~10분 소요됩니다.</p>
-  </div>
-
-  <!-- 자동 설치 -->
-  <div class="card">
-    <h2>자동 설치</h2>
-
-    <div class="form-group">
-      <label>학생 번호 (01~50)</label>
-      <input type="text" id="studentId" placeholder="예: 01" maxlength="2" pattern="\d{2}">
-    </div>
-    <div class="form-group">
-      <label>API Key (이메일로 받은 키)</label>
-      <input type="text" id="apiKey" placeholder="이메일에서 받은 API Key를 입력하세요">
-    </div>
-
-    <div class="alert alert-info">
-      <strong>PowerShell을 관리자 권한으로 실행</strong>한 후, 아래 명령어를 복사하여 붙여넣으세요.
-    </div>
-
-    <div class="cmd-box">
-      <button class="copy-btn" onclick="copyCommand()">복사</button>
-      <code id="cmdOutput">.\setup-powerbi-mcp.ps1 -StudentId "<span class="sid-placeholder">01</span>" -ApiKey "<span class="key-placeholder">YOUR_KEY</span>"</code>
-    </div>
-
-    <p style="font-size:12px; color:#888; margin-top:8px;">스크립트를 먼저 다운로드한 후 실행하세요.</p>
-
-    <div class="btn-group">
-      <a href="https://github.com/asomi7007/eduelden-ai-deploy/raw/main/events/powerbi-mcp-20260530/setup-powerbi-mcp.ps1" class="btn btn-primary" download>스크립트 다운로드</a>
-      <a href="https://github.com/asomi7007/eduelden-ai-deploy/raw/main/events/powerbi-mcp-20260530/files/%EC%8B%A4%EC%8A%B5%ED%8C%8C%EC%9D%BC.pbix" class="btn btn-outline" download>실습 파일 다운로드</a>
-    </div>
-  </div>
-
-  <!-- 설치 항목 -->
-  <div class="card">
-    <h2>자동 설치 항목</h2>
-    <ol class="steps">
-      <li>
-        <strong>VS Code</strong>
-        <div class="desc">코드 에디터 + AI 에이전트 실행 환경</div>
-      </li>
-      <li>
-        <strong>Cline 확장</strong>
-        <div class="desc">VS Code에서 AI 에이전트를 구동하는 확장</div>
-      </li>
-      <li>
-        <strong>Node.js 22+</strong>
-        <div class="desc">MCP 서버 실행에 필요한 런타임</div>
-      </li>
-      <li>
-        <strong>Power BI Desktop</strong>
-        <div class="desc">대시보드 제작 도구 (winget으로 설치)</div>
-      </li>
-      <li>
-        <strong>MCP 서버 3종 + API 연결</strong>
-        <div class="desc">Cline에 MCP 서버와 AI 모델 자동 구성</div>
-      </li>
-      <li>
-        <strong>실습 파일</strong>
-        <div class="desc">바탕화면에 실습파일.pbix 다운로드</div>
-      </li>
-    </ol>
-  </div>
-
-  <!-- MCP 서버 -->
-  <div class="card">
-    <h2>MCP 서버</h2>
-    <p style="font-size:14px; color:#666; margin-bottom:12px;">AI가 사용하는 도구 서버 3종이 자동 구성됩니다.</p>
-    <div class="mcp-grid">
-      <div class="mcp-item">
-        <div class="icon">📊</div>
-        <div class="name">Power BI</div>
-        <div class="pkg">@anthropic/mcp-server-powerbi</div>
-        <div class="use">AI가 Power BI Desktop을 직접 제어</div>
-      </div>
-      <div class="mcp-item">
-        <div class="icon">🌐</div>
-        <div class="name">Playwright</div>
-        <div class="pkg">@anthropic/mcp-server-playwright</div>
-        <div class="use">웹 브라우저 자동화 (디자인 참조)</div>
-      </div>
-      <div class="mcp-item">
-        <div class="icon">📁</div>
-        <div class="name">Filesystem</div>
-        <div class="pkg">@anthropic/mcp-server-filesystem</div>
-        <div class="use">실습 파일 읽기/쓰기</div>
+    <div class="qr-row">
+      <canvas id="qrThumb" class="qr-thumb" width="100" height="100" onclick="openQR()"></canvas>
+      <div class="qr-meta">
+        <div class="lbl">이 페이지 주소 (클릭하면 확대)</div>
+        <div class="url" id="pageUrl"></div>
+        <div class="hint">스마트폰으로 QR 스캔 또는 클릭하여 확대</div>
       </div>
     </div>
   </div>
 
-  <!-- 당일 체크리스트 -->
-  <div class="card">
-    <h2>당일 준비물 체크리스트</h2>
-    <ul class="checklist" id="checklist">
-      <li onclick="this.classList.toggle('checked')">노트북 (Windows 10/11, 64bit)</li>
-      <li onclick="this.classList.toggle('checked')">VS Code 설치 완료</li>
-      <li onclick="this.classList.toggle('checked')">Cline 확장 설치 완료</li>
-      <li onclick="this.classList.toggle('checked')">Node.js 22+ 설치 완료 (<code>node -v</code>로 확인)</li>
-      <li onclick="this.classList.toggle('checked')">Power BI Desktop 설치 완료</li>
-      <li onclick="this.classList.toggle('checked')">실습파일.pbix 바탕화면에 다운로드 완료</li>
-      <li onclick="this.classList.toggle('checked')">인터넷 연결 가능</li>
-    </ul>
+  <!-- QR Modal -->
+  <div class="modal-overlay" id="qrModal" onclick="closeQR()">
+    <div class="modal-qr" onclick="event.stopPropagation()">
+      <canvas id="qrLarge" width="280" height="280"></canvas>
+      <div class="url" id="qrModalUrl"></div>
+      <div class="close-hint">아무 곳이나 터치하면 닫힙니다</div>
+    </div>
   </div>
 
-  <!-- 수동 설치 -->
-  <div class="card">
-    <h2>수동 설치 (자동 설치 실패 시)</h2>
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('student')">🎓 온보딩</div>
+    <div class="tab" onclick="switchTab('cancel')">↩️ 취소</div>
+    <div class="tab" onclick="switchTab('admin')">🔐 관리자</div>
+  </div>
 
-    <details>
-      <summary>VS Code 수동 설치</summary>
-      <div class="detail-body">
-        <a href="https://code.visualstudio.com/download" target="_blank">https://code.visualstudio.com/download</a> 에서 Windows 64bit 버전을 다운로드하여 설치합니다.
+  <div id="alertGlobal" class="alert"></div>
+
+  <!-- ===== STUDENT ===== -->
+  <div id="panelStudent" class="panel active">
+    <div class="card">
+      <h2>📋 현재 신청 현황
+        <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="refreshSlots()">새로고침</button>
+      </h2>
+      <p style="font-size:0.82rem;color:var(--g500);margin-bottom:6px">
+        <span id="slotCount">-</span>/50 자리 사용 중
+      </p>
+      <div id="slotGrid" class="slot-grid"></div>
+      <div class="legend">⬜ 빈 자리 (터치하여 선택) &nbsp; 🟩 내 선택 &nbsp; 🟦 사용 중</div>
+    </div>
+
+    <div class="card">
+      <h2>✏️ 온보딩 신청</h2>
+      <div id="alertStudent" class="alert"></div>
+      <div class="field">
+        <label>수업 패스코드 <span class="hint">(강사가 알려준 코드)</span></label>
+        <input type="password" id="inputPasscode" placeholder="패스코드 입력" autocomplete="off">
       </div>
-    </details>
-
-    <details>
-      <summary>Cline 확장 수동 설치</summary>
-      <div class="detail-body">
-        VS Code 실행 &rarr; 왼쪽 Extensions 아이콘 클릭 &rarr; "Cline" 검색 &rarr; Install 클릭
+      <div class="field">
+        <label>학생 번호 <span class="hint">(위 현황판에서 빈 자리를 선택하세요)</span></label>
+        <div class="selected-display" id="selectedDisplay">아직 선택하지 않았습니다</div>
+        <input type="hidden" id="inputStudentId">
       </div>
-    </details>
-
-    <details>
-      <summary>Node.js 22 수동 설치</summary>
-      <div class="detail-body">
-        <a href="https://nodejs.org/en/download" target="_blank">https://nodejs.org/en/download</a> 에서 22 LTS 버전을 다운로드하여 설치합니다.<br>
-        설치 후 터미널에서 <code>node -v</code>를 입력하여 v22 이상인지 확인합니다.
+      <div class="field">
+        <label>이메일 <span class="hint">(API 키 + 설치 가이드를 받을 주소)</span></label>
+        <input type="email" id="inputEmail" placeholder="example@email.com" inputmode="email">
       </div>
-    </details>
+      <button id="btnSubmit" class="btn btn-primary" onclick="submitOnboarding()">온보딩 신청</button>
+      <p style="font-size:0.75rem;color:var(--g500);margin-top:8px;text-align:center">
+        신청 완료 시 이메일로 API 키와 설치 가이드가 발송됩니다
+      </p>
+    </div>
+  </div>
 
-    <details>
-      <summary>Power BI Desktop 수동 설치</summary>
-      <div class="detail-body">
-        <strong>방법 1:</strong> Microsoft Store에서 "Power BI Desktop" 검색하여 설치<br>
-        <strong>방법 2:</strong> <a href="https://aka.ms/pbidesktopstore" target="_blank">https://aka.ms/pbidesktopstore</a><br>
-        <strong>방법 3:</strong> 터미널에서 <code>winget install Microsoft.PowerBI</code>
+  <!-- ===== CANCEL ===== -->
+  <div id="panelCancel" class="panel">
+    <div class="card">
+      <h2>↩️ 신청 취소 / 재신청</h2>
+      <p style="font-size:0.85rem;color:var(--g500);margin-bottom:14px">
+        이메일을 잘못 입력했거나 번호를 바꾸고 싶을 때 사용하세요.
+      </p>
+      <div id="alertCancel" class="alert"></div>
+      <div class="field">
+        <label>수업 패스코드</label>
+        <input type="password" id="cancelPasscode" placeholder="패스코드 입력" autocomplete="off">
       </div>
-    </details>
+      <div class="field">
+        <label>취소할 학생 번호</label>
+        <select id="cancelStudentId" style="width:100%;padding:11px 14px;border:1px solid var(--g300);border-radius:8px;font-size:1rem">
+          <option value="">번호 선택...</option>
+        </select>
+      </div>
+      <button class="btn btn-danger" onclick="cancelOnboarding()">신청 취소</button>
+    </div>
+  </div>
 
-    <details>
-      <summary>MCP 서버 수동 구성</summary>
-      <div class="detail-body">
-        Cline 사이드바 &rarr; MCP Servers 탭 &rarr; 각 서버 추가:
-        <div class="cmd-box" style="margin-top:8px;">
-          <code>{
-  "mcpServers": {
-    "powerbi": {
-      "command": "npx",
-      "args": ["-y", "@anthropic/mcp-server-powerbi"]
-    },
-    "playwright": {
-      "command": "npx",
-      "args": ["-y", "@anthropic/mcp-server-playwright"]
-    },
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@anthropic/mcp-server-filesystem", "C:\\Users\\사용자\\Desktop"]
-    }
-  }
-}</code>
+  <!-- ===== ADMIN ===== -->
+  <div id="panelAdmin" class="panel">
+    <div id="adminLogin" class="card">
+      <h2>🔐 관리자 로그인</h2>
+      <div id="alertAdmin" class="alert"></div>
+      <div class="field">
+        <label>관리자 비밀번호</label>
+        <input type="password" id="adminPassword" placeholder="비밀번호" onkeydown="if(event.key==='Enter')adminAuth()">
+      </div>
+      <button class="btn btn-primary" onclick="adminAuth()">로그인</button>
+    </div>
+    <div id="adminDashboard" class="hidden">
+      <div class="card">
+        <h2>📊 대시보드
+          <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="adminRefresh()">새로고침</button>
+          <button class="btn btn-danger btn-sm" onclick="adminResetAll()">전체 초기화</button>
+          <button class="btn btn-outline btn-sm" onclick="adminLogout()">로그아웃</button>
+        </h2>
+        <p style="font-size:0.85rem;color:var(--g500);margin-bottom:10px">
+          총 <b id="adminTotal">0</b>건 | 완료 <b id="adminDone">0</b> | 대기 <b id="adminPending">0</b> | 거부 <b id="adminRejected">0</b>
+        </p>
+        <div style="overflow-x:auto">
+          <table class="admin-table">
+            <thead><tr><th>번호</th><th>이메일</th><th>상태</th><th>이슈</th><th>작업</th></tr></thead>
+            <tbody id="adminTableBody"></tbody>
+          </table>
         </div>
+        <p id="adminEmpty" class="hidden" style="text-align:center;padding:20px;color:var(--g500)">신청 내역이 없습니다.</p>
       </div>
-    </details>
-  </div>
-
-  <!-- 트러블슈팅 -->
-  <div class="card">
-    <h2>문제 해결</h2>
-
-    <div class="alert alert-warning">
-      <strong>Power BI Desktop 설치 실패</strong><br>
-      Microsoft Store 접근이 안 되면: <code>winget install Microsoft.PowerBI</code>
-    </div>
-
-    <div class="alert alert-warning">
-      <strong>Node.js 버전이 22 미만</strong><br>
-      기존 버전 삭제 후 다시 설치: <code>winget install OpenJS.NodeJS.LTS</code>
-    </div>
-
-    <div class="alert alert-warning">
-      <strong>MCP 서버가 Cline에서 안 보임</strong><br>
-      VS Code를 완전히 종료(Ctrl+Shift+P &rarr; "Close Window") 후 다시 열어주세요.<br>
-      Cline 사이드바 &gt; MCP Servers 탭에서 3개 서버가 보여야 합니다.
-    </div>
-
-    <div class="alert alert-warning">
-      <strong>API 연결 테스트 실패</strong><br>
-      APIM이 아직 배포 중일 수 있습니다. 당일 강사가 확인해 드립니다.
-    </div>
-
-    <div class="alert alert-warning">
-      <strong>스크립트 실행이 차단됨</strong><br>
-      PowerShell에서 먼저 실행: <code>Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned</code>
     </div>
   </div>
 
-  <!-- 문의 -->
-  <div class="card" style="text-align:center;">
-    <p>설치 관련 문의: <a href="mailto:admin@eldensoluton.kr">admin@eldensoluton.kr</a></p>
-    <p style="font-size:13px; color:#888; margin-top:6px;">설치가 어려우시면 당일 행사장에서 도움을 드리겠습니다.</p>
-  </div>
-
-</div>
-
-<div class="footer">
-  AI-Driven Power BI Workshop | 2026-05-30 | Eduelden AI Lab
+  <div class="footer">AI-Driven Power BI Workshop | 2026-05-30 (토) | Eduelden AI Lab</div>
 </div>
 
 <script>
-  // ─── QR Code Generator (lightweight, no external dependency) ───
-  // Minimal QR encoder — supports alphanumeric URLs up to ~120 chars
-  const QRCode = (function() {
-    // Using a CDN-free approach: draw QR via Google Charts API as image
-    function generate(text, canvas, size) {
-      size = size || 160;
-      canvas.width = size;
-      canvas.height = size;
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = function() {
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, size, size);
-      };
-      img.onerror = function() {
-        // Fallback: show URL text if image fails
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#f0f0f0';
-        ctx.fillRect(0, 0, size, size);
-        ctx.fillStyle = '#333';
-        ctx.font = '11px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('QR loading failed', size/2, size/2);
-      };
-      img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}&margin=8`;
+const API_BASE = '/api';
+let slotsData = {};
+let adminPw = '';
+let selectedSlot = '';
+
+// ─── QR ───
+function generateQR(canvas, size) {
+  const url = window.location.href;
+  canvas.width = size; canvas.height = size;
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => canvas.getContext('2d').drawImage(img, 0, 0, size, size);
+  img.onerror = () => {
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#f0f0f0'; ctx.fillRect(0,0,size,size);
+    ctx.fillStyle = '#999'; ctx.font = '12px sans-serif';
+    ctx.textAlign = 'center'; ctx.fillText('QR 로딩 실패', size/2, size/2);
+  };
+  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&margin=6`;
+}
+function openQR() {
+  generateQR(document.getElementById('qrLarge'), 280);
+  document.getElementById('qrModalUrl').textContent = window.location.href;
+  document.getElementById('qrModal').classList.add('show');
+}
+function closeQR() { document.getElementById('qrModal').classList.remove('show'); }
+
+// ─── INIT ───
+window.addEventListener('DOMContentLoaded', () => {
+  const url = window.location.href;
+  document.getElementById('pageUrl').textContent = url;
+  generateQR(document.getElementById('qrThumb'), 100);
+
+  const sel = document.getElementById('cancelStudentId');
+  for (let i = 1; i <= 50; i++) {
+    const v = String(i).padStart(2,'0');
+    sel.appendChild(Object.assign(document.createElement('option'), { value: v, textContent: v+'번' }));
+  }
+  refreshSlots();
+});
+
+// ─── API ───
+async function apiFetch(path, opts = {}) {
+  const r = await fetch(API_BASE + path, { ...opts, headers: { 'Content-Type': 'application/json', ...(opts.headers||{}) } });
+  const d = await r.json(); if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status); return d;
+}
+
+// ─── SLOTS ───
+async function refreshSlots() {
+  const grid = document.getElementById('slotGrid');
+  grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--g500);font-size:0.82rem">로딩 중...</p>';
+  try {
+    const data = await apiFetch('/slots');
+    slotsData = data.slots || {};
+    grid.innerHTML = '';
+    let count = 0;
+    for (let i = 1; i <= 50; i++) {
+      const id = String(i).padStart(2,'0');
+      const div = document.createElement('div');
+      div.className = 'slot'; div.textContent = id;
+      if (slotsData[id]) {
+        div.classList.add('taken'); div.title = id + '번: 사용 중'; count++;
+      } else {
+        div.title = id + '번: 빈 자리'; div.addEventListener('click', () => selectSlot(id));
+      }
+      if (id === selectedSlot && !slotsData[id]) { div.classList.add('selected'); div.textContent = id + ' ✓'; }
+      grid.appendChild(div);
     }
-    return { generate };
-  })();
-
-  // Generate QR on load
-  const pageUrl = window.location.href;
-  document.getElementById('pageUrl').textContent = pageUrl;
-  QRCode.generate(pageUrl, document.getElementById('qrCanvas'), 160);
-
-  // Live-update command with student inputs
-  const sidInput = document.getElementById('studentId');
-  const keyInput = document.getElementById('apiKey');
-
-  function updateCommand() {
-    const sid = sidInput.value || '01';
-    const key = keyInput.value || 'YOUR_KEY';
-    document.getElementById('cmdOutput').innerHTML =
-      `.\\setup-powerbi-mcp.ps1 -StudentId "${sid}" -ApiKey "${key}"`;
+    document.getElementById('slotCount').textContent = count;
+  } catch (e) {
+    grid.innerHTML = '<p style="grid-column:1/-1;color:var(--danger);font-size:0.82rem">서버 연결 실패</p>';
   }
+}
 
-  sidInput.addEventListener('input', updateCommand);
-  keyInput.addEventListener('input', updateCommand);
-
-  // Copy command
-  function copyCommand() {
-    const cmd = document.getElementById('cmdOutput').textContent;
-    navigator.clipboard.writeText(cmd).then(() => {
-      const btn = document.querySelector('.copy-btn');
-      btn.textContent = '복사됨!';
-      setTimeout(() => btn.textContent = '복사', 1500);
-    });
+// ─── SLOT SELECT ───
+function selectSlot(id) {
+  if (slotsData[id]) return;
+  document.querySelectorAll('.slot.selected').forEach(el => { el.classList.remove('selected'); el.textContent = el.textContent.replace(' ✓',''); });
+  const disp = document.getElementById('selectedDisplay');
+  if (selectedSlot === id) {
+    selectedSlot = ''; document.getElementById('inputStudentId').value = '';
+    disp.textContent = '아직 선택하지 않았습니다'; disp.classList.remove('active'); return;
   }
+  selectedSlot = id; document.getElementById('inputStudentId').value = id;
+  document.querySelectorAll('.slot').forEach(el => {
+    if (el.textContent.replace(' ✓','') === id) { el.classList.add('selected'); el.textContent = id + ' ✓'; }
+  });
+  disp.innerHTML = '✅ <b>' + id + '번</b> 선택됨'; disp.classList.add('active');
+  document.getElementById('inputPasscode').focus();
+}
+
+// ─── TABS ───
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const idx = {student:0,cancel:1,admin:2}[name];
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  document.getElementById('panel' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+  hideAlert('alertGlobal');
+}
+
+// ─── ALERTS ───
+function showAlert(id,type,msg) { const el=document.getElementById(id); el.className='alert alert-'+type+' show'; el.innerHTML=msg; }
+function hideAlert(id) { const el=document.getElementById(id); if(el){el.className='alert';el.innerHTML='';} }
+
+// ─── SUBMIT ───
+async function submitOnboarding() {
+  hideAlert('alertStudent');
+  const passcode = document.getElementById('inputPasscode').value.trim();
+  const studentId = document.getElementById('inputStudentId').value;
+  const email = document.getElementById('inputEmail').value.trim();
+  if (!passcode) return showAlert('alertStudent','error','패스코드를 입력해주세요.');
+  if (!studentId) return showAlert('alertStudent','error','위 현황판에서 학생 번호를 선택해주세요.');
+  if (!email) return showAlert('alertStudent','error','이메일 주소를 입력해주세요.');
+  if (!/^[\w.+\-]+@[\w.\-]+\.\w+$/.test(email)) return showAlert('alertStudent','error','유효한 이메일 주소를 입력해주세요.');
+
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 처리 중...';
+  try {
+    await apiFetch('/onboard', { method:'POST', body: JSON.stringify({passcode, studentId, email}) });
+    showAlert('alertStudent','success',
+      '✅ 온보딩 신청 완료!<br><b>'+studentId+'번</b> — <b>'+email+'</b>로 API 키와 설치 가이드가 발송됩니다.<br><small style="color:var(--g500)">1~2분 소요</small>');
+    document.getElementById('inputPasscode').value = '';
+    document.getElementById('inputEmail').value = '';
+    document.getElementById('inputStudentId').value = '';
+    selectedSlot = '';
+    document.getElementById('selectedDisplay').textContent = '아직 선택하지 않았습니다';
+    document.getElementById('selectedDisplay').classList.remove('active');
+    setTimeout(refreshSlots, 3000);
+  } catch (e) { showAlert('alertStudent','error','❌ '+e.message); }
+  finally { btn.disabled = false; btn.innerHTML = '온보딩 신청'; }
+}
+
+// ─── CANCEL ───
+async function cancelOnboarding() {
+  hideAlert('alertCancel');
+  const passcode = document.getElementById('cancelPasscode').value.trim();
+  const studentId = document.getElementById('cancelStudentId').value;
+  if (!passcode) return showAlert('alertCancel','error','패스코드를 입력해주세요.');
+  if (!studentId) return showAlert('alertCancel','error','학생 번호를 선택해주세요.');
+  if (!slotsData[studentId]) return showAlert('alertCancel','warning',studentId+'번에 대한 신청이 없습니다.');
+  if (!confirm(studentId+'번 신청을 취소하시겠습니까?')) return;
+  try {
+    await apiFetch('/cancel', { method:'POST', body: JSON.stringify({passcode, studentId}) });
+    showAlert('alertCancel','success','✅ '+studentId+'번 취소 완료');
+    document.getElementById('cancelPasscode').value = '';
+    document.getElementById('cancelStudentId').value = '';
+    setTimeout(refreshSlots, 2000);
+  } catch (e) { showAlert('alertCancel','error','❌ '+e.message); }
+}
+
+// ─── ADMIN ───
+async function adminAuth() {
+  hideAlert('alertAdmin');
+  const pw = document.getElementById('adminPassword').value;
+  if (!pw) return showAlert('alertAdmin','error','비밀번호를 입력해주세요.');
+  try { adminPw=pw; await adminRefresh(); document.getElementById('adminLogin').classList.add('hidden'); document.getElementById('adminDashboard').classList.remove('hidden'); }
+  catch(e) { adminPw=''; showAlert('alertAdmin','error','❌ '+e.message); }
+}
+function adminLogout() { adminPw=''; document.getElementById('adminLogin').classList.remove('hidden'); document.getElementById('adminDashboard').classList.add('hidden'); document.getElementById('adminPassword').value=''; }
+
+async function adminRefresh() {
+  const tbody = document.getElementById('adminTableBody');
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--g500)">로딩 중...</td></tr>';
+  const data = await apiFetch('/manage', { method:'POST', body: JSON.stringify({adminPw}) });
+  const {entries, stats} = data;
+  document.getElementById('adminTotal').textContent = stats.total;
+  document.getElementById('adminDone').textContent = stats.done;
+  document.getElementById('adminPending').textContent = stats.pending;
+  document.getElementById('adminRejected').textContent = stats.rejected;
+  if (entries.length === 0) { tbody.innerHTML=''; document.getElementById('adminEmpty').classList.remove('hidden'); return; }
+  document.getElementById('adminEmpty').classList.add('hidden');
+  tbody.innerHTML = entries.map(r => {
+    const bc = {done:'badge-done',pending:'badge-pending',rejected:'badge-rejected',closed:'badge-rejected'}[r.status]||'';
+    const st = {done:'완료',pending:'대기',rejected:'거부/취소',closed:'닫힘'}[r.status]||r.status;
+    const cb = r.status!=='rejected' ? '<button class="btn btn-danger btn-sm" onclick="adminCancel(\''+r.studentId+'\')">취소</button>' : '-';
+    return '<tr><td><b>'+r.studentId+'</b></td><td>'+( r.email||'-')+'</td><td><span class="badge-s '+bc+'">'+st+'</span></td><td><a href="'+r.issueUrl+'" target="_blank">#'+r.issueNumber+'</a></td><td>'+cb+'</td></tr>';
+  }).join('');
+}
+
+async function adminResetAll() {
+  if (!confirm('⚠️ 전체 초기화: 모든 신청이 취소됩니다.')) return;
+  if (!confirm('🔴 최종 확인: 되돌릴 수 없습니다. 계속?')) return;
+  try {
+    showAlert('alertGlobal','warning','⏳ 초기화 중...');
+    const r = await apiFetch('/reset', { method:'POST', body: JSON.stringify({adminPw, confirm:'RESET_ALL'}) });
+    showAlert('alertGlobal','success','✅ '+r.message);
+    adminRefresh(); refreshSlots();
+  } catch(e) { showAlert('alertGlobal','error','❌ '+e.message); }
+}
+
+async function adminCancel(studentId) {
+  if (!confirm(studentId+'번을 관리자 권한으로 취소?')) return;
+  try {
+    await apiFetch('/cancel', { method:'POST', body: JSON.stringify({studentId, isAdmin:true, adminPw}) });
+    showAlert('alertGlobal','success','✅ '+studentId+'번 취소');
+    adminRefresh(); refreshSlots();
+  } catch(e) { showAlert('alertGlobal','error','❌ '+e.message); }
+}
 </script>
-
 </body>
 </html>
