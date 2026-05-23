@@ -186,22 +186,27 @@ jobs:
               <table style="width:100%;border-collapse:collapse;margin:12px 0">
                 <tr><td style="padding:10px 0;vertical-align:top;width:38px">${stepCircle('1','#F2C811')}</td>
                 <td style="padding:10px 0 10px 10px">
-                  <b>Download script</b> - Open PowerShell and paste:
-                  ${codeBox('cd ~\\Downloads<br>Invoke-WebRequest -Uri "<a href="' + scriptUrl + '" style="color:#93c5fd;text-decoration:underline">' + scriptUrl + '</a>" -OutFile setup-powerbi-mcp.ps1')}
-                  <p style="color:#6b7280;font-size:0.85em;margin:4px 0 0">💡 또는 <a href="${scriptUrl}" style="color:#1a56db;font-weight:600">이 링크</a>를 우클릭 → "다른 이름으로 링크 저장"</p>
-                </td></tr>
-                <tr><td style="padding:10px 0;vertical-align:top">${stepCircle('2','#F2C811')}</td>
-                <td style="padding:10px 0 10px 10px">
                   <b>PowerShell을 <span style="color:#dc2626">관리자 모드</span>로 실행</b><br/>
                   <span style="font-size:13px;color:#555">시작 메뉴 → "PowerShell" 검색 → 관리자 권한으로 실행</span>
                 </td></tr>
+                <tr><td style="padding:10px 0;vertical-align:top">${stepCircle('2','#F2C811')}</td>
+                <td style="padding:10px 0 10px 10px">
+                  <b>Downloads 폴더로 이동</b>
+                  ${codeBox('cd ~\\Downloads')}
+                </td></tr>
                 <tr><td style="padding:10px 0;vertical-align:top">${stepCircle('3','#F2C811')}</td>
+                <td style="padding:10px 0 10px 10px">
+                  <b>스크립트 다운로드</b>
+                  ${codeBox('Invoke-WebRequest -Uri "<a href="' + scriptUrl + '" style="color:#93c5fd;text-decoration:underline">' + scriptUrl + '</a>" -OutFile setup-powerbi-mcp.ps1')}
+                  <p style="color:#6b7280;font-size:0.85em;margin:4px 0 0">💡 또는 <a href="${scriptUrl}" style="color:#1a56db;font-weight:600">이 링크</a>를 우클릭 → "다른 이름으로 링크 저장" (Downloads 폴더에 저장)</p>
+                </td></tr>
+                <tr><td style="padding:10px 0;vertical-align:top">${stepCircle('4','#F2C811')}</td>
                 <td style="padding:10px 0 10px 10px">
                   <b>실행 정책 허용 (최초 1회)</b>
                   ${codeBox('Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned')}
                   <span style="font-size:12px;color:#888">"Y" 입력 후 Enter</span>
                 </td></tr>
-                <tr><td style="padding:10px 0;vertical-align:top">${stepCircle('4','#F2C811')}</td>
+                <tr><td style="padding:10px 0;vertical-align:top">${stepCircle('5','#F2C811')}</td>
                 <td style="padding:10px 0 10px 10px">
                   <b>설치 스크립트 실행</b>
                   ${codeBox('.\\setup-powerbi-mcp.ps1 -StudentId "' + studentId + '" -ApiKey "' + apiKey + '"')}
