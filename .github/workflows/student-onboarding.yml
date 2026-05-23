@@ -186,8 +186,8 @@ jobs:
               <table style="width:100%;border-collapse:collapse;margin:12px 0">
                 <tr><td style="padding:10px 0;vertical-align:top;width:38px">${stepCircle('1','#F2C811')}</td>
                 <td style="padding:10px 0 10px 10px">
-                  <b>스크립트 다운로드</b> — PowerShell을 열고 아래 명령을 복사·붙여넣기하세요.
-                  ${codeBox('Invoke-WebRequest -Uri "<a href="' + scriptUrl + '" style="color:#93c5fd;text-decoration:underline">' + scriptUrl + '</a>" -OutFile setup-powerbi-mcp.ps1')}
+                  <b>Download script</b> - Open PowerShell and paste:
+                  ${codeBox('cd ~\\Downloads<br>Invoke-WebRequest -Uri "<a href="' + scriptUrl + '" style="color:#93c5fd;text-decoration:underline">' + scriptUrl + '</a>" -OutFile setup-powerbi-mcp.ps1')}
                   <p style="color:#6b7280;font-size:0.85em;margin:4px 0 0">💡 또는 <a href="${scriptUrl}" style="color:#1a56db;font-weight:600">이 링크</a>를 우클릭 → "다른 이름으로 링크 저장"</p>
                 </td></tr>
                 <tr><td style="padding:10px 0;vertical-align:top">${stepCircle('2','#F2C811')}</td>
@@ -204,7 +204,7 @@ jobs:
                 <tr><td style="padding:10px 0;vertical-align:top">${stepCircle('4','#F2C811')}</td>
                 <td style="padding:10px 0 10px 10px">
                   <b>설치 스크립트 실행</b>
-                  ${codeBox('cd ~/Downloads\n.\\setup-powerbi-mcp.ps1 -StudentId "' + studentId + '" -ApiKey "' + apiKey + '"')}
+                  ${codeBox('.\\setup-powerbi-mcp.ps1 -StudentId "' + studentId + '" -ApiKey "' + apiKey + '"')}
                   <span style="font-size:12px;color:#888">약 3~5분 소요. "Setup Complete!" 메시지가 나오면 완료!</span>
                 </td></tr>
               </table>
@@ -318,7 +318,7 @@ jobs:
               <p style="color:#6b7280;font-size:0.85em">💡 또는 <a href="${scriptUrl}" style="color:#1a56db">이 링크</a>를 우클릭 → "다른 이름으로 링크 저장"</p>
 
               <p><b>Step 2.</b> PowerShell을 <b style="color:#dc2626">관리자 모드</b>로 열고 실행</p>
-              ${codeBox('Set-ExecutionPolicy Bypass -Scope Process -Force\n.\\setup-student.ps1 -StudentId ' + studentId + ' -ApiKey "' + apiKey + '"')}
+              ${codeBox('Set-ExecutionPolicy Bypass -Scope Process -Force<br>.\\setup-student.ps1 -StudentId ' + studentId + ' -ApiKey "' + apiKey + '"')}
 
               <p><b>자동 설정이 하는 일:</b></p>
               <ul style="line-height:1.8">

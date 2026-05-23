@@ -48,19 +48,19 @@ Write-Host "  Date: 2026-05-30 | Student ID: $StudentId" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# ─── Helper: Check if command exists ───
+# --- Helper: Check if command exists ---
 function Test-CommandExists($cmd) {
     return [bool](Get-Command $cmd -ErrorAction SilentlyContinue)
 }
 
-# ─── Helper: Write UTF-8 without BOM ───
+# --- Helper: Write UTF-8 without BOM ---
 function Write-Utf8NoBom($path, $content) {
     [System.IO.File]::WriteAllText($path, $content, [System.Text.UTF8Encoding]::new($false))
 }
 
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 # STEP 1: VS Code
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 if (-not $SkipInstall) {
     if (Test-CommandExists "code") {
         Write-Host "[1/$TOTAL_STEPS] VS Code already installed" -ForegroundColor Green
@@ -77,9 +77,9 @@ if (-not $SkipInstall) {
     Write-Host "[1/$TOTAL_STEPS] Skipped (SkipInstall)" -ForegroundColor Gray
 }
 
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 # STEP 2: Cline Extension
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 if (-not $SkipInstall) {
     Write-Host "[2/$TOTAL_STEPS] Installing Cline extension..." -ForegroundColor Yellow
     code --install-extension saoudrizwan.claude-dev --force 2>$null
@@ -88,9 +88,9 @@ if (-not $SkipInstall) {
     Write-Host "[2/$TOTAL_STEPS] Skipped (SkipInstall)" -ForegroundColor Gray
 }
 
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 # STEP 3: Node.js 22+ (MCP servers require it)
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 if (-not $SkipInstall) {
     $nodeOk = $false
     if (Test-CommandExists "node") {
@@ -119,9 +119,9 @@ if (-not $SkipInstall) {
     Write-Host "[3/$TOTAL_STEPS] Skipped (SkipInstall)" -ForegroundColor Gray
 }
 
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 # STEP 4: Power BI Desktop
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 if (-not $SkipInstall) {
     $pbiPath = Get-Command "PBIDesktop" -ErrorAction SilentlyContinue
     if (-not $pbiPath) {
@@ -150,9 +150,9 @@ if (-not $SkipInstall) {
     Write-Host "[4/$TOTAL_STEPS] Skipped (SkipInstall)" -ForegroundColor Gray
 }
 
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 # STEP 5: API Configuration (config.json + env var)
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 Write-Host "[5/$TOTAL_STEPS] Creating API config..." -ForegroundColor Yellow
 
 $configDir = "$env:USERPROFILE\.ai-class"
@@ -184,15 +184,15 @@ Write-Host "  Config: $configDir\config.json" -ForegroundColor Green
 $env:AI_CLASS_API_KEY = $ApiKey
 Write-Host "  API Key saved to env: AI_CLASS_API_KEY" -ForegroundColor Green
 
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 # STEP 6: Cline Provider + MCP Server Configuration
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 Write-Host "[6/$TOTAL_STEPS] Configuring Cline (API provider + MCP servers)..." -ForegroundColor Yellow
 
 $clineDataDir = "$env:USERPROFILE\.cline\data"
 New-Item -ItemType Directory -Force -Path $clineDataDir | Out-Null
 
-# ─── 6a: Cline API Provider (globalState.json) ───
+# --- 6a: Cline API Provider (globalState.json) ---
 $gsFile = "$clineDataDir\globalState.json"
 if (Test-Path $gsFile) {
     $gs = Get-Content $gsFile -Raw | ConvertFrom-Json
@@ -213,7 +213,7 @@ $gs | Add-Member -NotePropertyName "planModeOpenAiCompatibleBaseUrl" -NoteProper
 Write-Utf8NoBom $gsFile ($gs | ConvertTo-Json -Depth 10)
 Write-Host "  Cline provider: OpenAI Compatible ($APIM_BASE_URL/openai/v1)" -ForegroundColor Green
 
-# ─── 6b: Cline API Key (secrets.json) ───
+# --- 6b: Cline API Key (secrets.json) ---
 $secFile = "$clineDataDir\secrets.json"
 if (Test-Path $secFile) {
     $sec = Get-Content $secFile -Raw | ConvertFrom-Json
@@ -224,7 +224,7 @@ $sec | Add-Member -NotePropertyName "openAiCompatibleApiKey" -NotePropertyValue 
 Write-Utf8NoBom $secFile ($sec | ConvertTo-Json -Depth 5)
 Write-Host "  Cline API key saved" -ForegroundColor Green
 
-# ─── 6c: MCP Servers (mcpSettings.json) ───
+# --- 6c: MCP Servers (mcpSettings.json) ---
 $mcpFile = "$clineDataDir\mcpSettings.json"
 if (Test-Path $mcpFile) {
     $mcp = Get-Content $mcpFile -Raw | ConvertFrom-Json
@@ -273,13 +273,13 @@ Write-Host "    - powerbi  : @anthropic/mcp-server-powerbi" -ForegroundColor Gra
 Write-Host "    - playwright: @anthropic/mcp-server-playwright" -ForegroundColor Gray
 Write-Host "    - filesystem: @anthropic/mcp-server-filesystem ($practiceDir)" -ForegroundColor Gray
 
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 # STEP 7: Download Practice File (.pbix)
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 Write-Host "[7/$TOTAL_STEPS] Downloading practice file..." -ForegroundColor Yellow
 
 $destDir = "$env:USERPROFILE\Desktop"
-$destFile = "$destDir\실습파일.pbix"
+$destFile = "$destDir\practice.pbix"
 
 if (Test-Path $destFile) {
     Write-Host "  Practice file already exists: $destFile" -ForegroundColor Green
@@ -293,9 +293,9 @@ if (Test-Path $destFile) {
     }
 }
 
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 # STEP 8: Connection Test
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 Write-Host "[8/$TOTAL_STEPS] Testing API connection..." -ForegroundColor Yellow
 
 $headers = @{
@@ -320,9 +320,9 @@ try {
     Write-Host "  You can test manually later in Cline." -ForegroundColor Yellow
 }
 
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 # DONE
-# ═══════════════════════════════════════════════════════════════
+# ===========================================================
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "  Setup Complete!" -ForegroundColor Cyan
@@ -344,5 +344,5 @@ Write-Host ""
 Write-Host "  Next steps:" -ForegroundColor Yellow
 Write-Host "    1. Open VS Code" -ForegroundColor White
 Write-Host "    2. Open the practice file in Power BI Desktop" -ForegroundColor White
-Write-Host "    3. In Cline, type: 'Power BI Desktop에 열린 파일을 분석해줘'" -ForegroundColor White
+Write-Host "    3. In Cline, ask: 'Analyze the file open in Power BI Desktop'" -ForegroundColor White
 Write-Host ""
