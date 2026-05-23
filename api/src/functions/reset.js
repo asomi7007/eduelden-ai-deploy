@@ -46,20 +46,30 @@ app.http('reset', {
         `https://api.github.com/repos/${repo}/issues?labels=onboarding&state=open&per_page=100`,
         { headers: ghHeaders }
       );
-      const openIssues = (await openResp.json()).filter(i => !i.pull_request);
+      const openData = openResp.ok ? await openResp.json() : [];
+      const openIssues = (Array.isArray(openData) ? openData : []).filter(i => !i.pull_request);
 
       // Also fetch closed non-rejected issues (done/pending that are closed but not rejected)
       const closedResp = await fetch(
         `https://api.github.com/repos/${repo}/issues?labels=onboarding&state=closed&per_page=100`,
         { headers: ghHeaders }
       );
-      const closedIssues = (await closedResp.json()).filter(i => {
+      const closedData = closedResp.ok ? await closedResp.json() : [];
+      const closedIssues = (Array.isArray(closedData) ? closedData : []).filter(i => {
         if (i.pull_request) return false;
         const labels = i.labels.map(l => l.name);
-        return !labels.includes('rejected'); // 이미 rejected인 건 건너뜀
+        return !labels.includes('rejected');
       });
 
       const allToReset = [...openIssues, ...closedIssues];
+
+      // 초기화할 이슈가 없는 경우
+      if (allToReset.length === 0) {
+        return {
+          jsonBody: { message: '초기화할 온보딩 신청이 없습니다.', resetCount: 0 },
+          headers: corsHeaders
+        };
+      }
       let resetCount = 0;
       const errors = [];
 
