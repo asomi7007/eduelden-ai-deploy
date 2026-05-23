@@ -438,7 +438,7 @@ async function submitOnboarding() {
   const btn = document.getElementById('btnSubmit');
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 처리 중...';
   try {
-    await apiFetch('/onboard', { method:'POST', body: JSON.stringify({passcode, studentId, email}) });
+    await apiFetch('/onboard', { method:'POST', body: JSON.stringify({passcode, studentId, email, event: 'powerbi-mcp-20260530'}) });
     showAlert('alertStudent','success',
       '✅ 온보딩 신청 완료!<br><b>'+studentId+'번</b> — <b>'+email+'</b>로 API 키와 설치 가이드가 발송됩니다.<br><small style="color:var(--g500)">1~2분 소요</small>');
     document.getElementById('inputPasscode').value = '';

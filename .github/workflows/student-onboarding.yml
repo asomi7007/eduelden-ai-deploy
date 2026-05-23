@@ -103,8 +103,12 @@ jobs:
               return;
             }
 
+            const eventMatch = body.match(/EVENT:\s*(.+)/);
+            const eventId = eventMatch ? eventMatch[1].trim() : 'default';
+
             core.setOutput('student_id', studentId);
             core.setOutput('student_email', emailMatch[1].trim());
+            core.setOutput('event_id', eventId);
 
       - name: Azure Login
         uses: azure/login@v2
@@ -133,119 +137,246 @@ jobs:
             const studentEmail = '${{ steps.parse.outputs.student_email }}';
             const studentId = '${{ steps.parse.outputs.student_id }}';
             const apiKey = '${{ steps.key.outputs.primary_key }}';
+            const eventId = '${{ steps.parse.outputs.event_id }}';
             const apimUrl = 'https://apim-eduelden-ai.azure-api.net';
             const azAccount = `${studentId}@eduelden.kr`;
             const azPassword = '!!ed7788';
 
-            const scriptUrl = 'https://raw.githubusercontent.com/asomi7007/eduelden-ai-deploy/main/scripts/setup-student.ps1';
+            // ── 공통 스타일 헬퍼 ──
             const tbl = 'border="1" cellpadding="8" style="border-collapse:collapse;width:100%"';
-            const code = (t) => `<code style="background:#f1f5f9;padding:2px 6px;border-radius:4px">${t}</code>`;
-            const pre = (t) => `<pre style="background:#1e293b;color:#e2e8f0;padding:12px;border-radius:8px;overflow-x:auto;font-size:13px">${t}</pre>`;
+            const code = (t) => `<code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-family:Consolas,monospace;font-size:13px">${t}</code>`;
+            const codeBox = (t) => `<div style="background:#1e293b;border-radius:8px;padding:14px;margin:8px 0;overflow-x:auto"><code style="color:#e2e8f0;font-family:'Cascadia Code',Consolas,monospace;font-size:13px;line-height:1.6">${t}</code></div>`;
+            const codeBoxLink = (t, url) => `<div style="background:#1e293b;border-radius:8px;padding:14px;margin:8px 0;overflow-x:auto"><code style="color:#e2e8f0;font-family:'Cascadia Code',Consolas,monospace;font-size:13px;line-height:1.6">${t.replace(url, `<a href="${url}" style="color:#93c5fd;text-decoration:underline">${url}</a>`)}</code></div>`;
+            const stepCircle = (n, bg) => `<div style="width:28px;height:28px;background:${bg};border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-size:13px;color:#1a1a1a;display:inline-block">${n}</div>`;
 
-            const html = `<div style="font-family:'Segoe UI',Pretendard,sans-serif;max-width:680px;margin:auto;color:#1e293b">
-            <div style="background:linear-gradient(135deg,#1a56db,#7c3aed);padding:24px;border-radius:12px 12px 0 0;text-align:center">
-              <h1 style="color:#fff;margin:0;font-size:22px">🚀 Azure AI Foundry 바이브코딩 실습</h1>
-              <p style="color:#e0e7ff;margin:8px 0 0;font-size:14px">VS Code + Cline으로 AI 바이브코딩을 시작하세요!</p>
-            </div>
-            <div style="padding:24px;background:#fff;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px">
+            let html, emailSubject;
 
-            <p>안녕하세요, <b>${studentId}번</b> 학생! 실습 환경 설정에 필요한 모든 정보입니다.</p>
+            // ══════════════════════════════════════════════
+            // Power BI MCP Workshop 이메일
+            // ══════════════════════════════════════════════
+            if (eventId === 'powerbi-mcp-20260530') {
+              const scriptUrl = 'https://raw.githubusercontent.com/asomi7007/eduelden-ai-deploy/main/events/powerbi-mcp-20260530/setup-powerbi-mcp.ps1';
+              const pbixUrl = 'https://github.com/asomi7007/eduelden-ai-deploy/raw/main/events/powerbi-mcp-20260530/files/%EC%8B%A4%EC%8A%B5%ED%8C%8C%EC%9D%BC.pbix';
 
-            <h2 style="color:#1a56db;border-bottom:2px solid #1a56db;padding-bottom:6px">📋 내 정보</h2>
-            <table ${tbl}>
-              <tr style="background:#f0f7ff"><td style="width:140px"><b>Azure 계정</b></td><td>${code(azAccount)}</td></tr>
-              <tr><td><b>초기 비밀번호</b></td><td>${code(azPassword)}</td></tr>
-              <tr style="background:#f0fdf4"><td><b>API Base URL</b></td><td>${code(apimUrl + '/openai/v1')}</td></tr>
-              <tr><td><b>API Key</b></td><td>${code(apiKey)}</td></tr>
-              <tr style="background:#f0f7ff"><td><b>기본 모델</b></td><td>${code('gpt-54-mini')}</td></tr>
-            </table>
-            <p style="color:#dc2626;font-size:0.9em">⚠️ Azure 첫 로그인 시 비밀번호를 반드시 변경해야 합니다.</p>
+              emailSubject = `[Power BI Workshop] ${studentId}번 환경 설정 안내`;
 
-            <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+              html = `<div style="font-family:'Segoe UI',Pretendard,sans-serif;max-width:680px;margin:auto;color:#1e293b">
+              <div style="background:linear-gradient(135deg,#F2C811,#E8A500);padding:28px 24px;border-radius:12px 12px 0 0;text-align:center">
+                <h1 style="color:#1a1a1a;margin:0;font-size:22px">AI-Driven Power BI Workshop</h1>
+                <p style="color:#333;margin:8px 0 0;font-size:14px">MCP로 쉽게 만드는 대시보드 | 2026년 5월 30일 (토)</p>
+              </div>
+              <div style="padding:24px;background:#fff;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px">
 
-            <h2 style="color:#16a34a;border-bottom:2px solid #16a34a;padding-bottom:6px">⚡ 방법 1: 자동 설정 (권장)</h2>
-            <p>아래 스크립트가 <b>VS Code 설치 → Cline 확장 설치 → API 설정 → 연결 테스트</b>까지 한번에 처리합니다.</p>
+              <p>안녕하세요, <b>${studentId}번</b> 학생! 워크샵 참가 신청이 완료되었습니다.</p>
+              <p style="color:#555;font-size:14px">아래 안내에 따라 <b>당일 전까지</b> 환경 설정을 완료해 주세요.</p>
 
-            <p><b>Step 1.</b> 설정 스크립트 다운로드 — PowerShell을 열고 아래 명령을 복사·붙여넣기하세요.</p>
-            ${pre('Invoke-WebRequest -Uri "' + scriptUrl + '" -OutFile setup-student.ps1')}
-            <p style="color:#6b7280;font-size:0.85em">💡 또는 <a href="${scriptUrl}" style="color:#1a56db">이 링크</a>를 <b>우클릭 → "다른 이름으로 링크 저장"</b>해도 됩니다.</p>
+              <h2 style="color:#B8860B;border-bottom:2px solid #F2C811;padding-bottom:6px">📋 내 정보</h2>
+              <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+                <tr style="background:#FFF8E1"><td style="padding:8px 12px;border:1px solid #e5e7eb;width:130px;font-weight:600">학생 번호</td><td style="padding:8px 12px;border:1px solid #e5e7eb">${studentId}번</td></tr>
+                <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:600">Azure 계정</td><td style="padding:8px 12px;border:1px solid #e5e7eb">${code(azAccount)}</td></tr>
+                <tr style="background:#FFF8E1"><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:600">초기 비밀번호</td><td style="padding:8px 12px;border:1px solid #e5e7eb">${code(azPassword)}</td></tr>
+                <tr><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:600">API Base URL</td><td style="padding:8px 12px;border:1px solid #e5e7eb">${code(apimUrl + '/openai/v1')}</td></tr>
+                <tr style="background:#FFF8E1"><td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:600">API Key</td><td style="padding:8px 12px;border:1px solid #e5e7eb;font-family:monospace;font-size:13px;word-break:break-all">${apiKey}</td></tr>
+              </table>
+              <p style="color:#dc2626;font-size:0.9em">⚠️ Azure 첫 로그인 시 비밀번호를 반드시 변경하세요.</p>
 
-            <p><b>Step 2.</b> PowerShell을 <b style="color:#dc2626">관리자 모드</b>로 열고, 다운로드한 폴더에서 실행</p>
-            ${pre('Set-ExecutionPolicy Bypass -Scope Process -Force\n.\\setup-student.ps1 -StudentId ' + studentId + ' -ApiKey "' + apiKey + '"')}
+              <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
 
-            <p><b>자동 설정이 하는 일:</b></p>
-            <ul style="line-height:1.8">
-              <li>✅ VS Code가 없으면 자동 설치</li>
-              <li>✅ Cline 확장(saoudrizwan.claude-dev)이 없으면 자동 설치</li>
-              <li>✅ Cline에 API Base URL, Key, 기본 모델(gpt-54-mini) 자동 구성</li>
-              <li>✅ 3개 모델 설정 파일 생성 (<code>~/.ai-class/config.json</code>)</li>
-              <li>✅ API 연결 테스트 (GPT-5.4-mini에 "Hello" 전송)</li>
-            </ul>
-            <p><b>자동 구성되는 모델 3개:</b></p>
-            <table ${tbl}>
-              <tr style="background:#f8fafc"><th>모델</th><th>Model ID</th><th>Base URL</th></tr>
-              <tr><td>GPT-5.4-mini ⭐기본</td><td>${code('gpt-54-mini')}</td><td>${code(apimUrl + '/openai')}</td></tr>
-              <tr><td>GPT-5.5</td><td>${code('gpt-55')}</td><td>${code(apimUrl + '/openai')}</td></tr>
-              <tr><td>DeepSeek V4</td><td>${code('deepseek-v4-flash')}</td><td>${code(apimUrl + '/deepseek')}</td></tr>
-            </table>
-            <p style="color:#6b7280;font-size:0.85em">※ Cline 기본값은 gpt-54-mini로 설정됩니다. 모델 변경은 아래 "모델 변경" 섹션 참고.</p>
+              <h2 style="color:#16a34a;border-bottom:2px solid #16a34a;padding-bottom:6px">⚡ 방법 1: 자동 설치 (권장, 약 5분)</h2>
+              <p style="font-size:14px;color:#555">아래 과정을 따르면 필요한 소프트웨어가 <b>모두 자동 설치</b>됩니다.</p>
 
-            <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+              <table style="width:100%;border-collapse:collapse;margin:12px 0">
+                <tr><td style="padding:10px 0;vertical-align:top;width:38px">${stepCircle('1','#F2C811')}</td>
+                <td style="padding:10px 0 10px 10px">
+                  <b>스크립트 다운로드</b> — PowerShell을 열고 아래 명령을 복사·붙여넣기하세요.
+                  ${codeBox('Invoke-WebRequest -Uri "<a href="' + scriptUrl + '" style="color:#93c5fd;text-decoration:underline">' + scriptUrl + '</a>" -OutFile setup-powerbi-mcp.ps1')}
+                  <p style="color:#6b7280;font-size:0.85em;margin:4px 0 0">💡 또는 <a href="${scriptUrl}" style="color:#1a56db;font-weight:600">이 링크</a>를 우클릭 → "다른 이름으로 링크 저장"</p>
+                </td></tr>
+                <tr><td style="padding:10px 0;vertical-align:top">${stepCircle('2','#F2C811')}</td>
+                <td style="padding:10px 0 10px 10px">
+                  <b>PowerShell을 <span style="color:#dc2626">관리자 모드</span>로 실행</b><br/>
+                  <span style="font-size:13px;color:#555">시작 메뉴 → "PowerShell" 검색 → 관리자 권한으로 실행</span>
+                </td></tr>
+                <tr><td style="padding:10px 0;vertical-align:top">${stepCircle('3','#F2C811')}</td>
+                <td style="padding:10px 0 10px 10px">
+                  <b>실행 정책 허용 (최초 1회)</b>
+                  ${codeBox('Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned')}
+                  <span style="font-size:12px;color:#888">"Y" 입력 후 Enter</span>
+                </td></tr>
+                <tr><td style="padding:10px 0;vertical-align:top">${stepCircle('4','#F2C811')}</td>
+                <td style="padding:10px 0 10px 10px">
+                  <b>설치 스크립트 실행</b>
+                  ${codeBox('cd ~/Downloads\n.\\setup-powerbi-mcp.ps1 -StudentId "' + studentId + '" -ApiKey "' + apiKey + '"')}
+                  <span style="font-size:12px;color:#888">약 3~5분 소요. "Setup Complete!" 메시지가 나오면 완료!</span>
+                </td></tr>
+              </table>
 
-            <h2 style="color:#7c3aed;border-bottom:2px solid #7c3aed;padding-bottom:6px">🔧 방법 2: 수동 설정</h2>
-            <p>자동 설정이 안 될 경우 아래 순서로 직접 설정하세요.</p>
+              <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin:16px 0">
+                <tr><td colspan="2" style="background:#FFF8E1;padding:10px 14px;font-weight:600;font-size:13px;border-bottom:1px solid #e5e7eb">🛠️ 자동 설치되는 항목 (7개)</td></tr>
+                <tr><td style="padding:6px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;font-weight:600;width:130px">VS Code</td><td style="padding:6px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;color:#555">코드 에디터 + AI 에이전트</td></tr>
+                <tr><td style="padding:6px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;font-weight:600">Cline 확장</td><td style="padding:6px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;color:#555">AI 에이전트 (MCP 구동)</td></tr>
+                <tr><td style="padding:6px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;font-weight:600">Node.js 22+</td><td style="padding:6px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;color:#555">MCP 서버 실행 런타임</td></tr>
+                <tr><td style="padding:6px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;font-weight:600">Power BI Desktop</td><td style="padding:6px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;color:#555">대시보드 제작 도구</td></tr>
+                <tr><td style="padding:6px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;font-weight:600">MCP: Power BI</td><td style="padding:6px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;color:#555">AI가 Power BI를 직접 제어</td></tr>
+                <tr><td style="padding:6px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;font-weight:600">MCP: Playwright</td><td style="padding:6px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;color:#555">웹 디자인 참조 자동화</td></tr>
+                <tr><td style="padding:6px 14px;font-size:13px;font-weight:600">MCP: Filesystem</td><td style="padding:6px 14px;font-size:13px;color:#555">실습 파일 읽기/쓰기</td></tr>
+              </table>
 
-            <h3>① VS Code 설치</h3>
-            <p><a href="https://code.visualstudio.com/download" style="color:#1a56db">https://code.visualstudio.com/download</a> 에서 Windows 64bit 버전 다운로드 후 설치</p>
+              <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
 
-            <h3>② Cline 확장 설치</h3>
-            <ol style="line-height:1.8">
-              <li>VS Code 실행</li>
-              <li>왼쪽 사이드바에서 <b>확장(Extensions)</b> 아이콘 클릭 (또는 ${code('Ctrl+Shift+X')})</li>
-              <li>검색창에 ${code('Cline')} 입력</li>
-              <li><b>Cline</b> (saoudrizwan.claude-dev) 설치</li>
-            </ol>
+              <h2 style="color:#7c3aed;border-bottom:2px solid #7c3aed;padding-bottom:6px">🔧 방법 2: 수동 설치</h2>
+              <p style="font-size:14px;color:#555">자동 설치가 안 될 경우 아래 순서로 직접 설정하세요.</p>
 
-            <h3>③ Cline API 설정 (기본 모델: GPT-5.4-mini)</h3>
-            <ol style="line-height:1.8">
-              <li>왼쪽 사이드바에서 <b>Cline</b> 아이콘 클릭</li>
-              <li>설정(⚙️) 열기</li>
-              <li><b>API Provider</b>: ${code('OpenAI Compatible')} 선택</li>
-              <li><b>Base URL</b>: ${code(apimUrl + '/openai/v1')}</li>
-              <li><b>API Key</b>: ${code(apiKey)}</li>
-              <li><b>Model ID</b>: ${code('gpt-54-mini')}</li>
-            </ol>
+              <table style="width:100%;font-size:13px;color:#555;line-height:1.9">
+                <tr><td style="padding:4px 0">1. <a href="https://code.visualstudio.com/download" style="color:#1a56db;font-weight:600">VS Code 다운로드</a> → Windows 64bit 설치</td></tr>
+                <tr><td style="padding:4px 0">2. VS Code → Extensions (Ctrl+Shift+X) → "Cline" 검색 → Install</td></tr>
+                <tr><td style="padding:4px 0">3. <a href="https://nodejs.org/en/download" style="color:#1a56db;font-weight:600">Node.js 22 LTS 다운로드</a> → 설치 (${code('node -v')}로 확인)</td></tr>
+                <tr><td style="padding:4px 0">4. <a href="https://aka.ms/pbidesktopstore" style="color:#1a56db;font-weight:600">Power BI Desktop</a> → Microsoft Store 또는 ${code('winget install Microsoft.PowerBI')}</td></tr>
+                <tr><td style="padding:4px 0">5. Cline 사이드바 → 설정 → API Provider: ${code('OpenAI Compatible')}</td></tr>
+                <tr><td style="padding:4px 0">&nbsp;&nbsp;&nbsp;Base URL: ${code(apimUrl + '/openai/v1')}</td></tr>
+                <tr><td style="padding:4px 0">&nbsp;&nbsp;&nbsp;API Key: 위에 안내된 키 입력</td></tr>
+                <tr><td style="padding:4px 0">&nbsp;&nbsp;&nbsp;Model ID: ${code('gpt-54-mini')}</td></tr>
+                <tr><td style="padding:4px 0">6. Cline → MCP Servers → 아래 3개 추가:</td></tr>
+                <tr><td style="padding:2px 0 2px 20px">${code('powerbi')}: npx -y @anthropic/mcp-server-powerbi</td></tr>
+                <tr><td style="padding:2px 0 2px 20px">${code('playwright')}: npx -y @anthropic/mcp-server-playwright</td></tr>
+                <tr><td style="padding:2px 0 2px 20px">${code('filesystem')}: npx -y @anthropic/mcp-server-filesystem [바탕화면 경로]</td></tr>
+              </table>
 
-            <h3>④ 테스트</h3>
-            <p>Cline 채팅창에 <b>"안녕하세요"</b> 입력 → AI 응답이 오면 설정 완료!</p>
+              <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
 
-            <h3>⑤ 다른 모델 사용하기</h3>
-            <p>Cline 설정에서 <b>Base URL</b>과 <b>Model ID</b>를 아래 값으로 변경하면 됩니다. <b>API Key는 동일</b>합니다.</p>
-            <table ${tbl}>
-              <tr style="background:#f8fafc"><th>모델</th><th>Base URL</th><th>Model ID</th></tr>
-              <tr style="background:#f0fdf4"><td><b>GPT-5.4-mini</b> ⭐기본</td><td>${code(apimUrl + '/openai/v1')}</td><td>${code('gpt-54-mini')}</td></tr>
-              <tr><td><b>GPT-5.5</b> (고품질)</td><td>${code(apimUrl + '/openai/v1')}</td><td>${code('gpt-55')}</td></tr>
-              <tr style="background:#f0f7ff"><td><b>DeepSeek V4</b></td><td>${code(apimUrl + '/deepseek/v1')}</td><td>${code('deepseek-v4-flash')}</td></tr>
-            </table>
-            <p style="color:#6b7280;font-size:0.85em">※ GPT 모델과 DeepSeek 모델은 <b>Base URL이 다릅니다</b> (/openai vs /deepseek). 변경 시 주의!</p>
+              <h2 style="color:#B8860B;border-bottom:2px solid #F2C811;padding-bottom:6px">📁 실습 파일 다운로드</h2>
+              <p style="font-size:14px;color:#555">자동 설치 시 바탕화면에 자동 다운로드됩니다. 수동 설치 시 아래에서 받으세요.</p>
+              <p><a href="${pbixUrl}" style="display:inline-block;background:transparent;color:#1a1a1a;padding:8px 20px;border:2px solid #F2C811;border-radius:6px;text-decoration:none;font-weight:600;font-size:13px">실습파일.pbix 다운로드</a></p>
 
-            <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+              <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
 
-            <h2 style="color:#0891b2;border-bottom:2px solid #0891b2;padding-bottom:6px">🔄 사용 가능한 모델</h2>
-            <p>Cline 설정에서 <b>Model ID</b>만 바꾸면 모델 전환 가능 (API Key는 동일)</p>
-            <table ${tbl}>
-              <tr style="background:#f8fafc"><th>모델</th><th>Model ID</th><th>특징</th></tr>
-              <tr><td>GPT-5.4-mini</td><td>${code('gpt-54-mini')}</td><td>범용, 빠름 ⭐ <b>기본</b></td></tr>
-              <tr><td>GPT-5.5</td><td>${code('gpt-55')}</td><td>고품질, 느림 (복잡한 작업용)</td></tr>
-              <tr><td>DeepSeek V4</td><td>${code('deepseek-v4-flash')}</td><td>대안 모델</td></tr>
-            </table>
+              <h2 style="color:#B8860B;border-bottom:2px solid #F2C811;padding-bottom:6px">✅ 당일 준비물 체크리스트</h2>
+              <table style="font-size:14px;color:#555">
+                <tr><td style="padding:4px 0">☐ 노트북 (Windows 10/11, 64bit)</td></tr>
+                <tr><td style="padding:4px 0">☐ VS Code + Cline 확장 설치 완료</td></tr>
+                <tr><td style="padding:4px 0">☐ Node.js 22+ 설치 완료</td></tr>
+                <tr><td style="padding:4px 0">☐ Power BI Desktop 설치 완료</td></tr>
+                <tr><td style="padding:4px 0">☐ 실습파일.pbix 바탕화면에 다운로드</td></tr>
+                <tr><td style="padding:4px 0">☐ 인터넷 연결 가능</td></tr>
+              </table>
 
-            <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px;margin-top:20px">
-              <b>💡 문제가 있나요?</b><br/>
-              강사에게 문의하거나 온보딩 페이지에서 취소/재신청할 수 있습니다.
-            </div>
+              <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
 
-            </div></div>`;
+              <h2 style="color:#555;border-bottom:2px solid #e5e7eb;padding-bottom:6px">❓ 문제 해결</h2>
+              <table style="width:100%;font-size:13px;color:#555">
+                <tr><td style="padding:8px 12px;background:#FEF3C7;border-left:3px solid #D97706;border-radius:4px;margin-bottom:6px"><b>스크립트 실행이 차단됨</b><br>${code('Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned')} 실행 후 재시도</td></tr>
+                <tr><td style="padding:4px"></td></tr>
+                <tr><td style="padding:8px 12px;background:#FEF3C7;border-left:3px solid #D97706;border-radius:4px"><b>Power BI Desktop 설치 실패</b><br>Microsoft Store 접근 불가 시: ${code('winget install Microsoft.PowerBI')}</td></tr>
+                <tr><td style="padding:4px"></td></tr>
+                <tr><td style="padding:8px 12px;background:#FEF3C7;border-left:3px solid #D97706;border-radius:4px"><b>Node.js 버전이 22 미만</b><br>기존 버전 삭제 후: ${code('winget install OpenJS.NodeJS.LTS')}</td></tr>
+                <tr><td style="padding:4px"></td></tr>
+                <tr><td style="padding:8px 12px;background:#FEF3C7;border-left:3px solid #D97706;border-radius:4px"><b>MCP 서버가 Cline에서 안 보임</b><br>VS Code를 완전히 종료 후 다시 열어주세요</td></tr>
+                <tr><td style="padding:4px"></td></tr>
+                <tr><td style="padding:8px 12px;background:#FEF3C7;border-left:3px solid #D97706;border-radius:4px"><b>API 연결 실패</b><br>당일 현장에서 도움 드립니다</td></tr>
+              </table>
+
+              <p style="font-size:13px;color:#888;margin:24px 0 0;text-align:center">
+                설치 문의: <a href="mailto:admin@eldensoluton.kr" style="color:#1a56db">admin@eldensoluton.kr</a><br>
+                설치가 어려우시면 당일 행사장에서 도움을 드리겠습니다.
+              </p>
+
+              <div style="background:#FFF8E1;border:1px solid #F2C811;border-radius:8px;padding:12px;margin-top:20px;text-align:center">
+                <b>AI-Driven Power BI Workshop</b> | 2026-05-30 (토) | Eduelden AI Lab
+              </div>
+
+              </div></div>`;
+
+            // ══════════════════════════════════════════════
+            // 기본 이메일 (Azure AI Foundry 바이브코딩)
+            // ══════════════════════════════════════════════
+            } else {
+              const scriptUrl = 'https://raw.githubusercontent.com/asomi7007/eduelden-ai-deploy/main/scripts/setup-student.ps1';
+              emailSubject = `[AI 실습] 학생 ${studentId}번 환경 설정 안내`;
+
+              html = `<div style="font-family:'Segoe UI',Pretendard,sans-serif;max-width:680px;margin:auto;color:#1e293b">
+              <div style="background:linear-gradient(135deg,#1a56db,#7c3aed);padding:24px;border-radius:12px 12px 0 0;text-align:center">
+                <h1 style="color:#fff;margin:0;font-size:22px">Azure AI Foundry 바이브코딩 실습</h1>
+                <p style="color:#e0e7ff;margin:8px 0 0;font-size:14px">VS Code + Cline으로 AI 바이브코딩을 시작하세요!</p>
+              </div>
+              <div style="padding:24px;background:#fff;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px">
+
+              <p>안녕하세요, <b>${studentId}번</b> 학생! 실습 환경 설정에 필요한 모든 정보입니다.</p>
+
+              <h2 style="color:#1a56db;border-bottom:2px solid #1a56db;padding-bottom:6px">📋 내 정보</h2>
+              <table ${tbl}>
+                <tr style="background:#f0f7ff"><td style="width:140px"><b>Azure 계정</b></td><td>${code(azAccount)}</td></tr>
+                <tr><td><b>초기 비밀번호</b></td><td>${code(azPassword)}</td></tr>
+                <tr style="background:#f0fdf4"><td><b>API Base URL</b></td><td>${code(apimUrl + '/openai/v1')}</td></tr>
+                <tr><td><b>API Key</b></td><td>${code(apiKey)}</td></tr>
+                <tr style="background:#f0f7ff"><td><b>기본 모델</b></td><td>${code('gpt-54-mini')}</td></tr>
+              </table>
+              <p style="color:#dc2626;font-size:0.9em">⚠️ Azure 첫 로그인 시 비밀번호를 반드시 변경해야 합니다.</p>
+
+              <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+
+              <h2 style="color:#16a34a;border-bottom:2px solid #16a34a;padding-bottom:6px">⚡ 방법 1: 자동 설정 (권장)</h2>
+              <p>아래 스크립트가 <b>VS Code 설치 → Cline 확장 설치 → API 설정 → 연결 테스트</b>까지 한번에 처리합니다.</p>
+
+              <p><b>Step 1.</b> 설정 스크립트 다운로드</p>
+              ${codeBox('Invoke-WebRequest -Uri "<a href="' + scriptUrl + '" style="color:#93c5fd;text-decoration:underline">' + scriptUrl + '</a>" -OutFile setup-student.ps1')}
+              <p style="color:#6b7280;font-size:0.85em">💡 또는 <a href="${scriptUrl}" style="color:#1a56db">이 링크</a>를 우클릭 → "다른 이름으로 링크 저장"</p>
+
+              <p><b>Step 2.</b> PowerShell을 <b style="color:#dc2626">관리자 모드</b>로 열고 실행</p>
+              ${codeBox('Set-ExecutionPolicy Bypass -Scope Process -Force\n.\\setup-student.ps1 -StudentId ' + studentId + ' -ApiKey "' + apiKey + '"')}
+
+              <p><b>자동 설정이 하는 일:</b></p>
+              <ul style="line-height:1.8">
+                <li>✅ VS Code가 없으면 자동 설치</li>
+                <li>✅ Cline 확장(saoudrizwan.claude-dev) 자동 설치</li>
+                <li>✅ Cline에 API Base URL, Key, 기본 모델 자동 구성</li>
+                <li>✅ 3개 모델 설정 파일 생성</li>
+                <li>✅ API 연결 테스트</li>
+              </ul>
+
+              <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+
+              <h2 style="color:#7c3aed;border-bottom:2px solid #7c3aed;padding-bottom:6px">🔧 방법 2: 수동 설정</h2>
+              <p>자동 설정이 안 될 경우 아래 순서로 직접 설정하세요.</p>
+
+              <h3>① VS Code 설치</h3>
+              <p><a href="https://code.visualstudio.com/download" style="color:#1a56db">https://code.visualstudio.com/download</a> 에서 Windows 64bit 버전 다운로드 후 설치</p>
+
+              <h3>② Cline 확장 설치</h3>
+              <ol style="line-height:1.8">
+                <li>VS Code 실행 → 확장(Extensions) → ${code('Cline')} 검색 → 설치</li>
+              </ol>
+
+              <h3>③ Cline API 설정</h3>
+              <ol style="line-height:1.8">
+                <li>Cline 사이드바 → 설정</li>
+                <li>API Provider: ${code('OpenAI Compatible')}</li>
+                <li>Base URL: ${code(apimUrl + '/openai/v1')}</li>
+                <li>API Key: ${code(apiKey)}</li>
+                <li>Model ID: ${code('gpt-54-mini')}</li>
+              </ol>
+
+              <h3>④ 테스트</h3>
+              <p>Cline 채팅창에 <b>"안녕하세요"</b> 입력 → AI 응답이 오면 설정 완료!</p>
+
+              <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+
+              <h2 style="color:#0891b2;border-bottom:2px solid #0891b2;padding-bottom:6px">🔄 사용 가능한 모델</h2>
+              <p>Cline 설정에서 <b>Model ID</b>만 바꾸면 모델 전환 가능 (API Key는 동일)</p>
+              <table ${tbl}>
+                <tr style="background:#f8fafc"><th>모델</th><th>Base URL</th><th>Model ID</th></tr>
+                <tr style="background:#f0fdf4"><td><b>GPT-5.4-mini</b> ⭐기본</td><td>${code(apimUrl + '/openai/v1')}</td><td>${code('gpt-54-mini')}</td></tr>
+                <tr><td><b>GPT-5.5</b> (고품질)</td><td>${code(apimUrl + '/openai/v1')}</td><td>${code('gpt-55')}</td></tr>
+                <tr style="background:#f0f7ff"><td><b>DeepSeek V4</b></td><td>${code(apimUrl + '/deepseek/v1')}</td><td>${code('deepseek-v4-flash')}</td></tr>
+              </table>
+              <p style="color:#6b7280;font-size:0.85em">※ GPT와 DeepSeek는 <b>Base URL이 다릅니다</b> (/openai vs /deepseek)</p>
+
+              <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px;margin-top:20px">
+                <b>💡 문제가 있나요?</b><br/>
+                강사에게 문의하거나 온보딩 페이지에서 취소/재신청할 수 있습니다.
+              </div>
+
+              </div></div>`;
+            }
 
             // Parse ACS connection string
             const connStr = process.env.ACS_CONNECTION_STRING;
@@ -256,7 +387,7 @@ jobs:
 
             const body = JSON.stringify({
               senderAddress: sender,
-              content: { subject: `[AI 실습] 학생 ${studentId}번 환경 설정 안내`, html },
+              content: { subject: emailSubject, html },
               recipients: { to: [{ address: studentEmail }] }
             });
 
@@ -295,11 +426,13 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const eventId = '${{ steps.parse.outputs.event_id }}';
+            const eventLabel = eventId === 'powerbi-mcp-20260530' ? ' (Power BI Workshop)' : '';
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `✅ 온보딩 완료!\n\n- 학생 번호: ${{ steps.parse.outputs.student_id }}\n- 이메일 발송: ${{ steps.parse.outputs.student_email }}\n- Azure 계정: ${{ steps.parse.outputs.student_id }}@eduelden.kr\n- APIM 구독: sub-student-${{ steps.parse.outputs.student_id }}`
+              body: `✅ 온보딩 완료!${eventLabel}\n\n- 학생 번호: ${{ steps.parse.outputs.student_id }}\n- 이메일 발송: ${{ steps.parse.outputs.student_email }}\n- Azure 계정: ${{ steps.parse.outputs.student_id }}@eduelden.kr\n- APIM 구독: sub-student-${{ steps.parse.outputs.student_id }}\n- 이벤트: ${eventId}`
             });
             await github.rest.issues.update({
               owner: context.repo.owner,

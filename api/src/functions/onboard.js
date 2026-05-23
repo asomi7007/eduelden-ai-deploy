@@ -25,7 +25,7 @@ app.http('onboard', {
 
     try {
       const body = await request.json();
-      const { passcode, studentId, email } = body;
+      const { passcode, studentId, email, event } = body;
 
       // Validate passcode
       if (!passcode || passcode !== classPasscode) {
@@ -94,7 +94,8 @@ app.http('onboard', {
       }
 
       // Create issue
-      const issueBody = `PASSCODE: ${passcode}\nSTUDENT_ID: ${studentId}\nEMAIL: ${email}`;
+      const eventLine = event ? `\nEVENT: ${event}` : '';
+      const issueBody = `PASSCODE: ${passcode}\nSTUDENT_ID: ${studentId}\nEMAIL: ${email}${eventLine}`;
       const createResp = await fetch(`https://api.github.com/repos/${repo}/issues`, {
         method: 'POST',
         headers: ghHeaders,
