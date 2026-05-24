@@ -238,6 +238,18 @@ jobs:
 
               <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
 
+              <h2 style="color:#0891b2;border-bottom:2px solid #0891b2;padding-bottom:6px">🔄 사용 가능한 모델 (3종)</h2>
+              <p style="font-size:14px;color:#555">Cline 설정에서 <b>Base URL</b>과 <b>Model ID</b>만 바꾸면 모델 전환 가능 (API Key는 동일)</p>
+              <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin:12px 0">
+                <tr style="background:#f8fafc"><th style="padding:8px 12px;text-align:left;font-size:13px;border-bottom:1px solid #e5e7eb">모델</th><th style="padding:8px 12px;text-align:left;font-size:13px;border-bottom:1px solid #e5e7eb">Base URL</th><th style="padding:8px 12px;text-align:left;font-size:13px;border-bottom:1px solid #e5e7eb">Model ID</th></tr>
+                <tr style="background:#f0fdf4"><td style="padding:8px 12px;font-size:13px;border-bottom:1px solid #f0f0f0"><b>GPT-5.4-mini</b> ⭐기본</td><td style="padding:8px 12px;font-size:13px;border-bottom:1px solid #f0f0f0">${code(apimUrl + '/openai/v1')}</td><td style="padding:8px 12px;font-size:13px;border-bottom:1px solid #f0f0f0">${code('gpt-54-mini')}</td></tr>
+                <tr><td style="padding:8px 12px;font-size:13px;border-bottom:1px solid #f0f0f0"><b>GPT-5.5</b> (고품질)</td><td style="padding:8px 12px;font-size:13px;border-bottom:1px solid #f0f0f0">${code(apimUrl + '/openai/v1')}</td><td style="padding:8px 12px;font-size:13px;border-bottom:1px solid #f0f0f0">${code('gpt-55')}</td></tr>
+                <tr style="background:#f0f7ff"><td style="padding:8px 12px;font-size:13px"><b>DeepSeek V4 Flash</b></td><td style="padding:8px 12px;font-size:13px">${code(apimUrl + '/deepseek/v1')}</td><td style="padding:8px 12px;font-size:13px">${code('deepseek-v4-flash')}</td></tr>
+              </table>
+              <p style="color:#6b7280;font-size:0.85em">※ GPT와 DeepSeek는 <b>Base URL이 다릅니다</b> (/openai vs /deepseek)</p>
+
+              <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+
               <h2 style="color:#7c3aed;border-bottom:2px solid #7c3aed;padding-bottom:6px">🔧 방법 2: 수동 설치</h2>
               <p style="font-size:14px;color:#555">자동 설치가 안 될 경우 아래 순서로 직접 설정하세요.</p>
 
