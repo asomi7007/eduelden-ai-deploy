@@ -1,0 +1,66 @@
+<policies>
+	<inbound>
+		<base />
+		<set-variable name="auth-key" value="@{
+      var auth = context.Request.Headers.GetValueOrDefault("Authorization","");
+      if(auth.StartsWith("Bearer ",StringComparison.OrdinalIgnoreCase)) {
+        return auth.Substring(7).Trim();
+      }
+      var ak = context.Request.Headers.GetValueOrDefault("api-key","");
+      if(!string.IsNullOrEmpty(ak)) {
+        return ak;
+      }
+      return context.Request.Headers.GetValueOrDefault("Ocp-Apim-Subscription-Key","");
+    }" />
+		<choose>
+			<when condition="@(string.IsNullOrEmpty((string)context.Variables["auth-key"]))">
+				<return-response>
+					<set-status code="401" reason="Unauthorized" />
+					<set-header name="Content-Type" exists-action="override">
+						<value>application/json</value>
+					</set-header>
+					<set-body>{"error":{"code":"401","message":"API key required"}}</set-body>
+				</return-response>
+			</when>
+		</choose>
+		<rate-limit-by-key calls="10" renewal-period="60" counter-key="@((string)context.Variables["auth-key"])" />
+		<quota-by-key calls="200" renewal-period="86400" counter-key="@((string)context.Variables["auth-key"])" />
+		<choose>
+			<when condition="@(context.Request.Url.Path.Contains("/chat/completions") &amp;&amp; !context.Request.Url.Path.Contains("/deployments/"))">
+				<set-variable name="reqBody" value="@(context.Request.Body.As&lt;JObject&gt;(preserveContent: true))" />
+				<set-variable name="modelName" value="@{
+          var body = (JObject)context.Variables["reqBody"];
+          return body["model"]?.ToString() ?? "gpt-54-mini";
+        }" />
+				<!-- Strip reasoning_effort for gpt-55 (not supported with tools on /chat/completions) -->
+				<choose>
+					<when condition="@(((string)context.Variables["modelName"]).StartsWith("gpt-55"))">
+						<set-body>@{
+              var body = (JObject)context.Variables["reqBody"];
+              body.Remove("reasoning_effort");
+              return body.ToString();
+            }</set-body>
+					</when>
+				</choose>
+				<rewrite-uri template="@("/deployments/" + (string)context.Variables["modelName"] + "/chat/completions")" copy-unmatched-params="true" />
+				<set-query-parameter name="api-version" exists-action="override">
+					<value>2024-10-21</value>
+				</set-query-parameter>
+			</when>
+		</choose>
+		<set-header name="api-key" exists-action="override">
+			<value>{{aoai-api-key}}</value>
+		</set-header>
+		<set-header name="Authorization" exists-action="delete" />
+		<set-header name="Ocp-Apim-Subscription-Key" exists-action="delete" />
+	</inbound>
+	<backend>
+		<base />
+	</backend>
+	<outbound>
+		<base />
+	</outbound>
+	<on-error>
+		<base />
+	</on-error>
+</policies>
