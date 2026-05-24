@@ -43,10 +43,23 @@ $TOTAL_STEPS = 8
 $totalTimer = [System.Diagnostics.Stopwatch]::StartNew()
 $stepTimer  = [System.Diagnostics.Stopwatch]::new()
 
-# --- Desktop path (safe for non-ASCII usernames like Korean) ---
+# --- Desktop path (handles Korean usernames, OneDrive redirect, etc.) ---
 $DesktopPath = [Environment]::GetFolderPath("Desktop")
 if (-not $DesktopPath -or -not (Test-Path $DesktopPath)) {
+    try {
+        $DesktopPath = (New-Object -ComObject Shell.Application).Namespace('shell:Desktop').Self.Path
+    } catch {}
+}
+if (-not $DesktopPath -or -not (Test-Path $DesktopPath)) {
+    $candidates = @(
+        "$env:USERPROFILE\Desktop",
+        "$env:USERPROFILE\OneDrive\Desktop"
+    )
+    $DesktopPath = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+}
+if (-not $DesktopPath -or -not (Test-Path $DesktopPath)) {
     $DesktopPath = "$env:USERPROFILE\Desktop"
+    New-Item -ItemType Directory -Force -Path $DesktopPath | Out-Null
 }
 
 Write-Host ""
