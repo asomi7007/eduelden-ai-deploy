@@ -161,6 +161,7 @@ if (-not $SkipInstall) {
 # ===========================================================
 $stepTimer.Restart()
 if (-not $SkipInstall) {
+    # Check known install paths AND winget list for Store-installed version
     $pbiPaths = @(
         "${env:ProgramFiles}\Microsoft Power BI Desktop\bin\PBIDesktop.exe",
         "${env:ProgramFiles(x86)}\Microsoft Power BI Desktop\bin\PBIDesktop.exe",
@@ -168,19 +169,28 @@ if (-not $SkipInstall) {
     )
     $pbiFound = $pbiPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
 
+    # If not found in paths, check winget list (catches Store installs)
+    if (-not $pbiFound -and (Test-CommandExists "winget")) {
+        $wingetList = winget list --id 9NTXR16HNW1T --source msstore 2>$null
+        if ($LASTEXITCODE -eq 0 -and $wingetList -match "Power BI") {
+            $pbiFound = "(Microsoft Store)"
+        }
+    }
+
     if ($pbiFound) {
         Write-Host "[4/$TOTAL_STEPS] Power BI Desktop already installed: $pbiFound  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
     } else {
         Write-Host "[4/$TOTAL_STEPS] Installing Power BI Desktop (Microsoft Store)..." -ForegroundColor Yellow
         $pbiInstalled = $false
         if (Test-CommandExists "winget") {
-            winget install --id 9NTXR16HNW1T --source msstore --accept-package-agreements --accept-source-agreements --silent 2>$null
-            if ($LASTEXITCODE -eq 0) { $pbiInstalled = $true }
+            $null = winget install --id 9NTXR16HNW1T --source msstore --accept-package-agreements --accept-source-agreements --silent 2>$null
+            # Exit code 0 = installed, -1978335189 (0x8A150067) = already installed/no upgrade
+            if ($LASTEXITCODE -eq 0 -or $LASTEXITCODE -eq -1978335189) { $pbiInstalled = $true }
         }
         if ($pbiInstalled) {
             Write-Host "  Power BI Desktop installed via Microsoft Store  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
         } else {
-            Write-Host "  Auto-install failed. Please install manually:" -ForegroundColor Red
+            Write-Host "  Auto-install could not complete. Please install manually:" -ForegroundColor Yellow
             Write-Host "    https://aka.ms/pbidesktopstore" -ForegroundColor Yellow
             Write-Host "    (Or: Microsoft Store > search 'Power BI Desktop')" -ForegroundColor Yellow
         }

@@ -23,17 +23,18 @@
 
   "mcp_servers": {
     "powerbi": {
-      "package": "@anthropic/mcp-server-powerbi",
+      "package": "@microsoft/powerbi-modeling-mcp@latest",
+      "args": "--start --readwrite --skip-confirmation --compatibility=full",
       "description": "Power BI Desktop 제어 (DAX, 모델링, 시각화)"
     },
     "playwright": {
-      "package": "@anthropic/mcp-server-playwright",
+      "package": "@playwright/mcp@latest",
       "description": "웹 브라우저 자동화 (디자인 참조, 데이터 수집)"
     },
     "filesystem": {
-      "package": "@anthropic/mcp-server-filesystem",
+      "package": "@modelcontextprotocol/server-filesystem",
       "description": "파일 시스템 접근 (실습 파일 읽기/쓰기)",
-      "args_extra": ["D:\\실습"]
+      "args_extra": ["[Desktop]"]
     }
   },
 
