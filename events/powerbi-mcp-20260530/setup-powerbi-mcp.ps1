@@ -253,10 +253,14 @@ if (-not ($mcp | Get-Member -Name "mcpServers" -MemberType NoteProperty)) {
     $mcp | Add-Member -NotePropertyName "mcpServers" -NotePropertyValue ([PSCustomObject]@{}) -Force
 }
 
-# Power BI MCP Server (community package on npm: powerbi-mcp)
+# Power BI Modeling MCP Server (official Microsoft package: @microsoft/powerbi-modeling-mcp)
+# --start                  : required to launch the MCP server
+# --readwrite              : allow model edits (alias of --read-write)
+# --skip-confirmation      : suppress per-write confirmation prompts
+# --compatibility=full     : PowerBI + Analysis Services + Fabric semantic models
 $mcp.mcpServers | Add-Member -NotePropertyName "powerbi" -NotePropertyValue ([PSCustomObject]@{
     command = "npx"
-    args = @("-y", "powerbi-mcp")
+    args = @("-y", "@microsoft/powerbi-modeling-mcp@latest", "--start", "--readwrite", "--skip-confirmation", "--compatibility=full")
     env = [PSCustomObject]@{}
     disabled = $false
     autoApprove = @()
@@ -282,7 +286,7 @@ $mcp.mcpServers | Add-Member -NotePropertyName "filesystem" -NotePropertyValue (
 
 Write-Utf8NoBom $mcpFile ($mcp | ConvertTo-Json -Depth 10)
 Write-Host "  MCP settings: $mcpFile" -ForegroundColor Green
-Write-Host "    - powerbi    : powerbi-mcp" -ForegroundColor Gray
+Write-Host "    - powerbi    : @microsoft/powerbi-modeling-mcp (official MS)" -ForegroundColor Gray
 Write-Host "    - playwright : @playwright/mcp" -ForegroundColor Gray
 Write-Host "    - filesystem : @modelcontextprotocol/server-filesystem ($DesktopPath)  ($(Format-Elapsed $stepTimer))" -ForegroundColor Gray
 
