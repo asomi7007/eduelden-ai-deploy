@@ -168,6 +168,22 @@ jobs:
               <p>안녕하세요, <b>${studentId}번</b> 학생! 워크샵 참가 신청이 완료되었습니다.</p>
               <p style="color:#555;font-size:14px">아래 안내에 따라 <b>실습 전까지</b> 환경 설정을 완료해 주세요.</p>
 
+              <div style="background:#FEF2F2;border:1px solid #EF4444;border-radius:8px;padding:12px 16px;margin:16px 0">
+                <b style="color:#DC2626">Windows 전용 워크숍</b>
+                <p style="color:#7F1D1D;font-size:13px;margin:6px 0 0">Power BI Desktop은 Windows에서만 실행됩니다. <b>macOS/Linux에서는 참여가 불가</b>합니다. Windows 10/11(64bit) 노트북을 준비해주세요.</p>
+              </div>
+
+              <h2 style="color:#B8860B;border-bottom:2px solid #F2C811;padding-bottom:6px">💡 이 워크숍에서 설치하는 것들</h2>
+              <p style="font-size:14px;color:#555;margin-bottom:12px">이 워크숍은 AI(LLM)가 MCP 프로토콜을 통해 Power BI를 직접 제어하는 실습입니다. 이를 위해 아래 소프트웨어가 필요합니다:</p>
+              <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:16px">
+                <tr><td style="padding:8px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;font-weight:600;width:130px;background:#FFF8E1">VS Code + Cline</td><td style="padding:8px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;color:#555">AI 에이전트(Cline)가 LLM을 호출하고, MCP 서버를 통해 도구들을 제어하는 환경</td></tr>
+                <tr><td style="padding:8px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;font-weight:600;background:#FFF8E1">Power BI Desktop</td><td style="padding:8px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;color:#555">AI가 제어할 대상 - .pbix 파일을 열고, 데이터 모델/DAX/시각화를 조작</td></tr>
+                <tr><td style="padding:8px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;font-weight:600;background:#FFF8E1">Node.js 22+</td><td style="padding:8px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;color:#555">MCP 서버(Power BI, Playwright, Filesystem)를 실행하기 위한 런타임</td></tr>
+                <tr><td style="padding:8px 14px;font-size:13px;font-weight:600;background:#FFF8E1">MCP 서버 3종</td><td style="padding:8px 14px;font-size:13px;color:#555">Power BI 모델링 제어, 웹 브라우저 자동화, 파일 읽기/쓰기를 AI에게 제공</td></tr>
+              </table>
+
+              <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
+
               <h2 style="color:#B8860B;border-bottom:2px solid #F2C811;padding-bottom:6px">📋 내 정보</h2>
               <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
                 <tr style="background:#FFF8E1"><td style="padding:8px 12px;border:1px solid #e5e7eb;width:130px;font-weight:600">학생 번호</td><td style="padding:8px 12px;border:1px solid #e5e7eb">${studentId}번</td></tr>
