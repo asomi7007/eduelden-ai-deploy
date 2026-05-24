@@ -141,30 +141,35 @@ if (-not $SkipInstall) {
 
 # ===========================================================
 # STEP 4: Power BI Desktop
+# NOTE: 'winget install Microsoft.PowerBI' (winget source) is
+# unreliable — it can install an unrelated "Cloud Managed
+# Desktop Extension" package. Use the Microsoft Store ID
+# (9NTXR16HNW1T) instead.
 # ===========================================================
 $stepTimer.Restart()
 if (-not $SkipInstall) {
-    $pbiPath = Get-Command "PBIDesktop" -ErrorAction SilentlyContinue
-    if (-not $pbiPath) {
-        # Also check common install paths
-        $pbiPaths = @(
-            "${env:ProgramFiles}\Microsoft Power BI Desktop\bin\PBIDesktop.exe",
-            "${env:ProgramFiles(x86)}\Microsoft Power BI Desktop\bin\PBIDesktop.exe",
-            "$env:LOCALAPPDATA\Microsoft\WindowsApps\PBIDesktop.exe"
-        )
-        $pbiFound = $pbiPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
-    }
-    if ($pbiPath -or $pbiFound) {
-        Write-Host "[4/$TOTAL_STEPS] Power BI Desktop already installed  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
+    $pbiPaths = @(
+        "${env:ProgramFiles}\Microsoft Power BI Desktop\bin\PBIDesktop.exe",
+        "${env:ProgramFiles(x86)}\Microsoft Power BI Desktop\bin\PBIDesktop.exe",
+        "$env:LOCALAPPDATA\Microsoft\WindowsApps\PBIDesktop.exe"
+    )
+    $pbiFound = $pbiPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+    if ($pbiFound) {
+        Write-Host "[4/$TOTAL_STEPS] Power BI Desktop already installed: $pbiFound  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
     } else {
-        Write-Host "[4/$TOTAL_STEPS] Installing Power BI Desktop..." -ForegroundColor Yellow
+        Write-Host "[4/$TOTAL_STEPS] Installing Power BI Desktop (Microsoft Store)..." -ForegroundColor Yellow
+        $pbiInstalled = $false
         if (Test-CommandExists "winget") {
-            winget install Microsoft.PowerBI --accept-package-agreements --accept-source-agreements --silent 2>$null
-            Write-Host "  Power BI Desktop installed via winget  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
+            winget install --id 9NTXR16HNW1T --source msstore --accept-package-agreements --accept-source-agreements --silent 2>$null
+            if ($LASTEXITCODE -eq 0) { $pbiInstalled = $true }
+        }
+        if ($pbiInstalled) {
+            Write-Host "  Power BI Desktop installed via Microsoft Store  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
         } else {
-            Write-Host "  winget not available. Please install Power BI Desktop manually:" -ForegroundColor Red
-            Write-Host "  https://aka.ms/pbidesktopstore" -ForegroundColor Yellow
-            Write-Host "  Or: Microsoft Store > 'Power BI Desktop'" -ForegroundColor Yellow
+            Write-Host "  Auto-install failed. Please install manually:" -ForegroundColor Red
+            Write-Host "    https://aka.ms/pbidesktopstore" -ForegroundColor Yellow
+            Write-Host "    (Or: Microsoft Store > search 'Power BI Desktop')" -ForegroundColor Yellow
         }
     }
 } else {
@@ -207,48 +212,21 @@ $env:AI_CLASS_API_KEY = $ApiKey
 Write-Host "  API Key saved to env: AI_CLASS_API_KEY  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
 
 # ===========================================================
-# STEP 6: Cline Provider + MCP Server Configuration
+# STEP 6: Cline MCP Server Configuration
+# NOTE: Cline (saoudrizwan.claude-dev) reads its MCP servers
+# from VS Code's globalStorage, NOT from ~/.cline/data/.
+# The API provider, key, and model are stored in VS Code's
+# internal SQLite state DB and SecretStorage — those CANNOT
+# be set by writing files. Only MCP settings are file-based;
+# API config must be entered in the Cline UI (printed below).
 # ===========================================================
 $stepTimer.Restart()
-Write-Host "[6/$TOTAL_STEPS] Configuring Cline (API provider + MCP servers)..." -ForegroundColor Yellow
+Write-Host "[6/$TOTAL_STEPS] Configuring Cline MCP servers..." -ForegroundColor Yellow
 
-$clineDataDir = "$env:USERPROFILE\.cline\data"
-New-Item -ItemType Directory -Force -Path $clineDataDir | Out-Null
+$clineSettingsDir = "$env:APPDATA\Code\User\globalStorage\saoudrizwan.claude-dev\settings"
+New-Item -ItemType Directory -Force -Path $clineSettingsDir | Out-Null
 
-# --- 6a: Cline API Provider (globalState.json) ---
-$gsFile = "$clineDataDir\globalState.json"
-if (Test-Path $gsFile) {
-    $gs = Get-Content $gsFile -Raw | ConvertFrom-Json
-} else {
-    $gs = [PSCustomObject]@{}
-}
-
-$gs | Add-Member -NotePropertyName "actModeApiProvider" -NotePropertyValue "openai-compatible" -Force
-$gs | Add-Member -NotePropertyName "planModeApiProvider" -NotePropertyValue "openai-compatible" -Force
-$gs | Add-Member -NotePropertyName "planActSeparateModelsSetting" -NotePropertyValue $false -Force
-$gs | Add-Member -NotePropertyName "openAiCompatibleBaseUrl" -NotePropertyValue "$APIM_BASE_URL/openai/v1" -Force
-$gs | Add-Member -NotePropertyName "openAiCompatibleModelId" -NotePropertyValue "gpt-54-mini" -Force
-$gs | Add-Member -NotePropertyName "actModeOpenAiCompatibleModelId" -NotePropertyValue "gpt-54-mini" -Force
-$gs | Add-Member -NotePropertyName "planModeOpenAiCompatibleModelId" -NotePropertyValue "gpt-54-mini" -Force
-$gs | Add-Member -NotePropertyName "actModeOpenAiCompatibleBaseUrl" -NotePropertyValue "$APIM_BASE_URL/openai/v1" -Force
-$gs | Add-Member -NotePropertyName "planModeOpenAiCompatibleBaseUrl" -NotePropertyValue "$APIM_BASE_URL/openai/v1" -Force
-
-Write-Utf8NoBom $gsFile ($gs | ConvertTo-Json -Depth 10)
-Write-Host "  Cline provider: OpenAI Compatible ($APIM_BASE_URL/openai/v1)" -ForegroundColor Green
-
-# --- 6b: Cline API Key (secrets.json) ---
-$secFile = "$clineDataDir\secrets.json"
-if (Test-Path $secFile) {
-    $sec = Get-Content $secFile -Raw | ConvertFrom-Json
-} else {
-    $sec = [PSCustomObject]@{}
-}
-$sec | Add-Member -NotePropertyName "openAiCompatibleApiKey" -NotePropertyValue $ApiKey -Force
-Write-Utf8NoBom $secFile ($sec | ConvertTo-Json -Depth 5)
-Write-Host "  Cline API key saved" -ForegroundColor Green
-
-# --- 6c: MCP Servers (mcpSettings.json) ---
-$mcpFile = "$clineDataDir\mcpSettings.json"
+$mcpFile = "$clineSettingsDir\cline_mcp_settings.json"
 if (Test-Path $mcpFile) {
     $mcp = Get-Content $mcpFile -Raw | ConvertFrom-Json
 } else {
@@ -262,38 +240,70 @@ if (-not ($mcp | Get-Member -Name "mcpServers" -MemberType NoteProperty)) {
     $mcp | Add-Member -NotePropertyName "mcpServers" -NotePropertyValue ([PSCustomObject]@{}) -Force
 }
 
-# Power BI MCP Server
+# Power BI MCP Server (community package on npm: powerbi-mcp)
 $mcp.mcpServers | Add-Member -NotePropertyName "powerbi" -NotePropertyValue ([PSCustomObject]@{
     command = "npx"
-    args = @("-y", "@anthropic/mcp-server-powerbi")
+    args = @("-y", "powerbi-mcp")
     env = [PSCustomObject]@{}
     disabled = $false
     autoApprove = @()
 }) -Force
 
-# Playwright MCP Server
+# Playwright MCP Server (official Microsoft package: @playwright/mcp)
 $mcp.mcpServers | Add-Member -NotePropertyName "playwright" -NotePropertyValue ([PSCustomObject]@{
     command = "npx"
-    args = @("-y", "@anthropic/mcp-server-playwright")
+    args = @("-y", "@playwright/mcp@latest")
     env = [PSCustomObject]@{}
     disabled = $false
     autoApprove = @()
 }) -Force
 
-# Filesystem MCP Server (access to practice files directory)
+# Filesystem MCP Server (official: @modelcontextprotocol/server-filesystem)
 $mcp.mcpServers | Add-Member -NotePropertyName "filesystem" -NotePropertyValue ([PSCustomObject]@{
     command = "npx"
-    args = @("-y", "@anthropic/mcp-server-filesystem", $DesktopPath)
+    args = @("-y", "@modelcontextprotocol/server-filesystem", $DesktopPath)
     env = [PSCustomObject]@{}
     disabled = $false
     autoApprove = @()
 }) -Force
 
 Write-Utf8NoBom $mcpFile ($mcp | ConvertTo-Json -Depth 10)
-Write-Host "  MCP servers configured:" -ForegroundColor Green
-Write-Host "    - powerbi  : @anthropic/mcp-server-powerbi" -ForegroundColor Gray
-Write-Host "    - playwright: @anthropic/mcp-server-playwright" -ForegroundColor Gray
-Write-Host "    - filesystem: @anthropic/mcp-server-filesystem ($DesktopPath)  ($(Format-Elapsed $stepTimer))" -ForegroundColor Gray
+Write-Host "  MCP settings: $mcpFile" -ForegroundColor Green
+Write-Host "    - powerbi    : powerbi-mcp" -ForegroundColor Gray
+Write-Host "    - playwright : @playwright/mcp" -ForegroundColor Gray
+Write-Host "    - filesystem : @modelcontextprotocol/server-filesystem ($DesktopPath)  ($(Format-Elapsed $stepTimer))" -ForegroundColor Gray
+
+# --- Manual API provider/key/model configuration (Cline UI) ---
+# These cannot be written to disk: Cline stores them in VS Code's
+# globalState (state.vscdb SQLite) and SecretStorage via the
+# extension API. Print the values the user must paste in the UI
+# and write a reference file to the desktop for easy access.
+$clineReadme = Join-Path $DesktopPath "CLINE_API_SETUP.txt"
+$clineReadmeBody = @"
+Cline API Setup (manual — values cannot be auto-applied)
+========================================================
+1. Open VS Code -> click the Cline icon in the sidebar
+2. Click the gear (Settings) -> API Configuration
+3. Fill in the following:
+
+   API Provider : OpenAI Compatible
+   Base URL     : $APIM_BASE_URL/openai/v1
+   API Key      : $ApiKey
+   Model ID     : gpt-54-mini
+
+4. Save. MCP servers (powerbi / playwright / filesystem) are
+   already configured at:
+   $mcpFile
+"@
+Write-Utf8NoBom $clineReadme $clineReadmeBody
+
+Write-Host ""
+Write-Host "  IMPORTANT: API provider/key/model must be set in the Cline UI." -ForegroundColor Yellow
+Write-Host "  Values to paste (also saved to $clineReadme):" -ForegroundColor Yellow
+Write-Host "    Provider : OpenAI Compatible" -ForegroundColor White
+Write-Host "    Base URL : $APIM_BASE_URL/openai/v1" -ForegroundColor White
+Write-Host "    API Key  : (from env AI_CLASS_API_KEY)" -ForegroundColor White
+Write-Host "    Model    : gpt-54-mini" -ForegroundColor White
 
 # ===========================================================
 # STEP 7: Download Practice File (.pbix)
@@ -358,17 +368,23 @@ Write-Host "    - VS Code + Cline extension" -ForegroundColor Gray
 Write-Host "    - Node.js 22+ (for MCP servers)" -ForegroundColor Gray
 Write-Host "    - Power BI Desktop" -ForegroundColor Gray
 Write-Host ""
-Write-Host "  Configured in Cline:" -ForegroundColor White
-Write-Host "    - API Provider: OpenAI Compatible" -ForegroundColor Gray
-Write-Host "    - Base URL: $APIM_BASE_URL/openai/v1" -ForegroundColor Gray
-Write-Host "    - Model: gpt-54-mini" -ForegroundColor Gray
-Write-Host "    - MCP: powerbi, playwright, filesystem" -ForegroundColor Gray
+Write-Host "  Auto-configured:" -ForegroundColor White
+Write-Host "    - Cline MCP servers (powerbi, playwright, filesystem)" -ForegroundColor Gray
+Write-Host "    - API reference file: $DesktopPath\CLINE_API_SETUP.txt" -ForegroundColor Gray
+Write-Host ""
+Write-Host "  Manual step required (cannot be scripted):" -ForegroundColor Yellow
+Write-Host "    Open Cline -> Settings and paste:" -ForegroundColor White
+Write-Host "      Provider : OpenAI Compatible" -ForegroundColor Gray
+Write-Host "      Base URL : $APIM_BASE_URL/openai/v1" -ForegroundColor Gray
+Write-Host "      API Key  : (from env AI_CLASS_API_KEY)" -ForegroundColor Gray
+Write-Host "      Model    : gpt-54-mini" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  Desktop: $DesktopPath" -ForegroundColor White
 Write-Host "  Practice file: $destFile" -ForegroundColor White
 Write-Host ""
 Write-Host "  Next steps:" -ForegroundColor Yellow
-Write-Host "    1. Open VS Code" -ForegroundColor White
-Write-Host "    2. Open the practice file in Power BI Desktop" -ForegroundColor White
-Write-Host "    3. In Cline, ask: 'Analyze the file open in Power BI Desktop'" -ForegroundColor White
+Write-Host "    1. Open VS Code (restart it if it was open during setup)" -ForegroundColor White
+Write-Host "    2. Configure Cline API in the UI (see above)" -ForegroundColor White
+Write-Host "    3. Open the practice file in Power BI Desktop" -ForegroundColor White
+Write-Host "    4. In Cline, ask: 'Analyze the file open in Power BI Desktop'" -ForegroundColor White
 Write-Host ""

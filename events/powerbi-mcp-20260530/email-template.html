@@ -53,12 +53,9 @@
           <div style="width:28px;height:28px;background:#F2C811;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-size:13px;color:#1a1a1a;">1</div>
         </td>
         <td style="padding-left:10px;">
-          <p style="margin:0;font-size:14px;font-weight:600;">스크립트 다운로드</p>
-          <p style="margin:4px 0 0;font-size:13px;color:#555;">아래 버튼을 클릭하여 설치 스크립트를 다운로드하세요.</p>
-          <p style="margin:8px 0 0;">
-            <a href="https://github.com/asomi7007/eduelden-ai-deploy/raw/main/events/powerbi-mcp-20260530/setup-powerbi-mcp.ps1"
-               style="display:inline-block;background:#F2C811;color:#1a1a1a;padding:8px 20px;border-radius:6px;text-decoration:none;font-weight:600;font-size:13px;"
-               download>setup-powerbi-mcp.ps1 다운로드</a>
+          <p style="margin:0;font-size:14px;font-weight:600;">PowerShell을 <span style="color:#c00;">관리자 모드</span>로 실행</p>
+          <p style="margin:4px 0 0;font-size:13px;color:#555;">
+            시작 메뉴 &gt; "PowerShell" 검색 &gt; <strong>관리자 권한으로 실행</strong> 클릭
           </p>
         </td>
       </tr>
@@ -71,10 +68,10 @@
           <div style="width:28px;height:28px;background:#F2C811;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-size:13px;color:#1a1a1a;">2</div>
         </td>
         <td style="padding-left:10px;">
-          <p style="margin:0;font-size:14px;font-weight:600;">PowerShell을 관리자 권한으로 실행</p>
-          <p style="margin:4px 0 0;font-size:13px;color:#555;">
-            시작 메뉴에서 "PowerShell"을 검색 &rarr; <strong>관리자 권한으로 실행</strong> 클릭
-          </p>
+          <p style="margin:0;font-size:14px;font-weight:600;">Downloads 폴더로 이동</p>
+          <div style="background:#1e1e1e;border-radius:6px;padding:10px 14px;margin-top:6px;">
+            <code style="color:#d4d4d4;font-family:'Cascadia Code',Consolas,monospace;font-size:12px;">cd ~\Downloads</code>
+          </div>
         </td>
       </tr>
     </table>
@@ -86,29 +83,68 @@
           <div style="width:28px;height:28px;background:#F2C811;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-size:13px;color:#1a1a1a;">3</div>
         </td>
         <td style="padding-left:10px;">
-          <p style="margin:0;font-size:14px;font-weight:600;">실행 정책 허용 (최초 1회)</p>
-          <p style="margin:4px 0 0;font-size:13px;color:#555;">PowerShell에 아래 명령어를 입력하세요:</p>
+          <p style="margin:0;font-size:14px;font-weight:600;">스크립트 다운로드</p>
           <div style="background:#1e1e1e;border-radius:6px;padding:10px 14px;margin-top:6px;">
-            <code style="color:#d4d4d4;font-family:'Cascadia Code',Consolas,monospace;font-size:12px;">Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned</code>
+            <code style="color:#d4d4d4;font-family:'Cascadia Code',Consolas,monospace;font-size:12px;">Invoke-WebRequest -Uri "https://raw.githubusercontent.com/asomi7007/eduelden-ai-deploy/main/events/powerbi-mcp-20260530/setup-powerbi-mcp.ps1" -OutFile setup-powerbi-mcp.ps1</code>
           </div>
-          <p style="margin:4px 0 0;font-size:12px;color:#888;">"Y"를 입력하고 Enter</p>
+          <p style="margin:4px 0 0;font-size:13px;color:#555;">
+            또는 <a href="https://raw.githubusercontent.com/asomi7007/eduelden-ai-deploy/main/events/powerbi-mcp-20260530/setup-powerbi-mcp.ps1" style="color:#1a56db;">이 링크</a>를 우클릭 &gt; Downloads 폴더에 저장
+          </p>
         </td>
       </tr>
     </table>
 
     <!-- Step 4 -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
       <tr>
         <td width="36" valign="top">
           <div style="width:28px;height:28px;background:#F2C811;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-size:13px;color:#1a1a1a;">4</div>
         </td>
         <td style="padding-left:10px;">
-          <p style="margin:0;font-size:14px;font-weight:600;">설치 스크립트 실행</p>
-          <p style="margin:4px 0 0;font-size:13px;color:#555;">다운로드 폴더로 이동 후 아래 명령어를 실행하세요:</p>
+          <p style="margin:0;font-size:14px;font-weight:600;">실행 정책 허용 (최초 1회)</p>
           <div style="background:#1e1e1e;border-radius:6px;padding:10px 14px;margin-top:6px;">
-            <code style="color:#d4d4d4;font-family:'Cascadia Code',Consolas,monospace;font-size:12px;">cd ~/Downloads<br>.\setup-powerbi-mcp.ps1 -StudentId "{{STUDENT_NUM}}" -ApiKey "{{API_KEY}}"</code>
+            <code style="color:#d4d4d4;font-family:'Cascadia Code',Consolas,monospace;font-size:12px;">Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned</code>
           </div>
-          <p style="margin:4px 0 0;font-size:12px;color:#888;">약 3~5분 소요. 완료되면 "Setup Complete!" 메시지가 나옵니다.</p>
+          <p style="margin:4px 0 0;font-size:12px;color:#888;">"Y" 입력 후 Enter</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Step 5 -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+      <tr>
+        <td width="36" valign="top">
+          <div style="width:28px;height:28px;background:#F2C811;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-size:13px;color:#1a1a1a;">5</div>
+        </td>
+        <td style="padding-left:10px;">
+          <p style="margin:0;font-size:14px;font-weight:600;">설치 스크립트 실행</p>
+          <div style="background:#1e1e1e;border-radius:6px;padding:10px 14px;margin-top:6px;">
+            <code style="color:#d4d4d4;font-family:'Cascadia Code',Consolas,monospace;font-size:12px;">.\setup-powerbi-mcp.ps1 -StudentId "{{STUDENT_NUM}}" -ApiKey "{{API_KEY}}"</code>
+          </div>
+          <p style="margin:4px 0 0;font-size:12px;color:#888;">약 3~5분 소요. "Setup Complete!" 메시지가 나오면 완료!</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Step 5: Cline API 수동 설정 -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+      <tr>
+        <td width="36" valign="top">
+          <div style="width:28px;height:28px;background:#F2C811;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-size:13px;color:#1a1a1a;">6</div>
+        </td>
+        <td style="padding-left:10px;">
+          <p style="margin:0;font-size:14px;font-weight:600;">Cline API 설정 (수동 — 자동 적용 불가)</p>
+          <p style="margin:4px 0 0;font-size:13px;color:#555;">
+            스크립트가 MCP 서버는 자동 설정하지만, API 연결 정보는 Cline UI에서 직접 입력해야 합니다.<br>
+            바탕화면에 생성된 <strong>CLINE_API_SETUP.txt</strong> 파일을 참고하세요.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;font-size:13px;">
+            <tr><td colspan="2" style="background:#FFF8E1;padding:8px 12px;font-weight:600;border-bottom:1px solid #e5e7eb;">VS Code &rarr; Cline 사이드바 &rarr; 설정(&#9881;) &rarr; API Configuration</td></tr>
+            <tr><td style="padding:5px 12px;font-weight:600;width:100px;border-bottom:1px solid #f0f0f0;">Provider</td><td style="padding:5px 12px;border-bottom:1px solid #f0f0f0;">OpenAI Compatible</td></tr>
+            <tr><td style="padding:5px 12px;font-weight:600;border-bottom:1px solid #f0f0f0;">Base URL</td><td style="padding:5px 12px;border-bottom:1px solid #f0f0f0;"><code style="font-size:12px;">https://apim-eduelden-ai.azure-api.net/openai/v1</code></td></tr>
+            <tr><td style="padding:5px 12px;font-weight:600;border-bottom:1px solid #f0f0f0;">API Key</td><td style="padding:5px 12px;border-bottom:1px solid #f0f0f0;">위에 안내된 API Key 입력</td></tr>
+            <tr><td style="padding:5px 12px;font-weight:600;">Model ID</td><td style="padding:5px 12px;"><code style="font-size:12px;">gpt-54-mini</code></td></tr>
+          </table>
         </td>
       </tr>
     </table>
@@ -140,9 +176,9 @@
       <tr><td style="padding:6px 0;">&nbsp;&nbsp;&nbsp;API Key: 위에 안내된 키 입력</td></tr>
       <tr><td style="padding:6px 0;">&nbsp;&nbsp;&nbsp;Model ID: <code>gpt-54-mini</code></td></tr>
       <tr><td style="padding:6px 0;">6. Cline &rarr; MCP Servers &rarr; 아래 3개 추가:</td></tr>
-      <tr><td style="padding:4px 0 4px 20px;"><code>powerbi</code>: npx -y @anthropic/mcp-server-powerbi</td></tr>
-      <tr><td style="padding:4px 0 4px 20px;"><code>playwright</code>: npx -y @anthropic/mcp-server-playwright</td></tr>
-      <tr><td style="padding:4px 0 4px 20px;"><code>filesystem</code>: npx -y @anthropic/mcp-server-filesystem [바탕화면 경로]</td></tr>
+      <tr><td style="padding:4px 0 4px 20px;"><code>powerbi</code>: npx -y powerbi-mcp</td></tr>
+      <tr><td style="padding:4px 0 4px 20px;"><code>playwright</code>: npx -y @playwright/mcp@latest</td></tr>
+      <tr><td style="padding:4px 0 4px 20px;"><code>filesystem</code>: npx -y @modelcontextprotocol/server-filesystem [바탕화면 경로]</td></tr>
     </table>
 
     <!-- 실습 파일 -->
@@ -167,6 +203,7 @@
       <tr><td style="padding:5px 0;">&#9744; VS Code + Cline 확장 설치 완료</td></tr>
       <tr><td style="padding:5px 0;">&#9744; Node.js 22+ 설치 완료</td></tr>
       <tr><td style="padding:5px 0;">&#9744; Power BI Desktop 설치 완료</td></tr>
+      <tr><td style="padding:5px 0;">&#9744; Cline API 설정 완료 (Provider, Base URL, API Key, Model)</td></tr>
       <tr><td style="padding:5px 0;">&#9744; 실습파일.pbix 바탕화면에 다운로드</td></tr>
       <tr><td style="padding:5px 0;">&#9744; 인터넷 연결 가능</td></tr>
     </table>
@@ -186,7 +223,8 @@
       <tr>
         <td style="padding:8px 12px;background:#FEF3C7;border-left:3px solid #D97706;border-radius:4px;">
           <strong>Power BI Desktop 설치 실패</strong><br>
-          Microsoft Store 접근 불가 시: <code>winget install Microsoft.PowerBI</code>
+          Microsoft Store에서 직접 설치: <a href="https://aka.ms/pbidesktopstore" style="color:#1a56db;">aka.ms/pbidesktopstore</a><br>
+          또는: <code>winget install --id 9NTXR16HNW1T --source msstore</code>
         </td>
       </tr>
       <tr><td style="padding:4px;"></td></tr>
