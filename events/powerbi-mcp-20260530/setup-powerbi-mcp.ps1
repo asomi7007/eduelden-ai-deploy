@@ -263,6 +263,15 @@ if (-not ($mcp | Get-Member -Name "mcpServers" -MemberType NoteProperty)) {
     $mcp | Add-Member -NotePropertyName "mcpServers" -NotePropertyValue ([PSCustomObject]@{}) -Force
 }
 
+# FIX: Node.js ESM loader fails when npm cache path contains non-ASCII
+# characters (e.g. Korean username C:\Users\허석\...). Redirect npm cache
+# to an ASCII-safe path so npx-spawned MCP servers resolve modules correctly.
+$npmCacheFix = "C:\npm-cache"
+if (-not (Test-Path $npmCacheFix)) {
+    New-Item -ItemType Directory -Force -Path $npmCacheFix | Out-Null
+}
+$mcpEnv = [PSCustomObject]@{ npm_config_cache = $npmCacheFix }
+
 # Power BI Modeling MCP Server (official Microsoft package: @microsoft/powerbi-modeling-mcp)
 # --start                  : required to launch the MCP server
 # --readwrite              : allow model edits (alias of --read-write)
@@ -271,7 +280,7 @@ if (-not ($mcp | Get-Member -Name "mcpServers" -MemberType NoteProperty)) {
 $mcp.mcpServers | Add-Member -NotePropertyName "powerbi" -NotePropertyValue ([PSCustomObject]@{
     command = "npx"
     args = @("-y", "@microsoft/powerbi-modeling-mcp@latest", "--start", "--readwrite", "--skip-confirmation", "--compatibility=full")
-    env = [PSCustomObject]@{}
+    env = $mcpEnv
     disabled = $false
     autoApprove = @()
 }) -Force
@@ -280,7 +289,7 @@ $mcp.mcpServers | Add-Member -NotePropertyName "powerbi" -NotePropertyValue ([PS
 $mcp.mcpServers | Add-Member -NotePropertyName "playwright" -NotePropertyValue ([PSCustomObject]@{
     command = "npx"
     args = @("-y", "@playwright/mcp@latest")
-    env = [PSCustomObject]@{}
+    env = $mcpEnv
     disabled = $false
     autoApprove = @()
 }) -Force
@@ -289,7 +298,7 @@ $mcp.mcpServers | Add-Member -NotePropertyName "playwright" -NotePropertyValue (
 $mcp.mcpServers | Add-Member -NotePropertyName "filesystem" -NotePropertyValue ([PSCustomObject]@{
     command = "npx"
     args = @("-y", "@modelcontextprotocol/server-filesystem", $DesktopPath)
-    env = [PSCustomObject]@{}
+    env = $mcpEnv
     disabled = $false
     autoApprove = @()
 }) -Force

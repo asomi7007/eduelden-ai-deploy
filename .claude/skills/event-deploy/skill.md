@@ -113,23 +113,40 @@ MCP 서버를 등록하기 전에 반드시 이 단계를 거친다.
 
 7. **API 연결 테스트 프롬프트는 영어로** — `"Reply with exactly: Connection OK"` 같이 명확한 영어 프롬프트를 사용한다. 한글 프롬프트는 응답이 깨져서 출력될 수 있다.
 
-#### 2-2. 이메일 템플릿 (GitHub Actions 워크플로우 내장)
+8. **MCP 서버 npm cache 경로 (한글 유저명 대응)** — Node.js ESM 로더는 파일 경로를 `file:///` URL로 변환하는데, 한글 유저명(`C:\Users\허석\...`)이 포함되면 모듈 해석이 실패한다(`ERR_MODULE_NOT_FOUND`). Cline MCP 설정의 `env` 필드에 npm cache를 ASCII 경로로 지정한다:
+   ```powershell
+   $mcpEnv = [PSCustomObject]@{ npm_config_cache = "C:\npm-cache" }
+   # 각 MCP 서버 설정에 env = $mcpEnv 추가
+   ```
+   이 설정이 없으면 `@modelcontextprotocol/server-filesystem` 등 ESM 기반 MCP 서버가 한글 Windows 계정에서 시작 즉시 크래시한다.
 
-이메일은 `.github/workflows/student-onboarding.yml`의 JavaScript 코드 안에 HTML 템플릿으로 작성된다.
+9. **Power BI Desktop "이미 설치됨" 처리** — winget exit code `-1978335189`는 "already installed/no upgrade available"을 의미한다. 이 코드도 성공으로 처리하고, 설치 전에 `winget list --id 9NTXR16HNW1T`로 Store 설치 여부를 먼저 확인한다.
+
+#### 2-2. 이메일 템플릿 (외부 JS 파일)
+
+이메일 템플릿은 `emails/` 폴더의 JS 파일로 관리한다. 워크플로우 YAML에 인라인으로 넣으면 GitHub Actions 파서가 깨진다 (300줄 이상의 template literal이 YAML script 블록 안에 있으면 파서 한계 초과).
+
+**구조:**
+```
+emails/
+├── helpers.js         # 공통 HTML 헬퍼 (code(), codeBox(), stepCircle())
+├── send.js            # ACS HMAC 인증 + 전송 (워크플로우에서 node emails/send.js 호출)
+├── powerbi-mcp.js     # Power BI 워크샵 이메일 생성 함수
+└── default.js         # 기본(Azure AI Foundry) 이메일 생성 함수
+```
 
 **이메일 작성 원칙:**
 
-1. **GitHub Actions YAML 파서 주의** — JavaScript 템플릿 리터럴 안의 내용도 YAML 파서에 영향을 줄 수 있다. 변경 후 반드시 워크플로우 이름이 정상 파싱되는지 확인한다:
+1. **새 행사 추가 시** — `emails/{event-name}.js`를 생성하고, `send.js`의 `templateMap`에 등록한다.
+
+2. **Cline 수동 설정 안내 포함** — 자동 설치 스크립트 이후 Cline API 설정을 UI에서 직접 해야 한다는 안내 스텝을 이메일에 포함한다.
+
+3. **MCP 패키지명 일치** — 이메일의 자동설치 테이블, 수동설치 섹션, 실제 스크립트의 MCP 패키지명이 모두 일치해야 한다.
+
+4. **워크플로우 파서 확인** — 이메일 내용이 아무리 바뀌어도 YAML 파서에 영향이 없다. 하지만 `send.js`의 로직이나 워크플로우 YAML 자체를 변경한 경우에만 확인:
    ```bash
    gh api repos/{owner}/{repo}/actions/workflows/{file} --jq '{name}'
    ```
-   이름이 파일 경로(`.github/workflows/xxx.yml`)로 나오면 파서가 깨진 것이다.
-
-2. **한 번에 많은 변경 금지** — 이메일 템플릿 수정 시 소규모 변경 → 푸시 → 파서 확인을 반복한다. 한 번에 많은 줄을 바꾸면 어느 변경이 파서를 깨뜨렸는지 추적이 불가능하다.
-
-3. **Cline 수동 설정 안내 포함** — 자동 설치 스크립트 이후 Cline API 설정을 UI에서 직접 해야 한다는 안내 스텝을 이메일에 포함한다.
-
-4. **MCP 패키지명 일치** — 이메일의 자동설치 테이블, 수동설치 섹션, 실제 스크립트의 MCP 패키지명이 모두 일치해야 한다.
 
 #### 2-3. 온보딩 페이지 (선택)
 기존 SWA 온보딩 시스템을 활용하거나, 별도 정적 페이지 생성.
