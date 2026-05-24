@@ -211,18 +211,6 @@ jobs:
                   ${codeBox('.\\setup-powerbi-mcp.ps1 -StudentId "' + studentId + '" -ApiKey "' + apiKey + '"')}
                   <span style="font-size:12px;color:#888">약 3~5분 소요. "Setup Complete!" 메시지가 나오면 완료!</span>
                 </td></tr>
-                <tr><td style="padding:10px 0;vertical-align:top">${stepCircle('6','#F2C811')}</td>
-                <td style="padding:10px 0 10px 10px">
-                  <b>Cline API 설정 (수동)</b><br/>
-                  <span style="font-size:13px;color:#555">스크립트가 MCP 서버는 자동 설정하지만, API 연결 정보는 Cline UI에서 직접 입력해야 합니다.<br/>바탕화면의 <b>CLINE_API_SETUP.txt</b> 파일을 참고하세요.</span>
-                  <table style="width:100%;border-collapse:collapse;margin-top:8px;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden;font-size:13px">
-                    <tr><td colspan="2" style="background:#FFF8E1;padding:8px 12px;font-weight:600;border-bottom:1px solid #e5e7eb">VS Code &rarr; Cline 사이드바 &rarr; 설정 &rarr; API Configuration</td></tr>
-                    <tr><td style="padding:5px 12px;font-weight:600;width:100px;border-bottom:1px solid #f0f0f0">Provider</td><td style="padding:5px 12px;border-bottom:1px solid #f0f0f0">OpenAI Compatible</td></tr>
-                    <tr><td style="padding:5px 12px;font-weight:600;border-bottom:1px solid #f0f0f0">Base URL</td><td style="padding:5px 12px;border-bottom:1px solid #f0f0f0">${code(apimUrl + '/openai/v1')}</td></tr>
-                    <tr><td style="padding:5px 12px;font-weight:600;border-bottom:1px solid #f0f0f0">API Key</td><td style="padding:5px 12px;border-bottom:1px solid #f0f0f0">위에 안내된 API Key 입력</td></tr>
-                    <tr><td style="padding:5px 12px;font-weight:600">Model ID</td><td style="padding:5px 12px">${code('gpt-54-mini')}</td></tr>
-                  </table>
-                </td></tr>
               </table>
 
               <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin:16px 0">
@@ -238,18 +226,6 @@ jobs:
 
               <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
 
-              <h2 style="color:#0891b2;border-bottom:2px solid #0891b2;padding-bottom:6px">🔄 사용 가능한 모델 (3종)</h2>
-              <p style="font-size:14px;color:#555">Cline 설정에서 <b>Base URL</b>과 <b>Model ID</b>만 바꾸면 모델 전환 가능 (API Key는 동일)</p>
-              <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin:12px 0">
-                <tr style="background:#f8fafc"><th style="padding:8px 12px;text-align:left;font-size:13px;border-bottom:1px solid #e5e7eb">모델</th><th style="padding:8px 12px;text-align:left;font-size:13px;border-bottom:1px solid #e5e7eb">Base URL</th><th style="padding:8px 12px;text-align:left;font-size:13px;border-bottom:1px solid #e5e7eb">Model ID</th></tr>
-                <tr style="background:#f0fdf4"><td style="padding:8px 12px;font-size:13px;border-bottom:1px solid #f0f0f0"><b>GPT-5.4-mini</b> ⭐기본</td><td style="padding:8px 12px;font-size:13px;border-bottom:1px solid #f0f0f0">${code(apimUrl + '/openai/v1')}</td><td style="padding:8px 12px;font-size:13px;border-bottom:1px solid #f0f0f0">${code('gpt-54-mini')}</td></tr>
-                <tr><td style="padding:8px 12px;font-size:13px;border-bottom:1px solid #f0f0f0"><b>GPT-5.5</b> (고품질)</td><td style="padding:8px 12px;font-size:13px;border-bottom:1px solid #f0f0f0">${code(apimUrl + '/openai/v1')}</td><td style="padding:8px 12px;font-size:13px;border-bottom:1px solid #f0f0f0">${code('gpt-55')}</td></tr>
-                <tr style="background:#f0f7ff"><td style="padding:8px 12px;font-size:13px"><b>DeepSeek V4 Flash</b></td><td style="padding:8px 12px;font-size:13px">${code(apimUrl + '/deepseek/v1')}</td><td style="padding:8px 12px;font-size:13px">${code('deepseek-v4-flash')}</td></tr>
-              </table>
-              <p style="color:#6b7280;font-size:0.85em">※ GPT와 DeepSeek는 <b>Base URL이 다릅니다</b> (/openai vs /deepseek)</p>
-
-              <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
-
               <h2 style="color:#7c3aed;border-bottom:2px solid #7c3aed;padding-bottom:6px">🔧 방법 2: 수동 설치</h2>
               <p style="font-size:14px;color:#555">자동 설치가 안 될 경우 아래 순서로 직접 설정하세요.</p>
 
@@ -257,15 +233,15 @@ jobs:
                 <tr><td style="padding:4px 0">1. <a href="https://code.visualstudio.com/download" style="color:#1a56db;font-weight:600">VS Code 다운로드</a> → Windows 64bit 설치</td></tr>
                 <tr><td style="padding:4px 0">2. VS Code → Extensions (Ctrl+Shift+X) → "Cline" 검색 → Install</td></tr>
                 <tr><td style="padding:4px 0">3. <a href="https://nodejs.org/en/download" style="color:#1a56db;font-weight:600">Node.js 22 LTS 다운로드</a> → 설치 (${code('node -v')}로 확인)</td></tr>
-                <tr><td style="padding:4px 0">4. <a href="https://aka.ms/pbidesktopstore" style="color:#1a56db;font-weight:600">Power BI Desktop</a> &rarr; Microsoft Store에서 설치 또는 ${code('winget install --id 9NTXR16HNW1T --source msstore')}</td></tr>
+                <tr><td style="padding:4px 0">4. <a href="https://aka.ms/pbidesktopstore" style="color:#1a56db;font-weight:600">Power BI Desktop</a> → Microsoft Store 또는 ${code('winget install Microsoft.PowerBI')}</td></tr>
                 <tr><td style="padding:4px 0">5. Cline 사이드바 → 설정 → API Provider: ${code('OpenAI Compatible')}</td></tr>
                 <tr><td style="padding:4px 0">&nbsp;&nbsp;&nbsp;Base URL: ${code(apimUrl + '/openai/v1')}</td></tr>
                 <tr><td style="padding:4px 0">&nbsp;&nbsp;&nbsp;API Key: 위에 안내된 키 입력</td></tr>
                 <tr><td style="padding:4px 0">&nbsp;&nbsp;&nbsp;Model ID: ${code('gpt-54-mini')}</td></tr>
                 <tr><td style="padding:4px 0">6. Cline → MCP Servers → 아래 3개 추가:</td></tr>
-                <tr><td style="padding:2px 0 2px 20px">${code('powerbi')}: npx -y powerbi-mcp</td></tr>
-                <tr><td style="padding:2px 0 2px 20px">${code('playwright')}: npx -y @playwright/mcp@latest</td></tr>
-                <tr><td style="padding:2px 0 2px 20px">${code('filesystem')}: npx -y @modelcontextprotocol/server-filesystem [바탕화면 경로]</td></tr>
+                <tr><td style="padding:2px 0 2px 20px">${code('powerbi')}: npx -y @anthropic/mcp-server-powerbi</td></tr>
+                <tr><td style="padding:2px 0 2px 20px">${code('playwright')}: npx -y @anthropic/mcp-server-playwright</td></tr>
+                <tr><td style="padding:2px 0 2px 20px">${code('filesystem')}: npx -y @anthropic/mcp-server-filesystem [바탕화면 경로]</td></tr>
               </table>
 
               <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
@@ -282,7 +258,6 @@ jobs:
                 <tr><td style="padding:4px 0">☐ VS Code + Cline 확장 설치 완료</td></tr>
                 <tr><td style="padding:4px 0">☐ Node.js 22+ 설치 완료</td></tr>
                 <tr><td style="padding:4px 0">☐ Power BI Desktop 설치 완료</td></tr>
-                <tr><td style="padding:4px 0">☐ Cline API 설정 완료 (Provider, Base URL, API Key, Model)</td></tr>
                 <tr><td style="padding:4px 0">☐ 실습파일.pbix 바탕화면에 다운로드</td></tr>
                 <tr><td style="padding:4px 0">☐ 인터넷 연결 가능</td></tr>
               </table>
@@ -293,7 +268,7 @@ jobs:
               <table style="width:100%;font-size:13px;color:#555">
                 <tr><td style="padding:8px 12px;background:#FEF3C7;border-left:3px solid #D97706;border-radius:4px;margin-bottom:6px"><b>스크립트 실행이 차단됨</b><br>${code('Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned')} 실행 후 재시도</td></tr>
                 <tr><td style="padding:4px"></td></tr>
-                <tr><td style="padding:8px 12px;background:#FEF3C7;border-left:3px solid #D97706;border-radius:4px"><b>Power BI Desktop 설치 실패</b><br>Microsoft Store에서 직접 설치: <a href="https://aka.ms/pbidesktopstore" style="color:#1a56db">aka.ms/pbidesktopstore</a><br/>또는: ${code('winget install --id 9NTXR16HNW1T --source msstore')}</td></tr>
+                <tr><td style="padding:8px 12px;background:#FEF3C7;border-left:3px solid #D97706;border-radius:4px"><b>Power BI Desktop 설치 실패</b><br>Microsoft Store 접근 불가 시: ${code('winget install Microsoft.PowerBI')}</td></tr>
                 <tr><td style="padding:4px"></td></tr>
                 <tr><td style="padding:8px 12px;background:#FEF3C7;border-left:3px solid #D97706;border-radius:4px"><b>Node.js 버전이 22 미만</b><br>기존 버전 삭제 후: ${code('winget install OpenJS.NodeJS.LTS')}</td></tr>
                 <tr><td style="padding:4px"></td></tr>
