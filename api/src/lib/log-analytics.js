@@ -148,21 +148,41 @@ function estimateCost(model, inputTokens, outputTokens) {
 }
 
 // --- Pre-built KQL queries ---
+// NOTE: APIM diagnostic logs exist in TWO tables due to a mode switch:
+//   - AzureDiagnostics (legacy, before resource-specific mode was enabled)
+//     Column names use _s/_d suffixes, no ApimSubscriptionId
+//   - ApiManagementGatewayLogs (resource-specific, new data)
+//     Proper column names including ApimSubscriptionId
+// We union both tables and normalize column names for full coverage.
+
+/**
+ * Common KQL fragment: union both log tables with normalized columns.
+ * AzureDiagnostics rows get ApimSubscriptionId = "unknown" (not available in that mode).
+ */
+const UNIFIED_LOGS = `
+let UnifiedLogs = union isfuzzy=true
+  (ApiManagementGatewayLogs
+   | project TimeGenerated, ResponseCode=toint(ResponseCode), RequestSize=tolong(RequestSize), ResponseSize=tolong(ResponseSize), BackendUrl=Url, TotalTimeMs=toreal(TotalTime), ApimSubscriptionId=tostring(ApimSubscriptionId)),
+  (AzureDiagnostics
+   | where Category == 'GatewayLogs'
+   | project TimeGenerated, ResponseCode=toint(responseCode_d), RequestSize=tolong(requestSize_d), ResponseSize=tolong(responseSize_d), BackendUrl=backendUrl_s, TotalTimeMs=toreal(DurationMs), ApimSubscriptionId="unknown");
+`;
 
 /**
  * Get total usage summary for a time range.
  */
 async function getUsageSummary(days = 30) {
   const query = `
-ApiManagementGatewayLogs
+${UNIFIED_LOGS}
+UnifiedLogs
 | where TimeGenerated > ago(${days}d)
 | where ResponseCode >= 200 and ResponseCode < 300
-| extend Model = extract("/deployments/([^/]+)/", 1, Url)
+| extend Model = extract("/deployments/([^/]+)/", 1, BackendUrl)
 | summarize
     TotalRequests = count(),
     TotalRequestBytes = sum(RequestSize),
     TotalResponseBytes = sum(ResponseSize),
-    AvgLatencyMs = avg(TotalTime),
+    AvgLatencyMs = avg(TotalTimeMs),
     UniqueStudents = dcount(ApimSubscriptionId)
   by Model
 `;
@@ -174,10 +194,11 @@ ApiManagementGatewayLogs
  */
 async function getDailyUsage(days = 30) {
   const query = `
-ApiManagementGatewayLogs
+${UNIFIED_LOGS}
+UnifiedLogs
 | where TimeGenerated > ago(${days}d)
 | where ResponseCode >= 200 and ResponseCode < 300
-| extend Model = extract("/deployments/([^/]+)/", 1, Url)
+| extend Model = extract("/deployments/([^/]+)/", 1, BackendUrl)
 | extend Day = bin(TimeGenerated, 1d)
 | summarize
     Requests = count(),
@@ -191,13 +212,17 @@ ApiManagementGatewayLogs
 
 /**
  * Get per-student usage.
+ * NOTE: Historical data from AzureDiagnostics has ApimSubscriptionId="unknown"
+ * because that field wasn't available in AzureDiagnostics mode.
+ * Only data after resource-specific mode was enabled has real subscription IDs.
  */
 async function getStudentUsage(days = 30) {
   const query = `
-ApiManagementGatewayLogs
+${UNIFIED_LOGS}
+UnifiedLogs
 | where TimeGenerated > ago(${days}d)
 | where ResponseCode >= 200 and ResponseCode < 300
-| extend Model = extract("/deployments/([^/]+)/", 1, Url)
+| extend Model = extract("/deployments/([^/]+)/", 1, BackendUrl)
 | summarize
     Requests = count(),
     RequestBytes = sum(RequestSize),
@@ -215,11 +240,12 @@ ApiManagementGatewayLogs
  */
 async function getStudentDetail(subscriptionId, days = 30) {
   const query = `
-ApiManagementGatewayLogs
+${UNIFIED_LOGS}
+UnifiedLogs
 | where TimeGenerated > ago(${days}d)
 | where ApimSubscriptionId == "${subscriptionId}"
 | where ResponseCode >= 200 and ResponseCode < 300
-| extend Model = extract("/deployments/([^/]+)/", 1, Url)
+| extend Model = extract("/deployments/([^/]+)/", 1, BackendUrl)
 | extend Day = bin(TimeGenerated, 1d)
 | summarize
     Requests = count(),
@@ -236,11 +262,12 @@ ApiManagementGatewayLogs
  */
 async function getStudentHourly(subscriptionId) {
   const query = `
-ApiManagementGatewayLogs
+${UNIFIED_LOGS}
+UnifiedLogs
 | where TimeGenerated > ago(1d)
 | where ApimSubscriptionId == "${subscriptionId}"
 | where ResponseCode >= 200 and ResponseCode < 300
-| extend Model = extract("/deployments/([^/]+)/", 1, Url)
+| extend Model = extract("/deployments/([^/]+)/", 1, BackendUrl)
 | extend Hour = bin(TimeGenerated, 1h)
 | summarize
     Requests = count(),
