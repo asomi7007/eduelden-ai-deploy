@@ -9,7 +9,7 @@ export function AuthProvider({ children }) {
     const res = await fetch('/api/dashboard/overview', {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${password}`,
+        'X-Admin-Token': password,
       },
     });
 

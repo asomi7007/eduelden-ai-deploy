@@ -8,7 +8,9 @@ on:
     paths:
       - "dashboard/**"
       - "api/src/functions/dashboard-*"
+      - "api/src/functions/index.js"
       - "api/src/lib/**"
+      - "api/package.json"
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
@@ -16,7 +18,9 @@ on:
     paths:
       - "dashboard/**"
       - "api/src/functions/dashboard-*"
+      - "api/src/functions/index.js"
       - "api/src/lib/**"
+      - "api/package.json"
 
 jobs:
   build_and_deploy:

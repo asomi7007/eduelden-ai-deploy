@@ -31,6 +31,24 @@ app.http('dashboardHealth', {
           AZURE_CLIENT_ID: !!process.env.AZURE_CLIENT_ID,
           AZURE_CLIENT_SECRET: !!process.env.AZURE_CLIENT_SECRET,
         },
+        authDebug: (() => {
+          const authHeader = request.headers.get('authorization') || '';
+          const hasBearerPrefix = authHeader.startsWith('Bearer ');
+          const token = hasBearerPrefix ? authHeader.slice(7).trim() : '';
+          const pw = process.env.ADMIN_PASSWORD || '';
+          const tk = process.env.ADMIN_TOKEN || '';
+          return {
+            hasAuthHeader: !!authHeader,
+            authHeaderLen: authHeader.length,
+            hasBearerPrefix,
+            tokenLen: token.length,
+            tokenFirst2: token.substring(0, 2),
+            matchesPw: token === pw,
+            matchesTk: token === tk,
+            pwCharCodes: [...pw].map(c => c.charCodeAt(0)).join(','),
+            tokenCharCodes: [...token].slice(0, 8).map(c => c.charCodeAt(0)).join(','),
+          };
+        })(),
         nodeVersion: process.version,
         functionRuntime: process.env.FUNCTIONS_EXTENSION_VERSION || 'unknown'
       },

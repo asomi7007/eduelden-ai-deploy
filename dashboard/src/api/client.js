@@ -23,7 +23,7 @@ export async function apiClient(path, options = {}) {
 
   const headers = { 'Content-Type': 'application/json' };
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers['X-Admin-Token'] = token;
   }
 
   const res = await fetch(url, {

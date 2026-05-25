@@ -10,7 +10,7 @@
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Token'
 };
 
 /**
@@ -22,20 +22,29 @@ async function verifyAdmin(request) {
   const adminToken = process.env.ADMIN_TOKEN;
   const adminPassword = process.env.ADMIN_PASSWORD;
 
-  // Method 1: Bearer token
+  // Method 1: Custom header (preferred — avoids SWA auth header conflicts)
+  const customToken = request.headers.get('x-admin-token') || '';
+  if (customToken) {
+    if (adminToken && customToken === adminToken) {
+      return { authenticated: true };
+    }
+    if (adminPassword && customToken === adminPassword) {
+      return { authenticated: true };
+    }
+    return { authenticated: false, error: 'Invalid admin token' };
+  }
+
+  // Method 1b: Bearer token (fallback)
   const authHeader = request.headers.get('authorization') || '';
   if (authHeader.startsWith('Bearer ')) {
     const token = authHeader.slice(7).trim();
-    // Debug: log only non-sensitive comparison metadata
-    const debugInfo = `token_len=${token.length},pw_len=${(adminPassword||'').length},tok_len=${(adminToken||'').length},match_pw=${token === adminPassword},match_tok=${token === adminToken}`;
     if (adminToken && token === adminToken) {
       return { authenticated: true };
     }
-    // Also accept ADMIN_PASSWORD as bearer token for backward compat
     if (adminPassword && token === adminPassword) {
       return { authenticated: true };
     }
-    return { authenticated: false, error: `Invalid bearer token [${debugInfo}]` };
+    return { authenticated: false, error: 'Invalid bearer token' };
   }
 
   // Method 2: Body adminPw (for legacy admin.js compat)
