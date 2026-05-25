@@ -134,6 +134,12 @@ eduelden-ai-deploy/
 │   ├── 02_manage_keys.sh           # APIM key management
 │   ├── cost-monitor.sh             # Cost monitoring
 │   └── setup-student.ps1           # Student PC auto-setup (English)
+├── events/                         # Event/workshop-specific configs
+│   └── powerbi-mcp-20260530/       # Power BI MCP Workshop (2026-05-30)
+│       ├── setup-powerbi-mcp.ps1   # Workshop-specific setup (PBI Desktop, MCP exe, practice file)
+│       ├── config.json             # Event config
+│       ├── email-template.html     # Pre-event email template
+│       └── files/실습파일.pbix      # Practice Power BI file
 └── ai-class-starter/               # Starter project for students
 ```
 

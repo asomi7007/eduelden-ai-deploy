@@ -219,6 +219,13 @@ eduelden-ai-deploy/
 │   └── setup-student.ps1              # 학생 PC 자동 설정 (영문 출력)
 │                                      # VS Code, Cline, Power BI MCP 설치 포함
 │
+├── events/                            # 이벤트/워크숍별 설정
+│   └── powerbi-mcp-20260530/          # Power BI MCP 워크숍 (2026-05-30)
+│       ├── setup-powerbi-mcp.ps1      # 워크숍 전용 설치 스크립트
+│       ├── config.json                # 행사 설정
+│       ├── email-template.html        # 사전 안내 이메일 템플릿
+│       └── files/실습파일.pbix         # 실습용 Power BI 파일
+│
 ├── ai-class-starter/                  # 학생용 스타터 프로젝트
 │   ├── README.md
 │   ├── requirements.txt

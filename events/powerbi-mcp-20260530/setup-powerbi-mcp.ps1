@@ -43,11 +43,28 @@ $TOTAL_STEPS = 8
 $totalTimer = [System.Diagnostics.Stopwatch]::StartNew()
 $stepTimer  = [System.Diagnostics.Stopwatch]::new()
 
+# --- Helper: Fix UTF-8 mojibake in paths (Korean usernames stored as Latin-1) ---
+function Repair-Utf8MojibakePath([string]$Path) {
+    if ([string]::IsNullOrWhiteSpace($Path) -or (Test-Path -LiteralPath $Path)) {
+        return $Path
+    }
+    try {
+        $latin1 = [System.Text.Encoding]::GetEncoding(28591)
+        $candidate = [System.Text.Encoding]::UTF8.GetString($latin1.GetBytes($Path))
+        if ($candidate -ne $Path -and (Test-Path -LiteralPath $candidate)) {
+            return $candidate
+        }
+    } catch {}
+    return $Path
+}
+
 # --- Desktop path (handles Korean usernames, OneDrive redirect, etc.) ---
 $DesktopPath = [Environment]::GetFolderPath("Desktop")
+$DesktopPath = Repair-Utf8MojibakePath $DesktopPath
 if (-not $DesktopPath -or -not (Test-Path $DesktopPath)) {
     try {
         $DesktopPath = (New-Object -ComObject Shell.Application).Namespace('shell:Desktop').Self.Path
+        $DesktopPath = Repair-Utf8MojibakePath $DesktopPath
     } catch {}
 }
 if (-not $DesktopPath -or -not (Test-Path $DesktopPath)) {
@@ -55,7 +72,7 @@ if (-not $DesktopPath -or -not (Test-Path $DesktopPath)) {
         "$env:USERPROFILE\Desktop",
         "$env:USERPROFILE\OneDrive\Desktop"
     )
-    $DesktopPath = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+    $DesktopPath = $candidates | ForEach-Object { Repair-Utf8MojibakePath $_ } | Where-Object { Test-Path $_ } | Select-Object -First 1
 }
 if (-not $DesktopPath -or -not (Test-Path $DesktopPath)) {
     $DesktopPath = "$env:USERPROFILE\Desktop"
@@ -251,7 +268,7 @@ New-Item -ItemType Directory -Force -Path $clineSettingsDir | Out-Null
 
 $mcpFile = "$clineSettingsDir\cline_mcp_settings.json"
 if (Test-Path $mcpFile) {
-    $mcp = Get-Content $mcpFile -Raw | ConvertFrom-Json
+    $mcp = Get-Content $mcpFile -Raw -Encoding UTF8 | ConvertFrom-Json
 } else {
     $mcp = [PSCustomObject]@{
         mcpServers = [PSCustomObject]@{}
@@ -272,23 +289,55 @@ if (-not (Test-Path $npmCacheFix)) {
 }
 $mcpEnv = [PSCustomObject]@{ npm_config_cache = $npmCacheFix }
 
-# Power BI Modeling MCP Server (official Microsoft package: @microsoft/powerbi-modeling-mcp)
+# --- Power BI MCP: Install exe directly (NOT npx) ---
+# The generic @microsoft/powerbi-modeling-mcp wrapper writes "Detected platform..."
+# to stdout before MCP JSON-RPC starts, corrupting Cline's stdio transport.
+# Fix: install the platform-specific package and run the exe directly.
+$powerBiMcpRoot = "C:\MCPServers\PowerBIModelingMCP"
+
+# Detect ARM64 vs x64
+$powerBiArch = "x64"
+$powerBiPkg = "@microsoft/powerbi-modeling-mcp-win32-x64@latest"
+if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64" -or $env:PROCESSOR_ARCHITEW6432 -eq "ARM64") {
+    $powerBiArch = "arm64"
+    $powerBiPkg = "@microsoft/powerbi-modeling-mcp-win32-arm64@latest"
+}
+$powerBiMcpExe = Join-Path $powerBiMcpRoot "node_modules\@microsoft\powerbi-modeling-mcp-win32-$powerBiArch\dist\powerbi-modeling-mcp.exe"
+
+if (-not (Test-Path $powerBiMcpExe)) {
+    Write-Host "  Installing Power BI MCP ($powerBiArch) exe..." -ForegroundColor Yellow
+    New-Item -ItemType Directory -Force -Path $powerBiMcpRoot | Out-Null
+    $env:npm_config_cache = $npmCacheFix
+    & npm install --prefix $powerBiMcpRoot $powerBiPkg 2>$null
+    if (Test-Path $powerBiMcpExe) {
+        Write-Host "  Power BI MCP exe installed: $powerBiMcpExe" -ForegroundColor Green
+    } else {
+        Write-Host "  WARNING: Power BI MCP exe not found after install." -ForegroundColor Red
+    }
+} else {
+    Write-Host "  Power BI MCP exe already installed" -ForegroundColor Green
+}
+
+# Power BI Modeling MCP Server — exe direct execution
 # --start                  : required to launch the MCP server
 # --readwrite              : allow model edits (alias of --read-write)
 # --skip-confirmation      : suppress per-write confirmation prompts
 # --compatibility=full     : PowerBI + Analysis Services + Fabric semantic models
 $mcp.mcpServers | Add-Member -NotePropertyName "powerbi" -NotePropertyValue ([PSCustomObject]@{
-    command = "npx"
-    args = @("-y", "@microsoft/powerbi-modeling-mcp@latest", "--start", "--readwrite", "--skip-confirmation", "--compatibility=full")
-    env = $mcpEnv
+    type = "stdio"
+    command = $powerBiMcpExe.Replace('\', '\\')
+    args = @("--start", "--readwrite", "--skip-confirmation", "--compatibility=full")
+    env = [PSCustomObject]@{}
+    timeout = 300
     disabled = $false
     autoApprove = @()
 }) -Force
 
 # Playwright MCP Server (official Microsoft package: @playwright/mcp)
+# No stdout noise issue — npx via cmd.exe is safe here
 $mcp.mcpServers | Add-Member -NotePropertyName "playwright" -NotePropertyValue ([PSCustomObject]@{
-    command = "npx"
-    args = @("-y", "@playwright/mcp@latest")
+    command = "cmd.exe"
+    args = @("/d", "/c", "npx", "-y", "@playwright/mcp@latest")
     env = $mcpEnv
     disabled = $false
     autoApprove = @()
@@ -296,8 +345,8 @@ $mcp.mcpServers | Add-Member -NotePropertyName "playwright" -NotePropertyValue (
 
 # Filesystem MCP Server (official: @modelcontextprotocol/server-filesystem)
 $mcp.mcpServers | Add-Member -NotePropertyName "filesystem" -NotePropertyValue ([PSCustomObject]@{
-    command = "npx"
-    args = @("-y", "@modelcontextprotocol/server-filesystem", $DesktopPath)
+    command = "cmd.exe"
+    args = @("/d", "/c", "npx", "-y", "@modelcontextprotocol/server-filesystem", $DesktopPath)
     env = $mcpEnv
     disabled = $false
     autoApprove = @()
@@ -305,8 +354,8 @@ $mcp.mcpServers | Add-Member -NotePropertyName "filesystem" -NotePropertyValue (
 
 Write-Utf8NoBom $mcpFile ($mcp | ConvertTo-Json -Depth 10)
 Write-Host "  MCP settings: $mcpFile" -ForegroundColor Green
-Write-Host "    - powerbi    : @microsoft/powerbi-modeling-mcp (official MS)" -ForegroundColor Gray
-Write-Host "    - playwright : @playwright/mcp" -ForegroundColor Gray
+Write-Host "    - powerbi    : exe direct ($powerBiArch, no npx)" -ForegroundColor Gray
+Write-Host "    - playwright : @playwright/mcp (cmd.exe + npx)" -ForegroundColor Gray
 Write-Host "    - filesystem : @modelcontextprotocol/server-filesystem ($DesktopPath)  ($(Format-Elapsed $stepTimer))" -ForegroundColor Gray
 
 # --- Manual API provider/key/model configuration (Cline UI) ---
@@ -405,6 +454,7 @@ Write-Host "    - Node.js 22+ (for MCP servers)" -ForegroundColor Gray
 Write-Host "    - Power BI Desktop" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  Auto-configured:" -ForegroundColor White
+Write-Host "    - Power BI MCP: exe direct (no npx, no stdout noise)" -ForegroundColor Gray
 Write-Host "    - Cline MCP servers (powerbi, playwright, filesystem)" -ForegroundColor Gray
 Write-Host "    - API reference file: $DesktopPath\CLINE_API_SETUP.txt" -ForegroundColor Gray
 Write-Host ""

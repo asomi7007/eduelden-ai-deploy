@@ -22,11 +22,13 @@
 
 ## MCP 서버
 
-| 서버 | 패키지 | 용도 |
-|------|--------|------|
-| Power BI | `@anthropic/mcp-server-powerbi` | AI가 Power BI Desktop을 직접 제어 |
-| Playwright | `@anthropic/mcp-server-playwright` | 웹 브라우저 자동화 (디자인 참조) |
-| Filesystem | `@anthropic/mcp-server-filesystem` | 실습 파일 읽기/쓰기 |
+| 서버 | 패키지 | 실행 방식 | 용도 |
+|------|--------|----------|------|
+| Power BI | `@microsoft/powerbi-modeling-mcp-win32-x64` | **exe 직접 실행** (npx 미사용) | AI가 Power BI Desktop을 직접 제어 |
+| Playwright | `@playwright/mcp` | cmd.exe + npx | 웹 브라우저 자동화 (디자인 참조) |
+| Filesystem | `@modelcontextprotocol/server-filesystem` | cmd.exe + npx | 실습 파일 읽기/쓰기 |
+
+> **Power BI MCP 주의**: 제네릭 래퍼(`@microsoft/powerbi-modeling-mcp`)를 npx로 실행하면 stdout에 `Detected platform: win32...` 텍스트가 먼저 출력되어 MCP JSON-RPC 전송이 오염됩니다. 반드시 플랫폼별 패키지의 exe를 직접 실행하세요. (ARM64 PC는 `powerbi-modeling-mcp-win32-arm64` 자동 선택)
 
 ## 파일 구조
 
@@ -47,8 +49,25 @@ events/powerbi-mcp-20260530/
 PowerShell 관리자 권한으로 실행:
 
 ```powershell
-.\setup-powerbi-mcp.ps1 -StudentId "01" -ApiKey "your-key-here"
+powershell -ExecutionPolicy Bypass -File "setup-powerbi-mcp.ps1" -StudentId 01 -ApiKey "발급받은키"
 ```
+
+스크립트가 하는 일 (8단계):
+
+| 단계 | 내용 |
+|------|------|
+| 1 | VS Code 설치 (이미 있으면 건너뜀) |
+| 2 | Cline 확장 설치 (`saoudrizwan.claude-dev`) |
+| 3 | Node.js 22+ 설치 (MCP 서버 런타임) |
+| 4 | Power BI Desktop 설치 (Microsoft Store) |
+| 5 | API 설정 (config.json + 환경변수) |
+| 6 | Cline MCP 서버 3개 구성 (Power BI exe + Playwright + Filesystem) |
+| 7 | 실습 파일(`practice.pbix`) 바탕화면에 다운로드 |
+| 8 | API 연결 테스트 |
+
+> **주의**: Cline API Provider/Base URL/API Key/Model은 Cline UI에서 수동 입력 필요 (스크립트로 자동화 불가). 스크립트 실행 후 바탕화면의 `CLINE_API_SETUP.txt` 파일 참조.
+>
+> **VS Code가 열려 있었다면** 재시작 또는 Reload Window 실행 권장.
 
 ### 수동 설치
 
@@ -56,7 +75,7 @@ PowerShell 관리자 권한으로 실행:
 2. VS Code에서 Cline 확장 설치 (`saoudrizwan.claude-dev`)
 3. [Node.js 22 LTS](https://nodejs.org/) 설치
 4. [Power BI Desktop](https://aka.ms/pbidesktopstore) 설치
-5. Cline MCP 설정에서 3개 서버 추가
+5. Cline MCP 설정에서 3개 서버 추가 (Power BI는 반드시 exe 직접 실행)
 
 ## 관리자 작업
 
