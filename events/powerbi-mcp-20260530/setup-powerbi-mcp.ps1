@@ -308,7 +308,10 @@ if (-not (Test-Path $powerBiMcpExe)) {
     Write-Host "  Installing Power BI MCP ($powerBiArch) exe..." -ForegroundColor Yellow
     New-Item -ItemType Directory -Force -Path $powerBiMcpRoot | Out-Null
     $env:npm_config_cache = $npmCacheFix
-    & npm install --prefix $powerBiMcpRoot $powerBiPkg 2>$null
+    # npm writes "npm notice" to stderr; with $ErrorActionPreference=Stop
+    # PowerShell treats ANY stderr output as a terminating error.
+    # Merge stderr into stdout and discard to prevent false failure.
+    try { & npm install --prefix $powerBiMcpRoot $powerBiPkg 2>&1 | Out-Null } catch {}
     if (Test-Path $powerBiMcpExe) {
         Write-Host "  Power BI MCP exe installed: $powerBiMcpExe" -ForegroundColor Green
     } else {

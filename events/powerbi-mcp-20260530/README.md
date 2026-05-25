@@ -90,3 +90,13 @@ powershell -ExecutionPolicy Bypass -File "setup-powerbi-mcp.ps1" -StudentId 01 -
 ### 실습 파일 배치
 
 `files/실습파일.pbix` 파일을 이 디렉토리에 배치하면 스크립트가 자동 다운로드합니다.
+
+## 트러블슈팅
+
+| 증상 | 원인 | 해결 |
+|------|------|------|
+| 스크립트가 STEP 6에서 `NativeCommandError` 후 중단 | npm이 stderr로 `npm notice`를 출력 → `$ErrorActionPreference=Stop`이 오류로 인식 | **이미 수정됨** (v2, `2>&1 \| Out-Null` + try/catch). 최신 스크립트를 다시 다운로드하세요. |
+| Power BI MCP "No connection found for server" | npx 래퍼가 stdout에 일반 텍스트 출력 → MCP JSON-RPC 오염 | exe 직접 실행으로 전환 (이미 스크립트에 반영됨) |
+| Cline에서 API 설정이 안 됨 | Cline은 API provider/key를 VS Code SQLite DB에 저장 — 파일로 주입 불가 | Cline UI에서 수동 입력 (바탕화면 `CLINE_API_SETUP.txt` 참조) |
+| VS Code에서 MCP 서버가 안 뜸 | 스크립트 실행 중 VS Code가 열려 있었음 | VS Code 재시작 또는 `Ctrl+Shift+P` → "Reload Window" |
+| 바탕 화면 경로를 못 찾음 | OneDrive 동기화로 바탕화면이 `OneDrive\바탕 화면`으로 리다이렉트 | 스크립트가 자동 감지 (Shell.Application + OneDrive 후보 + mojibake 복구) |

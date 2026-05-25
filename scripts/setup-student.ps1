@@ -149,7 +149,9 @@ $powerBiMcpExe = Join-Path $powerBiMcpRoot "node_modules\@microsoft\powerbi-mode
 if (-not (Test-Path $powerBiMcpExe)) {
     Write-Host "  Downloading Power BI MCP Windows binary..." -ForegroundColor Yellow
     New-Item -ItemType Directory -Force -Path $powerBiMcpRoot | Out-Null
-    & npm install --prefix $powerBiMcpRoot "@microsoft/powerbi-modeling-mcp-win32-x64@latest" 2>$null
+    # npm writes "npm notice" to stderr; with $ErrorActionPreference=Stop
+    # PowerShell treats ANY stderr as a terminating error. Suppress it.
+    try { & npm install --prefix $powerBiMcpRoot "@microsoft/powerbi-modeling-mcp-win32-x64@latest" 2>&1 | Out-Null } catch {}
     if (Test-Path $powerBiMcpExe) {
         Write-Host "  Power BI MCP exe installed: $powerBiMcpExe" -ForegroundColor Green
     } else {
