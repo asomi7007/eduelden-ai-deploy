@@ -9,14 +9,23 @@
 ### 1.1 일상 운영
 
 #### 수업 시작 시
-1. 관리자 대시보드 열기: `https://{swa-url}` → Admin 섹션으로 스크롤
-2. 관리자 비밀번호 입력 → 온보딩 통계 확인
-3. 학생에게 온보딩 URL과 패스코드 공유
+1. 관리자 대시보드 열기: `https://calm-beach-02d18ca00.7.azurestaticapps.net`
+2. 로그인: `X-Admin-Token` 커스텀 헤더를 사용해요 (SWA가 `Authorization` 헤더를 덮어쓰기 때문에 별도 헤더를 사용해요)
+3. 대시보드 6개 페이지를 활용하세요:
+   - **로그인** — 관리자 토큰 입력
+   - **전체 개요** — 예산 게이지, 모델별 사용량
+   - **학생 목록** — 전체 학생 현황
+   - **학생 상세** — 시간별 차트
+   - **일괄 제어** — 키 활성화/정지
+   - **알림 설정** — 비용 알림 임계값 관리
+4. 학생에게 온보딩 URL과 패스코드 공유
 
 #### 수업 중
 - 슬롯 그리드로 온보딩 진행 상황 모니터링 (자동 새로고침)
 - GitHub Issues에서 `error`나 `pending` 라벨 확인
-- Azure Portal > APIM > Analytics에서 API 사용량 모니터링
+- 관리자 대시보드 **개요 페이지**에서 실시간 모니터링:
+  - 총 요청 수, 예상 비용, 예산 게이지, 모델별 분석
+- 관리자 대시보드 **학생 페이지**에서 학생별 사용량과 마지막 활동 시간 확인
 
 #### 수업 종료 시
 - 비용 확인: GitHub Actions > `cost-monitor.yml` > Run workflow
@@ -48,7 +57,33 @@ GitHub Actions 워크플로우:
 > 동시에 신청하면 일부는 대기열에 들어가요 (2-5분 지연). 10명씩 그룹으로 나눠서 
 > 신청하도록 안내하는 것을 권장해요.
 
-### 1.3 키 관리
+### 1.3 관리자 대시보드
+
+모니터링 대시보드(`swa-eduelden-dashboard`)는 학생 온보딩 SWA와 분리된 별도의 React 앱이에요. 다음 URL에서 접근할 수 있어요:
+
+```
+https://calm-beach-02d18ca00.7.azurestaticapps.net
+```
+
+#### 로그인
+1. 대시보드 URL로 이동하세요
+2. 관리자 토큰 입력 (SWA 환경변수 `ADMIN_TOKEN`으로 설정)
+3. **Login** 클릭 — 토큰은 브라우저 세션에 저장돼요 (탭 간 공유 안 됨)
+
+#### 대시보드 페이지
+
+| 페이지 | 할 수 있는 것 |
+|---|---|
+| **개요** | 오늘 총 토큰 사용량, 예산 게이지 ($800 중 %), 최근 30일 일별 사용량 바 차트, Top 5 학생 |
+| **학생 목록** | 50명 전체 조회, 학번 또는 이름으로 검색, 사용량/쿼터/상태 기준 정렬 |
+| **학생 상세** | 학생별 토큰 이력 차트, 모델 사용 비율 (GPT-mini / GPT / DeepSeek), 일일 쿼터 조정, 구독 정지/재활성화 |
+| **일괄 제어** | 전체 학생 쿼터 초기화, 50명 전체 정지, 전체 활성화 |
+| **알림 설정** | 3단계 예산 알림 임계값 (기본: 50%/80%/95%), 학생별 일일 토큰 임계값, 관리자 알림 이메일 관리 |
+
+#### 데이터 최신성
+대시보드 데이터는 Log Analytics (APIM GatewayLogs)에서 가져와요. API 계층에서 **5분간 캐시**돼요. 수동 새로고침 버튼은 없어요 — 5분 기다리면 새 데이터가 표시돼요.
+
+### 1.4 키 관리
 
 #### 학생 키 회전
 ```bash
@@ -81,6 +116,7 @@ done
 
 ### 1.4 비용 모니터링
 
+- **대시보드**: 관리자 대시보드 개요 페이지에서 예산 게이지와 실시간 예상 비용을 확인할 수 있어요
 - **자동**: `cost-monitor.yml`이 매일 오전 09:00 KST에 실행
 - **예산 알림**: $800의 50%, 80%, 95%에서 관리자에게 이메일
 - **수동 확인**:
@@ -150,6 +186,10 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 - Cline 확장 설치
 - API 설정 자동 구성
 - 연결 테스트
+- Power BI MCP 설치 (`C:\MCPServers\PowerBIModelingMCP\`) — Windows exe 직접 실행 (npx 아님)
+- Cline MCP 설정에 Power BI 서버 등록
+
+> **참고**: 스크립트 실행 중 VS Code가 열려 있었다면, 스크립트 완료 후 VS Code를 재시작하거나 `Ctrl+Shift+P` → "Reload Window"를 실행하는 것을 권장해요.
 
 #### 3단계: 코딩 시작
 1. VS Code를 열어요
@@ -213,6 +253,10 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 | Cline이 설정을 읽지 못함 | 설정 파일의 UTF-8 BOM 문제. 다시 저장: `[IO.File]::WriteAllText("$env:USERPROFILE\.cline\data\globalState.json", (Get-Content ... -Raw), [Text.UTF8Encoding]::new($false))` |
 | DeepSeek 첫 요청이 매우 느림 | 서버리스 콜드 스타트 (10-30초). 첫 요청에서 정상적인 현상이에요. 기다린 후 재시도하세요. Cline 타임아웃을 60초 이상으로 설정하세요 |
 | 온보딩 완료된 학생을 취소함 | 취소는 Issue만 닫고 APIM 키는 비활성화하지 않아요. key-management 워크플로우에서 `disable-student` 액션을 실행하여 키도 비활성화하세요 |
+| gpt-55 파라미터 오류 (400/403) | APIM이 지원되지 않는 파라미터(`prediction`, `stream_options`, `service_tier`, `store`, `metadata`)를 자동 제거해요. 이미 적용됨. 계속 실패하면 APIM 정책을 확인하세요. |
+| Power BI MCP "No connection found" | npx 래퍼가 stdout에 일반 텍스트를 출력하여 MCP 프로토콜을 오염시켜요. exe 직접 실행을 사용하세요: `C:\MCPServers\PowerBIModelingMCP\powerbi-modeling-mcp.exe` 존재 확인. 없으면 `setup-student.ps1`을 재실행하세요. |
+| 대시보드에 데이터 0건 | APIM 진단이 Resource-specific 모드여야 해요. `az monitor diagnostic-settings list`로 확인하세요. KQL이 양쪽 테이블을 union으로 조회해요. |
+| 대시보드 로그인 401 | SWA가 `Authorization` 헤더를 덮어써요. `X-Admin-Token` 커스텀 헤더를 사용하세요. SWA 설정의 `ADMIN_TOKEN` 환경변수를 확인하세요. |
 
 ---
 
@@ -245,7 +289,9 @@ Azure OpenAI / DeepSeek (AI 모델)
 | ACS_CONNECTION_STRING | GitHub Actions → 이메일 | GitHub Secret |
 | ACS_SENDER_ADDRESS | 이메일 발신 주소 | GitHub Secret |
 | APIM 구독 키 | 학생 → APIM | 학생별 생성, 이메일로 발송 |
-| Azure OpenAI 키 | APIM → Azure OpenAI | APIM 정책에 내장 |
+| Azure OpenAI 키 | APIM → Azure OpenAI | APIM Named Value `{{aoai-api-key}}` (secret=true) |
+| 관리자 토큰 | 대시보드 로그인 | SWA 환경변수 `ADMIN_TOKEN`, `X-Admin-Token` 헤더로 전송 |
+| AZURE_SWA_DASHBOARD_TOKEN | 대시보드 SWA 배포 | GitHub Secret |
 
 ## 부록 C: APIM 정책의 모델 설정
 
@@ -259,3 +305,11 @@ Body: {"model":"gpt-54-mini",...}     (model을 본문에서 추출하여 URL �
 ```
 
 이렇게 하면 학생들이 Azure의 배포 기반 URL 구조를 몰라도 표준 OpenAI 호환 클라이언트를 사용할 수 있어요.
+
+#### 파라미터 자동 제거
+
+APIM 인바운드 정책이 Azure OpenAI에서 지원하지 않는 파라미터를 요청 본문에서 자동으로 제거해요:
+
+- `prediction`, `stream_options`, `service_tier`, `store`, `metadata`, `reasoning_effort`
+
+Cline이 이러한 파라미터를 보낼 때 발생하는 400/403 오류를 방지하기 위한 조치예요. 학생 입장에서는 별도 설정 없이 자동으로 처리돼요.

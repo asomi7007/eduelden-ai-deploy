@@ -42,6 +42,7 @@ chmod +x scripts/deploy-all.sh
 > - Apply APIM policies manually (Phase 4 — see PRD.md Section 4.3)
 > - Complete ACS Email domain setup in Portal (Phase 5)
 > - Set `GITHUB_PAT` in SWA Configuration (Phase 7)
+> - Deploy Dashboard SWA separately (Phase 7b)
 > - Run end-to-end test (Phase 8)
 
 If you prefer step-by-step control, continue with the manual phases below.
@@ -189,17 +190,26 @@ az apim show --name apim-{name}-ai --resource-group rg-{name} \
   --query provisioningState -o tsv
 # Wait until output is "Succeeded" before continuing.
 
-# 2. Get Azure OpenAI key (for APIM backend policy)
+# 2. Get Azure OpenAI key and register as Named Value
 AOAI_KEY=$(az cognitiveservices account keys list \
   --name {ai-resource-name} --resource-group rg-{name} \
   --query key1 -o tsv)
 
-# 2.5 Register the key as APIM Named Value (used in policy as {{real-azure-openai-key}})
-az apim nv create --service-name apim-{name}-ai \
-  --resource-group rg-{name} \
-  --named-value-id real-azure-openai-key \
-  --display-name "Azure OpenAI Key" \
-  --value "$AOAI_KEY" --secret true
+# Register the key as APIM Named Value (referenced in policy as {{aoai-api-key}})
+# Using az rest to create a secret Named Value via ARM API
+APIM_RESOURCE_ID="/subscriptions/{subscription-id}/resourceGroups/rg-{name}/providers/Microsoft.ApiManagement/service/apim-{name}-ai"
+az rest --method put \
+  --url "https://management.azure.com${APIM_RESOURCE_ID}/namedValues/aoai-api-key?api-version=2023-09-01-preview" \
+  --body "{\"properties\":{\"displayName\":\"aoai-api-key\",\"value\":\"$AOAI_KEY\",\"secret\":true}}"
+
+# 2.5 Enable diagnostic logs — Resource-specific mode (required for Log Analytics queries)
+az monitor diagnostic-settings create --name "apim-to-loganalytics" \
+  --resource "apim-{name}-ai" --resource-group "rg-{name}" \
+  --resource-type "Microsoft.ApiManagement/service" \
+  --workspace "eduelden-ai-resource-logs" \
+  --export-to-resource-specific true \
+  --logs '[{"category":"GatewayLogs","enabled":true}]' \
+  --metrics '[{"category":"AllMetrics","enabled":true}]'
 
 # 3. Create OpenAI API
 az apim api create --service-name apim-{name}-ai \
@@ -264,6 +274,11 @@ done
 
 ### APIM Policy Application
 
+Key points about the APIM policy:
+- **Named Value reference**: The Azure OpenAI key is referenced as `{{aoai-api-key}}` (not hardcoded) in the `set-header` element.
+- **Parameter stripping**: The following 6 parameters are removed from **all model requests** (not just gpt-55) to ensure Azure OpenAI compatibility:
+  `prediction`, `stream_options`, `service_tier`, `store`, `metadata`, `reasoning_effort`
+
 ```powershell
 # Apply policy via REST API (PowerShell example)
 $token = (az account get-access-token --query accessToken -o tsv)
@@ -274,7 +289,9 @@ $policy = @'
   <inbound>
     <base />
     <!-- See PRD.md Section 4.3 for complete policy XML -->
-    <!-- Must include: multi-header auth, URL rewrite, rate limit, key injection -->
+    <!-- Must include: multi-header auth, URL rewrite, rate limit -->
+    <!-- Key injection: <set-header name="api-key"><value>{{aoai-api-key}}</value></set-header> -->
+    <!-- Parameter stripping for ALL models: prediction, stream_options, service_tier, store, metadata, reasoning_effort -->
   </inbound>
   <backend><base /></backend>
   <outbound><base /></outbound>
@@ -349,7 +366,7 @@ gh label create urgent --color E11D48
 
 ---
 
-## Phase 7: Static Web App Deployment
+## Phase 7: Static Web App Deployment (Onboarding)
 
 ```bash
 # 1. Create SWA (via Portal or CLI)
@@ -377,6 +394,54 @@ cat docs/staticwebapp.config.json
 # 4. Push code — SWA auto-deploys from GitHub
 git add . && git commit -m "Initial setup" && git push
 ```
+
+---
+
+## Phase 7b: Dashboard SWA Deployment
+
+The admin dashboard (`swa-{name}-dashboard`) is a separate SWA from the onboarding SWA.
+It is built with React + Vite from the `dashboard/` folder and deployed via the
+`dashboard-deploy.yml` GitHub Actions workflow on every push to `main`.
+
+```bash
+# 1. Create Dashboard SWA (Free tier, eastasia region)
+az staticwebapp create --name swa-{name}-dashboard \
+  --resource-group rg-{name} \
+  --location eastasia
+
+# 2. Get the deployment token
+SWA_DASHBOARD_TOKEN=$(az staticwebapp secrets list \
+  --name swa-{name}-dashboard \
+  --resource-group rg-{name} \
+  --query properties.apiKey -o tsv)
+
+# 3. Register token as GitHub Secret (used by dashboard-deploy.yml)
+gh secret set AZURE_SWA_DASHBOARD_TOKEN --body "$SWA_DASHBOARD_TOKEN"
+
+# 4. Set dashboard application settings (11 environment variables)
+az staticwebapp appsettings set --name swa-{name}-dashboard \
+  --resource-group rg-{name} \
+  --setting-names \
+    ADMIN_PASSWORD="{your-admin-password}" \
+    ADMIN_TOKEN="{your-admin-token}" \
+    AZURE_SUBSCRIPTION_ID="{subscription-id}" \
+    AZURE_RESOURCE_GROUP="rg-{name}" \
+    APIM_SERVICE_NAME="apim-{name}-ai" \
+    AI_RESOURCE_NAME="{ai-resource-name}" \
+    GITHUB_PAT="{your-pat}" \
+    GITHUB_REPO="{owner}/eduelden-ai-deploy" \
+    LOG_ANALYTICS_WORKSPACE_ID="{workspace-id}" \
+    LOG_ANALYTICS_KEY="{workspace-key}" \
+    COST_BUDGET_NAME="eduelden-ai-budget"
+
+# 5. Push to main — dashboard-deploy.yml auto-deploys the dashboard/
+git add . && git commit -m "Add dashboard" && git push
+```
+
+**Notes**:
+- The dashboard uses `X-Admin-Token` header for authentication (not `Authorization: Bearer`) to avoid conflicts with SWA's built-in Authorization header handling.
+- The `dashboard-deploy.yml` workflow triggers on push to `main` and builds from the `dashboard/` folder using `npm run build`.
+- Dashboard URL: retrieved with `az staticwebapp show --name swa-{name}-dashboard --resource-group rg-{name} --query defaultHostname -o tsv`
 
 ---
 
@@ -427,6 +492,14 @@ curl -X POST "https://apim-{name}-ai.azure-api.net/deepseek/chat/completions" \
 
 All bash scripts read from `config.env` in the project root. Copy `config.env.template` and fill in your values before running.
 
+### setup-student.ps1 — What it installs
+
+The script runs on each student's Windows PC and installs:
+1. VS Code (if not present)
+2. Cline extension (`saoudrizwan.claude-dev`)
+3. Cline configuration (`~/.cline/data/globalState.json`) with APIM endpoint + student API key
+4. **Power BI MCP** — the exe is downloaded and registered in the Cline MCP config so students can use Power BI directly from the AI editor. Must be invoked directly (not via npm) to avoid transport errors.
+
 ---
 
 ## Troubleshooting Quick Reference
@@ -446,3 +519,7 @@ All bash scripts read from `config.env` in the project root. Copy `config.env.te
 | `502 Bad Gateway` from SWA | `GITHUB_PAT` not set or expired | Check SWA > Configuration for GITHUB_PAT. Ensure PAT has `repo` scope and hasn't expired |
 | APIM cannot be recreated after deletion | APIM soft-delete (48hr retention) | Purge first: `az apim deletedservice purge --service-name apim-{name}-ai --location {region}` |
 | `MarketplaceTermsNotAccepted` on DeepSeek deploy | Marketplace terms not accepted | Accept terms in Portal: AI Foundry > Model catalog > DeepSeek > Deploy > Accept terms |
+| Dashboard API returns 401 despite correct password | SWA intercepts `Authorization` header | Dashboard uses `X-Admin-Token` header instead of `Authorization: Bearer` |
+| APIM GatewayLogs show 0 rows in Log Analytics | Diagnostic settings not in Resource-specific mode | Re-create diagnostic settings with `--export-to-resource-specific true` (Phase 4 step 2.5) |
+| Student gets 403 or 400 from APIM with gpt-55 | Request body contains unsupported parameters | Verify APIM policy strips `prediction`, `stream_options`, `service_tier`, `store`, `metadata`, `reasoning_effort` for all models |
+| Power BI MCP shows transport error in Cline | MCP server started via npm wrapper instead of exe | Register the Power BI MCP exe path directly in the MCP config; do not use `npx` or `npm exec` |

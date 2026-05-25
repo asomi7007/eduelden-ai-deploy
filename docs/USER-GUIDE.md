@@ -9,18 +9,22 @@
 ### 1.1 Daily Operations
 
 #### Start of Class
-1. Open admin dashboard: `https://{swa-url}` → scroll to Admin section
-2. Enter admin password → view onboarding stats
-3. Share the onboarding URL and passcode with students
+1. Open the **admin dashboard** (separate SWA): `https://calm-beach-02d18ca00.7.azurestaticapps.net`
+2. Log in with the admin token — sent via the `X-Admin-Token` custom header (not the standard Authorization header, because SWA overwrites it)
+3. The dashboard has 6 pages: **Login**, **Overview** (budget gauge, model usage), **Students** list, **Student Detail** (hourly chart), **Bulk Control** (enable/disable keys), **Alert Settings**
+4. Open the **onboarding admin panel**: `https://{swa-onboard-url}` → scroll to Admin section → enter admin password
+5. Share the onboarding URL and passcode with students
 
 #### During Class
-- Monitor onboarding progress via the slot grid (auto-refreshes)
+- Use the admin dashboard **Overview** page for real-time monitoring — it shows total requests, estimated cost, budget gauge, and model breakdown
+- Use the **Students** page to view per-student usage with last-active time
+- Track onboarding progress via the slot grid on the onboarding SWA (auto-refreshes)
 - Check GitHub Issues for any `error` or `pending` labels
-- Use Azure Portal > APIM > Analytics to monitor API usage
 
 #### End of Class
 - Run cost check: GitHub Actions > `cost-monitor.yml` > Run workflow
-- If needed, disable student keys (see Key Management below)
+- Review daily chart on the dashboard before dismissing students
+- If needed, disable student keys via the dashboard or CLI (see Key Management below)
 
 ### 1.2 Student Onboarding Flow
 
@@ -48,7 +52,33 @@ Student receives email with:
 > apply simultaneously, some will queue (2-5 min delay). Recommend staggering: 
 > have students apply in groups of 10.
 
-### 1.3 Key Management
+### 1.3 Admin Dashboard
+
+The admin monitoring dashboard (`swa-eduelden-dashboard`) is a separate React application from the student onboarding SWA. Access it at:
+
+```
+https://swa-eduelden-dashboard.azurestaticapps.net
+```
+
+#### Login
+1. Navigate to the dashboard URL
+2. Enter the admin token (configured as `DASHBOARD_ADMIN_TOKEN` in the SWA environment)
+3. Click **Login** — token is stored in your browser session (not persisted across tabs)
+
+#### Dashboard Pages
+
+| Page | What you can do |
+|---|---|
+| **Overview** | See total token usage today, budget gauge (% of $800 spent), daily usage bar chart (last 30 days), Top 5 students by usage |
+| **Students** | Browse all 50 students, search by ID or name, sort by usage/quota/status |
+| **Student Detail** | View per-student token history chart, model usage breakdown (GPT-mini vs GPT vs DeepSeek), adjust daily quota, suspend/reactivate subscription |
+| **Bulk Control** | Reset all student quotas to default, suspend all 50 students at once, or reactivate all |
+| **Alerts** | Configure 3-tier budget alert thresholds (default: 50%/80%/95%), set per-student daily token threshold, manage admin notification email |
+
+#### Data Freshness
+Dashboard data is sourced from Log Analytics (APIM GatewayLogs). Results are **cached for 5 minutes** in the API layer. There is no manual refresh button — simply wait 5 minutes for new data to appear.
+
+### 1.4 Key Management
 
 #### Rotate a Student's Key
 ```bash
@@ -79,8 +109,9 @@ for i in $(seq -w 1 50); do
 done
 ```
 
-### 1.4 Cost Monitoring
+### 1.5 Cost Monitoring
 
+- **Dashboard**: The admin dashboard Overview page shows a budget gauge with real-time estimated cost (based on APIM request logs)
 - **Automated**: `cost-monitor.yml` runs daily at 09:00 KST
 - **Budget alerts**: Email to admin at 50%, 80%, 95% of $800
 - **Manual check**:
@@ -91,7 +122,7 @@ done
     --query "[].{service:instanceName, cost:pretaxCost}" -o table
   ```
 
-### 1.5 Canceling a Student's Onboarding
+### 1.6 Canceling a Student's Onboarding
 
 **Option A: Student self-cancels** via the SWA onboarding page (needs passcode)
 
@@ -102,7 +133,7 @@ curl -X POST "https://{swa-url}/api/cancel" \
   -d '{"studentId":"01","isAdmin":true,"adminPw":"admin-password"}'
 ```
 
-### 1.6 Post-Class Cleanup
+### 1.7 Post-Class Cleanup
 
 See `docs/resource-cleanup.md` for full procedure. Key steps:
 1. Suspend all APIM subscriptions
@@ -148,8 +179,13 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 The script will:
 - Install VS Code (if not already installed)
 - Install the Cline extension
+- Install Power BI MCP (`C:\MCPServers\PowerBIModelingMCP\`) as a Windows exe (not npx) and configure Cline MCP settings for Power BI integration
 - Configure API settings automatically
 - Test the connection
+
+> **Note**: If VS Code was already open during script execution, restart VS Code or run
+> the **"Developer: Reload Window"** command (`Ctrl+Shift+P` → "Reload Window") for
+> the new MCP settings to take effect.
 
 #### Step 3: Start Coding
 1. Open VS Code
@@ -213,25 +249,42 @@ Error message: `429 Too Many Requests`
 | Cline not reading config | UTF-8 BOM in config file. Re-save: `[IO.File]::WriteAllText("$env:USERPROFILE\.cline\data\globalState.json", (Get-Content ... -Raw), [Text.UTF8Encoding]::new($false))` |
 | DeepSeek first request very slow | Serverless cold start (10-30s). Normal for first request. Wait and retry. Set Cline timeout to 60s+ |
 | Already onboarded student cancelled | Cancel only closes issue, doesn't disable APIM key. Run key-management workflow with `disable-student` action to also disable the key |
+| Dashboard shows "Unauthorized" | Admin token may be wrong or session expired. Navigate to `/login` and re-enter the token |
+| Dashboard data not updating | Data is cached for 5 minutes. Wait and refresh. If still stale, check Log Analytics diagnostic settings in Azure Portal |
+| Power BI MCP not appearing in Cline | Re-run setup-student.ps1 or manually add the MCP server entry to `cline_mcp_settings.json` in VS Code globalStorage |
+| Cline shows "model not supported" error | Azure OpenAI does not accept `reasoning_effort` or `stream_options`. APIM policy strips these automatically — if error persists, check that the latest policy is deployed |
+| `gpt-55` parameter error (400/403) | APIM automatically strips unsupported params (`prediction`, `stream_options`, `service_tier`, `store`, `metadata`). Already applied. If still failing, check APIM policy. |
+| Power BI MCP "No connection found" | npx wrapper pollutes stdout with non-JSON text. Use exe direct execution: check `C:\MCPServers\PowerBIModelingMCP\node_modules\@microsoft\powerbi-modeling-mcp-win32-x64\dist\powerbi-modeling-mcp.exe` exists. Re-run `setup-student.ps1` if missing. |
+| Dashboard shows 0 data | APIM diagnostics must be in Resource-specific mode (not AzureDiagnostics legacy). Check with `az monitor diagnostic-settings list`. KQL queries union both tables for backward compatibility. |
+| Dashboard login 401 | SWA overwrites Authorization header. Dashboard uses `X-Admin-Token` custom header. Check `ADMIN_TOKEN` env var in SWA settings. |
 
 ---
 
 ## Appendix A: Architecture Quick Reference
 
 ```
-Student Browser
-    ↓ HTTPS
-Azure Static Web App (Frontend + API)
-    ↓ GitHub API
-GitHub Issues + Actions
-    ↓ ACS Email
-Student Email
-    ↓ PowerShell script
-VS Code + Cline
-    ↓ HTTPS (Authorization: Bearer)
-Azure APIM (rate limit + URL rewrite + key injection)
-    ↓ api-key header
-Azure OpenAI / DeepSeek (AI models)
+Student Flow:
+  Student Browser
+      ↓ HTTPS
+  SWA Onboarding (swa-{name}-onboard, docs/index.html)
+      ↓ GitHub API
+  GitHub Issues + Actions
+      ↓ ACS Email
+  Student Email
+      ↓ PowerShell script (setup-student.ps1)
+  VS Code + Cline + Power BI MCP
+      ↓ HTTPS (X-Admin-Token or Authorization: Bearer)
+  Azure APIM (rate limit + param strip + URL rewrite + key injection via Named Value)
+      ↓ api-key header ({{aoai-api-key}})
+  Azure OpenAI / DeepSeek (AI models)
+
+Admin Flow:
+  Admin Browser
+      ↓ HTTPS (X-Admin-Token header)
+  SWA Dashboard (swa-eduelden-dashboard, React + Vite)
+      ↓ Azure Functions API
+  Log Analytics (ApiManagementGatewayLogs ∪ AzureDiagnostics, 5-min cache)
+  APIM Management API (subscription state, key management)
 ```
 
 ## Appendix B: All Credentials Reference
@@ -245,9 +298,11 @@ Azure OpenAI / DeepSeek (AI models)
 | ACS_CONNECTION_STRING | GitHub Actions → Email | GitHub Secret |
 | ACS_SENDER_ADDRESS | Email From address | GitHub Secret |
 | APIM subscription keys | Student → APIM | Generated per-student, sent via email |
-| Azure OpenAI key | APIM → Azure OpenAI | Embedded in APIM policy |
+| Azure OpenAI key | APIM → Azure OpenAI | APIM Named Value `{{aoai-api-key}}` (secret=true) |
+| Admin Token | Admin dashboard login | SWA env var `ADMIN_TOKEN`, sent via `X-Admin-Token` header |
+| AZURE_SWA_DASHBOARD_TOKEN | Dashboard SWA deployment | GitHub Secret |
 
-## Appendix C: Model Configuration in APIM Policy
+## Appendix C: APIM Policy — What It Does
 
 The APIM policy handles the translation between OpenAI-compatible format (what Cline sends) and Azure OpenAI format (what the backend expects):
 
@@ -258,4 +313,13 @@ POST /openai/chat/completions     →  POST /openai/deployments/gpt-54-mini/chat
 Body: {"model":"gpt-54-mini",...}     (model extracted from body, injected into URL path)
 ```
 
-This allows students to use standard OpenAI-compatible clients without knowing about Azure's deployment-based URL structure.
+Additionally, the APIM inbound policy strips parameters unsupported by Azure OpenAI:
+- `prediction`, `stream_options`, `service_tier`, `store`, `metadata`, `reasoning_effort`
+
+This prevents 400/403 errors when Cline sends these parameters.
+
+The policy also:
+- **Injects the real Azure OpenAI key** using the Named Value `{{aoai-api-key}}` — the key is stored securely in APIM's Named Values store, never in source code
+- **Accepts any auth header style** from the student client (`Authorization: Bearer`, `api-key`, or `Ocp-Apim-Subscription-Key`)
+
+This allows students to use standard OpenAI-compatible clients without knowing about Azure's deployment-based URL structure or managing backend credentials.

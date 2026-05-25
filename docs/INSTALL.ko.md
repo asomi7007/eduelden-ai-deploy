@@ -42,6 +42,7 @@ chmod +x scripts/deploy-all.sh
 > - APIM 정책 수동 적용 (Phase 4 — PRD.ko.md 섹션 4.3 참고)
 > - Portal에서 ACS Email 도메인 설정 완료 (Phase 5)
 > - SWA 구성에서 `GITHUB_PAT` 설정 (Phase 7)
+> - 대시보드 SWA 별도 배포 (Phase 7b)
 > - 엔드투엔드 테스트 실행 (Phase 8)
 
 단계별로 직접 제어하고 싶다면, 아래 수동 Phase를 계속 진행하세요.
@@ -189,17 +190,26 @@ az apim show --name apim-{name}-ai --resource-group rg-{name} \
   --query provisioningState -o tsv
 # 출력이 "Succeeded"가 될 때까지 기다리세요.
 
-# 2. Azure OpenAI 키 가져오기 (APIM 백엔드 정책용)
+# 2. Azure OpenAI 키 가져오기 및 Named Value로 등록
 AOAI_KEY=$(az cognitiveservices account keys list \
   --name {ai-resource-name} --resource-group rg-{name} \
   --query key1 -o tsv)
 
-# 2.5 키를 APIM Named Value로 등록 (정책에서 {{real-azure-openai-key}}로 사용)
-az apim nv create --service-name apim-{name}-ai \
-  --resource-group rg-{name} \
-  --named-value-id real-azure-openai-key \
-  --display-name "Azure OpenAI Key" \
-  --value "$AOAI_KEY" --secret true
+# 키를 APIM Named Value로 등록 (정책에서 {{aoai-api-key}}로 참조)
+# ARM API를 통해 시크릿 Named Value 생성
+APIM_RESOURCE_ID="/subscriptions/{subscription-id}/resourceGroups/rg-{name}/providers/Microsoft.ApiManagement/service/apim-{name}-ai"
+az rest --method put \
+  --url "https://management.azure.com${APIM_RESOURCE_ID}/namedValues/aoai-api-key?api-version=2023-09-01-preview" \
+  --body "{\"properties\":{\"displayName\":\"aoai-api-key\",\"value\":\"$AOAI_KEY\",\"secret\":true}}"
+
+# 2.5 진단 로그 설정 — Resource-specific 모드 활성화 (Log Analytics 쿼리에 필수)
+az monitor diagnostic-settings create --name "apim-to-loganalytics" \
+  --resource "apim-{name}-ai" --resource-group "rg-{name}" \
+  --resource-type "Microsoft.ApiManagement/service" \
+  --workspace "eduelden-ai-resource-logs" \
+  --export-to-resource-specific true \
+  --logs '[{"category":"GatewayLogs","enabled":true}]' \
+  --metrics '[{"category":"AllMetrics","enabled":true}]'
 
 # 3. OpenAI API 생성
 az apim api create --service-name apim-{name}-ai \
@@ -264,6 +274,11 @@ done
 
 ### APIM 정책 적용
 
+APIM 정책의 핵심 사항:
+- **Named Value 참조**: Azure OpenAI 키는 `set-header` 요소에서 `{{aoai-api-key}}`로 참조됩니다 (하드코딩 금지).
+- **파라미터 제거**: 다음 6개 파라미터는 **모든 모델 요청**에서 일괄 제거됩니다 (gpt-55만이 아닌 전체 모델):
+  `prediction`, `stream_options`, `service_tier`, `store`, `metadata`, `reasoning_effort`
+
 ```powershell
 # REST API를 통한 정책 적용 (PowerShell 예시)
 $token = (az account get-access-token --query accessToken -o tsv)
@@ -274,7 +289,9 @@ $policy = @'
   <inbound>
     <base />
     <!-- 전체 정책 XML은 PRD.ko.md 섹션 4.3 참고 -->
-    <!-- 포함 필수: 다중 헤더 인증, URL 재작성, 속도 제한, 키 주입 -->
+    <!-- 포함 필수: 다중 헤더 인증, URL 재작성, 속도 제한 -->
+    <!-- 키 주입: <set-header name="api-key"><value>{{aoai-api-key}}</value></set-header> -->
+    <!-- 전체 모델 파라미터 제거: prediction, stream_options, service_tier, store, metadata, reasoning_effort -->
   </inbound>
   <backend><base /></backend>
   <outbound><base /></outbound>
@@ -349,7 +366,7 @@ gh label create urgent --color E11D48
 
 ---
 
-## Phase 7: Static Web App 배포
+## Phase 7: Static Web App 배포 (온보딩)
 
 ```bash
 # 1. SWA 생성 (Portal 또는 CLI로)
@@ -377,6 +394,54 @@ cat docs/staticwebapp.config.json
 # 4. 코드 푸시 -- SWA가 GitHub에서 자동 배포
 git add . && git commit -m "Initial setup" && git push
 ```
+
+---
+
+## Phase 7b: 대시보드 SWA 배포
+
+관리자 대시보드(`swa-{name}-dashboard`)는 온보딩 SWA와는 별도의 SWA예요.
+`dashboard/` 폴더의 React + Vite 소스를 `dashboard-deploy.yml` GitHub Actions 워크플로우가
+`main` 브랜치 push 시마다 자동으로 빌드하여 배포해요.
+
+```bash
+# 1. 대시보드 SWA 생성 (Free 티어, eastasia 리전)
+az staticwebapp create --name swa-{name}-dashboard \
+  --resource-group rg-{name} \
+  --location eastasia
+
+# 2. 배포 토큰 가져오기
+SWA_DASHBOARD_TOKEN=$(az staticwebapp secrets list \
+  --name swa-{name}-dashboard \
+  --resource-group rg-{name} \
+  --query properties.apiKey -o tsv)
+
+# 3. 토큰을 GitHub Secret으로 등록 (dashboard-deploy.yml에서 사용)
+gh secret set AZURE_SWA_DASHBOARD_TOKEN --body "$SWA_DASHBOARD_TOKEN"
+
+# 4. 대시보드 애플리케이션 설정 (환경 변수 11개)
+az staticwebapp appsettings set --name swa-{name}-dashboard \
+  --resource-group rg-{name} \
+  --setting-names \
+    ADMIN_PASSWORD="{your-admin-password}" \
+    ADMIN_TOKEN="{your-admin-token}" \
+    AZURE_SUBSCRIPTION_ID="{subscription-id}" \
+    AZURE_RESOURCE_GROUP="rg-{name}" \
+    APIM_SERVICE_NAME="apim-{name}-ai" \
+    AI_RESOURCE_NAME="{ai-resource-name}" \
+    GITHUB_PAT="{your-pat}" \
+    GITHUB_REPO="{owner}/eduelden-ai-deploy" \
+    LOG_ANALYTICS_WORKSPACE_ID="{workspace-id}" \
+    LOG_ANALYTICS_KEY="{workspace-key}" \
+    COST_BUDGET_NAME="eduelden-ai-budget"
+
+# 5. main에 푸시 -- dashboard-deploy.yml이 dashboard/ 폴더를 자동 배포
+git add . && git commit -m "Add dashboard" && git push
+```
+
+**주의사항**:
+- 대시보드는 SWA의 내장 `Authorization` 헤더 처리와 충돌을 피하기 위해 `Authorization: Bearer` 대신 `X-Admin-Token` 헤더로 인증해요.
+- `dashboard-deploy.yml` 워크플로우는 `main` push 시 트리거되며, `dashboard/` 폴더에서 `npm run build`로 빌드해요.
+- 대시보드 URL 확인: `az staticwebapp show --name swa-{name}-dashboard --resource-group rg-{name} --query defaultHostname -o tsv`
 
 ---
 
@@ -427,6 +492,14 @@ curl -X POST "https://apim-{name}-ai.azure-api.net/deepseek/chat/completions" \
 
 모든 bash 스크립트는 프로젝트 루트의 `config.env`를 읽어요. 실행 전에 `config.env.template`을 복사하고 값을 채우세요.
 
+### setup-student.ps1 — 설치 내용
+
+이 스크립트는 학생 Windows PC에서 실행되며 다음을 설치해요:
+1. VS Code (미설치 시)
+2. Cline 확장 (`saoudrizwan.claude-dev`)
+3. Cline 설정 (`~/.cline/data/globalState.json`) — APIM 엔드포인트 + 학생 API 키 포함
+4. **Power BI MCP** — exe를 다운로드하고 Cline MCP 설정에 등록하여 AI 에디터에서 Power BI를 직접 사용할 수 있게 해요. transport 오류 방지를 위해 npm/npx가 아닌 exe를 직접 실행하도록 등록해야 해요.
+
 ---
 
 ## 문제 해결 빠른 참조
@@ -446,3 +519,7 @@ curl -X POST "https://apim-{name}-ai.azure-api.net/deepseek/chat/completions" \
 | SWA에서 `502 Bad Gateway` | `GITHUB_PAT`이 설정되지 않았거나 만료됨 | SWA > 구성에서 GITHUB_PAT 확인. PAT에 `repo` 범위가 있고 만료되지 않았는지 확인 |
 | 삭제 후 APIM 재생성 불가 | APIM 일시 삭제 (48시간 보존) | 먼저 제거: `az apim deletedservice purge --service-name apim-{name}-ai --location {region}` |
 | DeepSeek 배포 시 `MarketplaceTermsNotAccepted` | 마켓플레이스 약관 미수락 | Portal에서 약관 수락: AI Foundry > 모델 카탈로그 > DeepSeek > 배포 > 약관 수락 |
+| 올바른 비밀번호에도 대시보드 API가 401 반환 | SWA가 `Authorization` 헤더를 가로챔 | 대시보드는 `Authorization: Bearer` 대신 `X-Admin-Token` 헤더로 인증 |
+| Log Analytics에서 APIM GatewayLogs가 0건 | 진단 설정이 Resource-specific 모드가 아님 | `--export-to-resource-specific true` 옵션으로 진단 설정 재생성 (Phase 4 2.5단계) |
+| 학생이 APIM에서 gpt-55로 403 또는 400 받음 | 요청 본문에 지원되지 않는 파라미터 포함 | APIM 정책이 전체 모델에 대해 `prediction`, `stream_options`, `service_tier`, `store`, `metadata`, `reasoning_effort` 제거하는지 확인 |
+| Cline에서 Power BI MCP transport 오류 | MCP 서버가 exe 대신 npm 래퍼로 실행됨 | MCP 설정에 Power BI MCP exe 경로를 직접 등록; `npx` 또는 `npm exec` 사용 금지 |

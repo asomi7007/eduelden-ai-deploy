@@ -18,9 +18,11 @@ A **self-service student onboarding platform** for an Azure AI Foundry vibe-codi
 | API Gateway | Azure APIM (Developer SKU) | Single key per student, rate limiting, backend key hiding |
 | Email Delivery | Azure Communication Services (ACS) Email | Graph API requires Exchange license; ACS works out-of-box |
 | Onboarding Backend | GitHub Issues + Actions | Zero-cost, auditable, event-driven pipeline |
-| Frontend Hosting | Azure Static Web Apps (SWA) | Free tier, integrated API (Azure Functions), auto-deploy |
+| Frontend Hosting | Azure Static Web Apps (SWA) — two instances | `swa-{name}-onboard` (student onboarding) + `swa-eduelden-dashboard` (admin monitoring) |
+| Admin Dashboard | React + Vite SWA (`swa-eduelden-dashboard`) | Real-time usage monitoring, per-student quota control, budget alerts |
 | Student IDE | VS Code + Cline extension | OpenAI-compatible provider supports APIM proxy |
 | Script Language | PowerShell (.ps1) | Native on Windows student PCs |
+| Power BI MCP | Windows native exe (`@microsoft/powerbi-modeling-mcp-win32-x64`) | npx wrapper emits stdout noise that corrupts MCP JSON-RPC transport |
 
 ---
 
@@ -30,7 +32,7 @@ A **self-service student onboarding platform** for an Azure AI Foundry vibe-codi
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        Student Flow                                  │
 │                                                                      │
-│  Student Browser ──► SWA Frontend (docs/index.html)                 │
+│  Student Browser ──► SWA Onboarding (docs/index.html)               │
 │       │                    │                                         │
 │       │              SWA API (Azure Functions)                       │
 │       │              ├─ GET  /api/slots     → Show available slots   │
@@ -50,11 +52,36 @@ A **self-service student onboarding platform** for an Azure AI Foundry vibe-codi
 │  Student Email ──► Download setup-student.ps1                        │
 │       │              ├─ Install VS Code (if missing)                 │
 │       │              ├─ Install Cline extension                      │
+│       │              ├─ Install Power BI MCP (Windows native exe)    │
+│       │              ├─ Configure Cline MCP settings (VS Code        │
+│       │              │   globalStorage, powerbi server entry)        │
 │       │              ├─ Write Cline config (globalState + secrets)   │
 │       │              └─ API connection test                          │
 │       │                                                              │
 │       ▼                                                              │
 │  VS Code + Cline ──► APIM Gateway ──► Azure OpenAI / DeepSeek       │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Admin Dashboard Flow                             │
+│                                                                      │
+│  Admin Browser ──► SWA Dashboard (swa-eduelden-dashboard)           │
+│       │                    │                                         │
+│       │              Dashboard API (Azure Functions)                 │
+│       │              ├─ GET /api/dashboard-overview  → Stats cards   │
+│       │              ├─ GET /api/dashboard-daily     → Daily chart   │
+│       │              ├─ GET /api/dashboard-students  → Student list  │
+│       │              ├─ POST /api/dashboard-control  → Bulk actions  │
+│       │              ├─ GET/POST /api/dashboard-alerts → Alert rules │
+│       │              └─ GET /api/dashboard-health    → Health check  │
+│       │                    │                                         │
+│       │              Log Analytics (KQL)                             │
+│       │              └─ ApiManagementGatewayLogs (+ AzureDiagnostics │
+│       │                   union for legacy data)                     │
+│       │                    │                                         │
+│       │              APIM Management API                             │
+│       │              └─ Subscription state / key management          │
 │                                                                      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -65,22 +92,42 @@ A **self-service student onboarding platform** for an Azure AI Foundry vibe-codi
 eduelden-ai-deploy/
 ├── config.env.template             # Deployment configuration template
 ├── config.env                      # Your configuration (git-ignored)
-├── docs/                           # SWA Frontend
+├── docs/                           # SWA Onboarding Frontend
 │   ├── index.html                  # Onboarding UI (student + admin)
 │   └── staticwebapp.config.json    # SWA routing config
+├── dashboard/                      # Admin Dashboard (React + Vite SWA)
+│   ├── src/
+│   │   ├── pages/                  # 6 pages: Login, Overview, Students,
+│   │   │                           #   StudentDetail, BulkControl, Alerts
+│   │   ├── components/             # Reusable UI components
+│   │   ├── api/                    # API client functions (fetch wrappers)
+│   │   └── context/                # React context (auth, theme)
+│   ├── index.html
+│   └── vite.config.js
 ├── api/                            # SWA Backend (Azure Functions v4, Node.js)
-│   └── src/functions/
-│       ├── slots.js                # GET /api/slots - show onboarding status
-│       ├── onboard.js              # POST /api/onboard - create GitHub issue
-│       ├── cancel.js               # POST /api/cancel - cancel onboarding
-│       └── admin.js                # POST /api/manage - admin dashboard
+│   └── src/
+│       ├── functions/
+│       │   ├── slots.js                # GET /api/slots - show onboarding status
+│       │   ├── onboard.js              # POST /api/onboard - create GitHub issue
+│       │   ├── cancel.js               # POST /api/cancel - cancel onboarding
+│       │   ├── admin.js                # POST /api/manage - admin dashboard
+│       │   ├── dashboard-overview.js   # GET /api/dashboard-overview
+│       │   ├── dashboard-daily.js      # GET /api/dashboard-daily
+│       │   ├── dashboard-students.js   # GET /api/dashboard-students
+│       │   ├── dashboard-control.js    # POST /api/dashboard-control
+│       │   ├── dashboard-alerts.js     # GET/POST /api/dashboard-alerts
+│       │   └── dashboard-health.js     # GET /api/dashboard-health
+│       └── lib/
+│           ├── log-analytics.js        # KQL queries + 5-min cache
+│           └── azure-client.js         # APIM Management API client
 ├── .github/
 │   ├── workflows/
-│   │   ├── student-onboarding.yml  # Core: issue → key → email pipeline
-│   │   ├── key-management.yml      # APIM key rotation
-│   │   └── cost-monitor.yml        # Daily cost report
+│   │   ├── student-onboarding.yml      # Core: issue → key → email pipeline
+│   │   ├── key-management.yml          # APIM key rotation
+│   │   ├── cost-monitor.yml            # Daily cost report
+│   │   └── dashboard-deploy.yml        # Dashboard SWA deploy
 │   └── ISSUE_TEMPLATE/
-│       └── student-onboarding.yml  # Issue template
+│       └── student-onboarding.yml      # Issue template
 ├── scripts/
 │   ├── deploy-all.sh               # Full automated deployment (Phase 1-7)
 │   ├── 01_deploy_foundry.sh        # AI model deployment
@@ -102,7 +149,8 @@ eduelden-ai-deploy/
 | AI Foundry Resource | `{name}-ai-resource` | S0 | Must support target models | Pay-per-use |
 | AI Foundry Project | `{name}-ai` | — | Same as resource | Free |
 | APIM | `apim-{name}-ai` | Developer | Same region | ~$50/mo |
-| SWA | `swa-{name}-onboard` | Free | Any | Free |
+| SWA (Onboarding) | `swa-{name}-onboard` | Free | Any | Free |
+| SWA (Dashboard) | `swa-eduelden-dashboard` | Free | Any | Free |
 | ACS | `acs-{name}-email` | Free | Any | Free (first 1000 emails) |
 | ACS Email Service | `acs-{name}-email-svc` | — | Same as ACS | Free |
 
@@ -149,7 +197,7 @@ eduelden-ai-deploy/
 
 ### 4.3 Inbound Policy (Critical — Cline Compatibility)
 
-The APIM policy must handle **three problems**:
+The APIM policy must handle **four problems** plus unsupported parameter stripping:
 
 #### Problem 1: Multi-Header Authentication
 Cline sends `Authorization: Bearer <key>`, curl may send `api-key` or `Ocp-Apim-Subscription-Key`. The policy must accept all three:
@@ -194,14 +242,32 @@ The policy must handle both patterns. The condition checks for `/chat/completion
 ```
 
 #### Problem 3: Backend Key Injection
-Strip the student's auth headers and inject the real Azure OpenAI key:
+Strip the student's auth headers and inject the real Azure OpenAI key. The key is stored as a Named Value (`{{aoai-api-key}}`) in APIM rather than being embedded in plaintext in the policy XML:
 
 ```xml
 <set-header name="api-key" exists-action="override">
-  <value>{{real-azure-openai-key}}</value>
+  <value>{{aoai-api-key}}</value>
 </set-header>
 <set-header name="Authorization" exists-action="delete" />
 <set-header name="Ocp-Apim-Subscription-Key" exists-action="delete" />
+```
+
+> **Security note**: Using `{{aoai-api-key}}` (APIM Named Value) means the key is managed centrally in Azure and never appears in policy source code or Git history. Rotate the Named Value in the Azure Portal without touching policy XML.
+
+#### Problem 5: Unsupported Parameter Stripping
+Cline and other OpenAI-compatible clients send parameters that Azure OpenAI does not accept. The policy strips them from the request body before forwarding:
+
+Stripped parameters: `prediction`, `stream_options`, `service_tier`, `store`, `metadata`, `reasoning_effort`
+
+```xml
+<!-- Example: strip unsupported fields from request body -->
+<set-body>@{
+  var body = context.Request.Body.As<JObject>(preserveContent: false);
+  string[] unsupported = { "prediction", "stream_options", "service_tier",
+                            "store", "metadata", "reasoning_effort" };
+  foreach (var key in unsupported) { body.Remove(key); }
+  return body.ToString();
+}</set-body>
 ```
 
 #### Problem 4: DeepSeek Load Balancing
@@ -324,9 +390,12 @@ Azure Static Web Apps **reserves `/api/admin*` paths** internally. Any API endpo
 
 1. **VS Code**: Check if installed → download & silent install if missing
 2. **Cline Extension**: `code --install-extension saoudrizwan.claude-dev --force`
-3. **API Config**: Write `~/.ai-class/config.json` with 3 model configs
-4. **Cline Auto-Config**: Write to `~/.cline/data/globalState.json` and `secrets.json`
-5. **Connection Test**: Send test request through APIM
+3. **Power BI MCP**: Install `@microsoft/powerbi-modeling-mcp-win32-x64` Windows native exe
+   - Uses the native exe (not `npx`) because `npx` prints startup text to stdout that breaks MCP JSON-RPC transport
+4. **Cline MCP Config**: Register the Power BI MCP server in VS Code's globalStorage (`cline_mcp_settings.json`) so Cline discovers it automatically
+5. **API Config**: Write `~/.ai-class/config.json` with 3 model configs
+6. **Cline Auto-Config**: Write to `~/.cline/data/globalState.json` and `secrets.json`
+7. **Connection Test**: Send test request through APIM
 
 ### 8.2 Cline Config Locations (Important)
 
@@ -343,7 +412,67 @@ PowerShell scripts downloaded via `Invoke-WebRequest` from GitHub lose encoding 
 
 ---
 
-## 9. Onboarding Frontend (SWA)
+## 9. Admin Dashboard (swa-eduelden-dashboard)
+
+### 9.1 Overview
+
+A standalone React + Vite SWA deployed separately from the onboarding SWA. Provides real-time visibility into token usage, per-student quota management, and budget alerting.
+
+### 9.2 Pages
+
+| Page | Route | Description |
+|---|---|---|
+| Login | `/login` | Admin token entry (stored in sessionStorage) |
+| Overview | `/` | Stats cards, budget gauge, daily usage chart, Top 5 students |
+| Student List | `/students` | 50-student table with search and sort |
+| Student Detail | `/students/:id` | Token history chart, model-mix pie, quota editor, suspend toggle |
+| Bulk Control | `/control` | Reset all quotas / suspend all / activate all |
+| Alert Settings | `/alerts` | 3-tier budget thresholds, per-student threshold, admin email |
+
+### 9.3 Authentication
+
+The dashboard uses a custom `X-Admin-Token` HTTP header for all API calls. Standard `Authorization: Bearer` headers are **not used** because Azure SWA's built-in auth intercepts and rewrites the `Authorization` header, making it unavailable to the backend function.
+
+Flow:
+1. Admin enters token on `/login` page
+2. Token is stored in `sessionStorage`
+3. Every dashboard API call includes `X-Admin-Token: <token>` header
+4. Dashboard API functions read `req.headers['x-admin-token']` and compare against `DASHBOARD_ADMIN_TOKEN` environment variable
+
+### 9.4 Data Sources
+
+| Layer | Detail |
+|---|---|
+| Raw logs | APIM `GatewayLogs` diagnostic setting → Log Analytics workspace |
+| Diagnostic mode | `logAnalyticsDestinationType: Dedicated` (Resource-specific mode) |
+| Primary table | `ApiManagementGatewayLogs` (new, Resource-specific) |
+| Legacy table | `AzureDiagnostics` (classic mode, retained for historical data) |
+| KQL strategy | `union ApiManagementGatewayLogs, AzureDiagnostics` to cover both tables |
+| Cache | `api/src/lib/log-analytics.js` caches KQL results for 5 minutes |
+
+### 9.5 Dashboard API Environment Variables
+
+| Variable | Value |
+|---|---|
+| `DASHBOARD_ADMIN_TOKEN` | Secret token for dashboard authentication |
+| `LOG_ANALYTICS_WORKSPACE_ID` | Log Analytics workspace GUID |
+| `AZURE_CLIENT_ID` | Service principal client ID (for Log Analytics queries) |
+| `AZURE_CLIENT_SECRET` | Service principal secret |
+| `AZURE_TENANT_ID` | Entra ID tenant ID |
+| `APIM_SERVICE_NAME` | `apim-eduelden-ai` |
+| `APIM_RESOURCE_GROUP` | `rg-powerplatform-billing` |
+| `AZURE_SUBSCRIPTION_ID` | Azure subscription ID |
+
+### 9.6 Deployment
+
+Separate GitHub Actions workflow: `.github/workflows/dashboard-deploy.yml`
+- Triggers: push to `main` (paths `dashboard/**` or `api/**`), or manual dispatch
+- Build: `npm run build` in `dashboard/` → output to `dashboard/dist/`
+- Deploy: `Azure/static-web-apps-deploy@v1` with `app_location: dashboard`, `api_location: api`
+
+---
+
+## 11. Onboarding Frontend (SWA)
 
 Single-page HTML app (`docs/index.html`) with:
 - **Student Panel**: Enter student ID (01-50), email, passcode → submit
@@ -369,7 +498,7 @@ Single-page HTML app (`docs/index.html`) with:
 
 ---
 
-## 10. Lessons Learned / Pitfalls
+## 12. Lessons Learned / Pitfalls
 
 | # | Pitfall | Solution |
 |---|---|---|
@@ -385,10 +514,15 @@ Single-page HTML app (`docs/index.html`) with:
 | 10 | `AZURE_CREDENTIALS` must be valid JSON | Use `az ad sp create-for-rbac --sdk-auth` format |
 | 11 | GitHub Actions Azure login methods differ per workflow | `student-onboarding` uses `azure/login@v2`, others use manual `az login`. Consider unifying for maintainability |
 | 12 | `az ad sp create-for-rbac --sdk-auth` is deprecated | The `--sdk-auth` flag shows a warning but still produces the correct JSON format for `azure/login@v2`. Ignore the warning, or switch to OpenID Connect federated credentials |
+| 13 | SWA intercepts `Authorization` header | Dashboard uses `X-Admin-Token` custom header instead |
+| 14 | npx wrapper for Power BI MCP prints stdout noise | Use Windows native exe (`@microsoft/powerbi-modeling-mcp-win32-x64`) to avoid corrupting MCP JSON-RPC transport |
+| 15 | APIM diagnostic logs default to AzureDiagnostics | Set `logAnalyticsDestinationType: Dedicated` to use `ApiManagementGatewayLogs` table; union both in KQL for historical coverage |
+| 16 | Azure OpenAI rejects unknown request parameters | APIM policy must strip `prediction`, `stream_options`, `service_tier`, `store`, `metadata`, `reasoning_effort` from request body |
+| 17 | Azure OpenAI key in APIM policy XML is a security risk | Store as Named Value `{{aoai-api-key}}`; reference it in policy without embedding the key in source code |
 
 ---
 
-## 11. Budget & Cost Control
+## 13. Budget & Cost Control
 
 | Item | Budget | Notes |
 |---|---|---|
@@ -402,7 +536,7 @@ Cost monitoring via `cost-monitor.yml` (daily cron at 09:00 KST, checks budget `
 
 ---
 
-## 12. Security Model
+## 14. Security Model
 
 | Layer | Mechanism |
 |---|---|
@@ -411,9 +545,10 @@ Cost monitoring via `cost-monitor.yml` (daily cron at 09:00 KST, checks budget `
 | GitHub Actions → Azure | Service principal (RBAC) |
 | GitHub Actions → ACS | Connection string (HMAC-SHA256) |
 | Student → APIM | APIM subscription key (per-student) |
-| APIM → Azure OpenAI | Real API key (injected by policy, never exposed) |
-| Admin dashboard | Separate admin password |
+| APIM → Azure OpenAI | Real API key via Named Value `{{aoai-api-key}}` (managed in Azure Portal, never in source code) |
+| Admin Dashboard | `X-Admin-Token` custom header checked against `DASHBOARD_ADMIN_TOKEN` env var |
+| Onboarding admin panel | Separate admin password in SWA env vars |
 
-**Never expose in plaintext**: APIM subscription keys, Azure OpenAI keys, service principal secrets, ACS connection strings.
+**Never expose in plaintext**: APIM subscription keys, Azure OpenAI keys, service principal secrets, ACS connection strings, dashboard admin token.
 
 > **Note**: API functions currently use `Access-Control-Allow-Origin: *` for development convenience. For production, restrict to the SWA domain in `staticwebapp.config.json` or validate the `Origin` header in API code.

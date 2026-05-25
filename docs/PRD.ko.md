@@ -18,9 +18,11 @@ Azure AI Foundry 바이브코딩 수업을 위한 **셀프서비스 학생 온�
 | API 게이트웨이 | Azure APIM (Developer SKU) | 학생당 하나의 키, 속도 제한, 백엔드 키 숨기기 |
 | 이메일 발송 | Azure Communication Services (ACS) Email | Graph API는 Exchange 라이선스 필요; ACS는 바로 사용 가능 |
 | 온보딩 백엔드 | GitHub Issues + Actions | 무료, 추적 가능, 이벤트 기반 파이프라인 |
-| 프론트엔드 호스팅 | Azure Static Web Apps (SWA) | Free 티어, 내장 API (Azure Functions), 자동 배포 |
+| 프론트엔드 호스팅 | Azure Static Web Apps (SWA) — 2개 인스턴스 | `swa-{name}-onboard` (학생 온보딩) + `swa-eduelden-dashboard` (관리자 모니터링) |
+| 관리자 대시보드 | React + Vite SWA (`swa-eduelden-dashboard`) | 실시간 사용량 모니터링, 학생별 쿼터 제어, 예산 알림 |
 | 학생 IDE | VS Code + Cline 확장 | OpenAI 호환 프로바이더가 APIM 프록시를 지원 |
 | 스크립트 언어 | PowerShell (.ps1) | Windows 학생 PC에 기본 설치 |
+| Power BI MCP | Windows 네이티브 exe (`@microsoft/powerbi-modeling-mcp-win32-x64`) | npx 래퍼가 stdout에 텍스트를 출력해 MCP JSON-RPC 트랜스포트를 깨뜨림 |
 
 ---
 
@@ -30,7 +32,7 @@ Azure AI Foundry 바이브코딩 수업을 위한 **셀프서비스 학생 온�
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        학생 흐름                                     │
 │                                                                      │
-│  학생 브라우저 ──► SWA 프론트엔드 (docs/index.html)                   │
+│  학생 브라우저 ──► SWA 온보딩 (docs/index.html)                       │
 │       │                    │                                         │
 │       │              SWA API (Azure Functions)                       │
 │       │              ├─ GET  /api/slots     → 사용 가능 슬롯 표시     │
@@ -50,11 +52,36 @@ Azure AI Foundry 바이브코딩 수업을 위한 **셀프서비스 학생 온�
 │  학생 이메일 ──► setup-student.ps1 다운로드                           │
 │       │              ├─ VS Code 설치 (없을 경우)                     │
 │       │              ├─ Cline 확장 설치                               │
+│       │              ├─ Power BI MCP 설치 (Windows 네이티브 exe)      │
+│       │              ├─ Cline MCP 설정 자동 구성 (VS Code             │
+│       │              │   globalStorage, powerbi 서버 등록)            │
 │       │              ├─ Cline 설정 작성 (globalState + secrets)       │
 │       │              └─ API 연결 테스트                               │
 │       │                                                              │
 │       ▼                                                              │
 │  VS Code + Cline ──► APIM 게이트웨이 ──► Azure OpenAI / DeepSeek    │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                     관리자 대시보드 흐름                              │
+│                                                                      │
+│  관리자 브라우저 ──► SWA 대시보드 (swa-eduelden-dashboard)            │
+│       │                    │                                         │
+│       │              대시보드 API (Azure Functions)                   │
+│       │              ├─ GET /api/dashboard-overview  → 통계 카드     │
+│       │              ├─ GET /api/dashboard-daily     → 일별 차트     │
+│       │              ├─ GET /api/dashboard-students  → 학생 목록     │
+│       │              ├─ POST /api/dashboard-control  → 일괄 제어     │
+│       │              ├─ GET/POST /api/dashboard-alerts → 알림 설정   │
+│       │              └─ GET /api/dashboard-health    → 헬스 체크     │
+│       │                    │                                         │
+│       │              Log Analytics (KQL)                             │
+│       │              └─ ApiManagementGatewayLogs (+ AzureDiagnostics │
+│       │                   union으로 레거시 데이터 포함)               │
+│       │                    │                                         │
+│       │              APIM Management API                             │
+│       │              └─ 구독 상태 / 키 관리                           │
 │                                                                      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -68,17 +95,37 @@ eduelden-ai-deploy/
 ├── docs/                           # SWA 프론트엔드
 │   ├── index.html                  # 온보딩 UI (학생 + 관리자)
 │   └── staticwebapp.config.json    # SWA 라우팅 설정
+├── dashboard/                      # 관리자 대시보드 (React + Vite SWA)
+│   ├── src/
+│   │   ├── pages/                  # 6개 페이지: Login, Overview, Students,
+│   │   │                           #   StudentDetail, BulkControl, Alerts
+│   │   ├── components/             # 재사용 가능한 UI 컴포넌트
+│   │   ├── api/                    # API 클라이언트 함수 (fetch 래퍼)
+│   │   └── context/                # React 컨텍스트 (인증, 테마)
+│   ├── index.html
+│   └── vite.config.js
 ├── api/                            # SWA 백엔드 (Azure Functions v4, Node.js)
-│   └── src/functions/
-│       ├── slots.js                # GET /api/slots - 온보딩 현황 표시
-│       ├── onboard.js              # POST /api/onboard - GitHub Issue 생성
-│       ├── cancel.js               # POST /api/cancel - 온보딩 취소
-│       └── admin.js                # POST /api/manage - 관리자 대시보드
+│   └── src/
+│       ├── functions/
+│       │   ├── slots.js                # GET /api/slots - 온보딩 현황 표시
+│       │   ├── onboard.js              # POST /api/onboard - GitHub Issue 생성
+│       │   ├── cancel.js               # POST /api/cancel - 온보딩 취소
+│       │   ├── admin.js                # POST /api/manage - 관리자 대시보드
+│       │   ├── dashboard-overview.js   # GET /api/dashboard-overview
+│       │   ├── dashboard-daily.js      # GET /api/dashboard-daily
+│       │   ├── dashboard-students.js   # GET /api/dashboard-students
+│       │   ├── dashboard-control.js    # POST /api/dashboard-control
+│       │   ├── dashboard-alerts.js     # GET/POST /api/dashboard-alerts
+│       │   └── dashboard-health.js     # GET /api/dashboard-health
+│       └── lib/
+│           ├── log-analytics.js        # KQL 쿼리 + 5분 캐시
+│           └── azure-client.js         # APIM Management API 클라이언트
 ├── .github/
 │   ├── workflows/
-│   │   ├── student-onboarding.yml  # 핵심: Issue → 키 → 이메일 파이프라인
-│   │   ├── key-management.yml      # APIM 키 회전
-│   │   └── cost-monitor.yml        # 일일 비용 리포트
+│   │   ├── student-onboarding.yml      # 핵심: Issue → 키 → 이메일 파이프라인
+│   │   ├── key-management.yml          # APIM 키 회전
+│   │   ├── cost-monitor.yml            # 일일 비용 리포트
+│   │   └── dashboard-deploy.yml        # 대시보드 SWA 배포
 │   └── ISSUE_TEMPLATE/
 │       └── student-onboarding.yml  # Issue 템플릿
 ├── scripts/
@@ -102,7 +149,8 @@ eduelden-ai-deploy/
 | AI Foundry 리소스 | `{name}-ai-resource` | S0 | 대상 모델을 지원하는 리전 | 종량제 |
 | AI Foundry 프로젝트 | `{name}-ai` | -- | 리소스와 동일 | 무료 |
 | APIM | `apim-{name}-ai` | Developer | 리소스와 동일 리전 | ~$50/월 |
-| SWA | `swa-{name}-onboard` | Free | 아무 곳 | 무료 |
+| SWA (온보딩) | `swa-{name}-onboard` | Free | 아무 곳 | 무료 |
+| SWA (대시보드) | `swa-eduelden-dashboard` | Free | 아무 곳 | 무료 |
 | ACS | `acs-{name}-email` | Free | 아무 곳 | 무료 (첫 1,000통) |
 | ACS Email 서비스 | `acs-{name}-email-svc` | -- | ACS와 동일 | 무료 |
 
@@ -149,7 +197,7 @@ eduelden-ai-deploy/
 
 ### 4.3 인바운드 정책 (중요 -- Cline 호환성)
 
-APIM 정책은 **세 가지 문제**를 해결해야 해요:
+APIM 정책은 **네 가지 문제**와 미지원 파라미터 제거를 처리해야 해요:
 
 #### 문제 1: 다중 헤더 인증
 Cline은 `Authorization: Bearer <key>`를 보내고, curl은 `api-key`나 `Ocp-Apim-Subscription-Key`를 보낼 수 있어요. 정책은 세 가지 모두를 받아야 해요:
@@ -194,14 +242,32 @@ Azure OpenAI가 기대하는 형식: `POST /openai/deployments/{model}/chat/comp
 ```
 
 #### 문제 3: 백엔드 키 주입
-학생의 인증 헤더를 제거하고 진짜 Azure OpenAI 키를 주입해요:
+학생의 인증 헤더를 제거하고 진짜 Azure OpenAI 키를 주입해요. 키는 정책 XML에 평문으로 삽입하지 않고 Named Value(`{{aoai-api-key}}`)로 저장해요:
 
 ```xml
 <set-header name="api-key" exists-action="override">
-  <value>{{real-azure-openai-key}}</value>
+  <value>{{aoai-api-key}}</value>
 </set-header>
 <set-header name="Authorization" exists-action="delete" />
 <set-header name="Ocp-Apim-Subscription-Key" exists-action="delete" />
+```
+
+> **보안 참고**: `{{aoai-api-key}}`(APIM Named Value)를 사용하면 키가 Azure에서 중앙 관리되고, 정책 소스 코드나 Git 히스토리에 절대 노출되지 않아요. Azure Portal에서 Named Value만 교체하면 정책 XML을 수정할 필요가 없어요.
+
+#### 문제 5: 미지원 파라미터 제거
+Cline 및 기타 OpenAI 호환 클라이언트가 보내는 파라미터 중 Azure OpenAI가 지원하지 않는 것들을 정책에서 제거해요:
+
+제거 대상 파라미터: `prediction`, `stream_options`, `service_tier`, `store`, `metadata`, `reasoning_effort`
+
+```xml
+<!-- 요청 본문에서 미지원 필드 제거 -->
+<set-body>@{
+  var body = context.Request.Body.As<JObject>(preserveContent: false);
+  string[] unsupported = { "prediction", "stream_options", "service_tier",
+                            "store", "metadata", "reasoning_effort" };
+  foreach (var key in unsupported) { body.Remove(key); }
+  return body.ToString();
+}</set-body>
 ```
 
 #### 문제 4: DeepSeek 로드 밸런싱
@@ -324,9 +390,12 @@ Azure Static Web Apps는 **`/api/admin*` 경로를 내부적으로 예약**하�
 
 1. **VS Code**: 설치 여부 확인 → 없으면 다운로드 및 자동 설치
 2. **Cline 확장**: `code --install-extension saoudrizwan.claude-dev --force`
-3. **API 설정**: `~/.ai-class/config.json`에 3개 모델 설정 작성
-4. **Cline 자동 설정**: `~/.cline/data/globalState.json`과 `secrets.json`에 작성
-5. **연결 테스트**: APIM을 통해 테스트 요청 전송
+3. **Power BI MCP**: `@microsoft/powerbi-modeling-mcp-win32-x64` Windows 네이티브 exe 설치
+   - `npx`가 아닌 네이티브 exe를 사용하는 이유: `npx`가 stdout에 시작 텍스트를 출력해서 MCP JSON-RPC 트랜스포트를 깨뜨림
+4. **Cline MCP 설정**: VS Code의 globalStorage(`cline_mcp_settings.json`)에 Power BI MCP 서버를 등록해서 Cline이 자동으로 인식하게 함
+5. **API 설정**: `~/.ai-class/config.json`에 3개 모델 설정 작성
+6. **Cline 자동 설정**: `~/.cline/data/globalState.json`과 `secrets.json`에 작성
+7. **연결 테스트**: APIM을 통해 테스트 요청 전송
 
 ### 8.2 Cline 설정 위치 (중요)
 
@@ -343,7 +412,75 @@ PowerShell 스크립트를 GitHub에서 `Invoke-WebRequest`로 다운로드하�
 
 ---
 
-## 9. 온보딩 프론트엔드 (SWA)
+## 9. 관리자 대시보드 (swa-eduelden-dashboard)
+
+### 9.1 개요
+
+온보딩 SWA와 별도로 배포되는 독립형 React + Vite SWA예요. 토큰 사용량 실시간 모니터링, 학생별 쿼터 관리, 예산 알림 기능을 제공해요.
+
+### 9.2 페이지
+
+| 페이지 | 라우트 | 설명 |
+|---|---|---|
+| Login | `/login` | 관리자 토큰 입력 (sessionStorage에 저장) |
+| Overview | `/` | 통계 카드, 예산 게이지, 일별 사용량 차트, Top 5 학생 |
+| Student List | `/students` | 50명 학생 테이블 (검색 및 정렬) |
+| Student Detail | `/students/:id` | 토큰 히스토리 차트, 모델 비율 파이, 쿼터 편집, 정지 토글 |
+| Bulk Control | `/control` | 전체 쿼터 리셋 / 전체 정지 / 전체 활성화 |
+| Alert Settings | `/alerts` | 3단계 예산 임계값, 학생별 임계값, 관리자 이메일 |
+
+### 9.3 인증
+
+대시보드는 모든 API 호출에 커스텀 `X-Admin-Token` HTTP 헤더를 사용해요. 표준 `Authorization: Bearer` 헤더는 사용하지 **않아요**. Azure SWA의 내장 인증이 `Authorization` 헤더를 가로채서 재작성하기 때문에 백엔드 함수에서 사용할 수 없기 때문이에요.
+
+흐름:
+1. 관리자가 `/login` 페이지에서 토큰을 입력
+2. 토큰이 `sessionStorage`에 저장됨
+3. 모든 대시보드 API 호출에 `X-Admin-Token: <token>` 헤더를 포함
+4. 대시보드 API 함수가 `req.headers['x-admin-token']`을 읽어서 `DASHBOARD_ADMIN_TOKEN` 환경 변수와 비교
+
+### 9.4 데이터 소스
+
+| 계층 | 세부사항 |
+|---|---|
+| 원시 로그 | APIM `GatewayLogs` 진단 설정 → Log Analytics 워크스페이스 |
+| 진단 모드 | `logAnalyticsDestinationType: Dedicated` (Resource-specific 모드) |
+| 기본 테이블 | `ApiManagementGatewayLogs` (신규, Resource-specific) |
+| 레거시 테이블 | `AzureDiagnostics` (클래식 모드, 과거 데이터 보존용) |
+| KQL 전략 | `union ApiManagementGatewayLogs, AzureDiagnostics`로 두 테이블 모두 커버 |
+| 캐시 | `api/src/lib/log-analytics.js`에서 KQL 결과를 5분간 캐시 |
+
+### 9.5 대시보드 API 환경 변수
+
+| 변수 | 값 |
+|---|---|
+| `DASHBOARD_ADMIN_TOKEN` | 대시보드 인증용 시크릿 토큰 |
+| `LOG_ANALYTICS_WORKSPACE_ID` | Log Analytics 워크스페이스 GUID |
+| `AZURE_CLIENT_ID` | 서비스 주체 클라이언트 ID (Log Analytics 쿼리용) |
+| `AZURE_CLIENT_SECRET` | 서비스 주체 시크릿 |
+| `AZURE_TENANT_ID` | Entra ID 테넌트 ID |
+| `APIM_SERVICE_NAME` | `apim-eduelden-ai` |
+| `APIM_RESOURCE_GROUP` | `rg-powerplatform-billing` |
+| `AZURE_SUBSCRIPTION_ID` | Azure 구독 ID |
+
+### 9.6 배포
+
+별도의 GitHub Actions 워크플로우: `.github/workflows/dashboard-deploy.yml`
+- 트리거: `main` 브랜치에 push (경로: `dashboard/**` 또는 `api/**`), 또는 수동 디스패치
+- 빌드: `dashboard/`에서 `npm run build` → `dashboard/dist/`로 출력
+- 배포: `Azure/static-web-apps-deploy@v1` (`app_location: dashboard`, `api_location: api`)
+
+---
+
+## 10. APIM 진단 로깅
+
+APIM에서 Resource-specific 진단 로깅 모드를 사용해요. 이렇게 하면 `ApiManagementGatewayLogs` 전용 테이블로 로그가 저장돼요.
+
+기존 `AzureDiagnostics` 테이블에도 과거 데이터가 있을 수 있으므로, KQL 쿼리에서 `union`으로 두 테이블을 모두 조회해요.
+
+---
+
+## 11. 온보딩 프론트엔드 (SWA)
 
 싱글 페이지 HTML 앱 (`docs/index.html`)으로 구성돼요:
 - **학생 패널**: 학번(01-50), 이메일, 패스코드 입력 → 제출
@@ -369,7 +506,7 @@ PowerShell 스크립트를 GitHub에서 `Invoke-WebRequest`로 다운로드하�
 
 ---
 
-## 10. 배운 교훈 / 주의사항
+## 12. 배운 교훈 / 주의사항
 
 | # | 주의사항 | 해결 방법 |
 |---|---|---|
@@ -385,10 +522,15 @@ PowerShell 스크립트를 GitHub에서 `Invoke-WebRequest`로 다운로드하�
 | 10 | `AZURE_CREDENTIALS`는 유효한 JSON이어야 함 | `az ad sp create-for-rbac --sdk-auth` 형식 사용 |
 | 11 | GitHub Actions Azure 로그인 방식이 워크플로우마다 다름 | `student-onboarding`은 `azure/login@v2` 사용, 나머지는 수동 `az login` 사용. 유지보수를 위해 통일 고려 |
 | 12 | `az ad sp create-for-rbac --sdk-auth`가 deprecated됨 | `--sdk-auth` 플래그는 경고를 표시하지만 `azure/login@v2`에 필요한 올바른 JSON 형식을 생성함. 경고를 무시하거나, OpenID Connect 페더레이션 자격 증명으로 전환 |
+| 13 | SWA가 `Authorization` 헤더를 가로챔 | 대시보드에서 `X-Admin-Token` 커스텀 헤더를 대신 사용 |
+| 14 | Power BI MCP의 npx 래퍼가 stdout 노이즈를 출력함 | Windows 네이티브 exe(`@microsoft/powerbi-modeling-mcp-win32-x64`)를 사용해 MCP JSON-RPC 트랜스포트 오염을 방지 |
+| 15 | APIM 진단 로그가 기본적으로 AzureDiagnostics에 저장됨 | `logAnalyticsDestinationType: Dedicated`를 설정해 `ApiManagementGatewayLogs` 테이블 사용; KQL에서 두 테이블을 union으로 조회해 과거 데이터도 커버 |
+| 16 | Azure OpenAI가 알 수 없는 요청 파라미터를 거부함 | APIM 정책에서 `prediction`, `stream_options`, `service_tier`, `store`, `metadata`, `reasoning_effort`를 요청 본문에서 제거 |
+| 17 | APIM 정책 XML에 Azure OpenAI 키를 평문으로 넣으면 보안 위험 | Named Value `{{aoai-api-key}}`로 저장; 소스 코드에 키를 포함하지 않고 정책에서 참조 |
 
 ---
 
-## 11. 예산 및 비용 관리
+## 13. 예산 및 비용 관리
 
 | 항목 | 예산 | 비고 |
 |---|---|---|
@@ -402,7 +544,7 @@ PowerShell 스크립트를 GitHub에서 `Invoke-WebRequest`로 다운로드하�
 
 ---
 
-## 12. 보안 모델
+## 14. 보안 모델
 
 | 계층 | 메커니즘 |
 |---|---|
@@ -411,9 +553,10 @@ PowerShell 스크립트를 GitHub에서 `Invoke-WebRequest`로 다운로드하�
 | GitHub Actions → Azure | 서비스 주체 (RBAC) |
 | GitHub Actions → ACS | 연결 문자열 (HMAC-SHA256) |
 | 학생 → APIM | APIM 구독 키 (학생별 개별) |
-| APIM → Azure OpenAI | 실제 API 키 (정책에서 주입, 절대 노출 안 됨) |
-| 관리자 대시보드 | 별도 관리자 비밀번호 |
+| APIM → Azure OpenAI | Named Value `{{aoai-api-key}}`를 통한 실제 API 키 (Azure Portal에서 관리, 소스 코드에 미포함) |
+| 관리자 대시보드 | `X-Admin-Token` 커스텀 헤더를 `DASHBOARD_ADMIN_TOKEN` 환경 변수와 비교 |
+| 온보딩 관리자 패널 | SWA 환경 변수의 별도 관리자 비밀번호 |
 
-**절대 평문으로 노출하지 마세요**: APIM 구독 키, Azure OpenAI 키, 서비스 주체 시크릿, ACS 연결 문자열.
+**절대 평문으로 노출하지 마세요**: APIM 구독 키, Azure OpenAI 키, 서비스 주체 시크릿, ACS 연결 문자열, 대시보드 관리자 토큰.
 
 > **참고**: API 함수는 현재 개발 편의를 위해 `Access-Control-Allow-Origin: *`을 사용하고 있어요. 프로덕션 환경에서는 `staticwebapp.config.json`에서 SWA 도메인으로 제한하거나, API 코드에서 `Origin` 헤더를 검증하세요.
