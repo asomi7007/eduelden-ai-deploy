@@ -9,3 +9,4 @@ require('./dashboard-daily');
 require('./dashboard-students');
 require('./dashboard-control');
 require('./dashboard-alerts');
+require('./dashboard-health');
