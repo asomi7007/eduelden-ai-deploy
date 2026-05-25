@@ -263,19 +263,28 @@ Set-ExecutionPolicy Bypass -Scope Process -Force
 ## 부록 A: 아키텍처 빠른 참조
 
 ```
-학생 브라우저
-    ↓ HTTPS
-Azure Static Web App (프론트엔드 + API)
-    ↓ GitHub API
-GitHub Issues + Actions
-    ↓ ACS Email
-학생 이메일
-    ↓ PowerShell 스크립트
-VS Code + Cline
-    ↓ HTTPS (Authorization: Bearer)
-Azure APIM (속도 제한 + URL 재작성 + 키 주입)
-    ↓ api-key 헤더
-Azure OpenAI / DeepSeek (AI 모델)
+학생 흐름:
+  학생 브라우저
+      ↓ HTTPS
+  SWA 온보딩 (swa-{name}-onboard, docs/index.html)
+      ↓ GitHub API
+  GitHub Issues + Actions
+      ↓ ACS Email
+  학생 이메일
+      ↓ PowerShell 스크립트 (setup-student.ps1)
+  VS Code + Cline + Power BI MCP
+      ↓ HTTPS (Authorization: Bearer)
+  Azure APIM (속도 제한 + 파라미터 제거 + URL 재작성 + Named Value 키 주입)
+      ↓ api-key 헤더 ({{aoai-api-key}})
+  Azure OpenAI / DeepSeek (AI 모델)
+
+관리자 흐름:
+  관리자 브라우저
+      ↓ HTTPS (X-Admin-Token 헤더)
+  SWA 대시보드 (swa-eduelden-dashboard, React + Vite)
+      ↓ Azure Functions API
+  Log Analytics (ApiManagementGatewayLogs ∪ AzureDiagnostics, 5분 캐시)
+  APIM Management API (구독 상태, 키 관리)
 ```
 
 ## 부록 B: 전체 자격 증명 참조
