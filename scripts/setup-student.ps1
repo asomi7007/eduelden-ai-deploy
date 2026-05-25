@@ -140,6 +140,67 @@ Write-Host "  -> Default Model: gpt-54-mini" -ForegroundColor Gray
 Write-Host "  -> To switch models in Cline settings:" -ForegroundColor Gray
 Write-Host "     gpt-55 (high quality) | deepseek-v4-flash (Base URL: /deepseek/v1)" -ForegroundColor Gray
 
+# 3-c. Install Power BI MCP (exe, not npx - npx wrapper outputs non-JSON text to stdout breaking MCP transport)
+Write-Host "  Installing Power BI MCP..." -ForegroundColor Yellow
+
+$powerBiMcpRoot = "C:\MCPServers\PowerBIModelingMCP"
+$powerBiMcpExe = Join-Path $powerBiMcpRoot "node_modules\@microsoft\powerbi-modeling-mcp-win32-x64\dist\powerbi-modeling-mcp.exe"
+
+if (-not (Test-Path $powerBiMcpExe)) {
+    Write-Host "  Downloading Power BI MCP Windows binary..." -ForegroundColor Yellow
+    New-Item -ItemType Directory -Force -Path $powerBiMcpRoot | Out-Null
+    & npm install --prefix $powerBiMcpRoot "@microsoft/powerbi-modeling-mcp-win32-x64@latest" 2>$null
+    if (Test-Path $powerBiMcpExe) {
+        Write-Host "  Power BI MCP exe installed: $powerBiMcpExe" -ForegroundColor Green
+    } else {
+        Write-Host "  WARNING: Power BI MCP exe not found after install. Check npm logs." -ForegroundColor Red
+    }
+} else {
+    Write-Host "  Power BI MCP exe already installed" -ForegroundColor Green
+}
+
+# 3-d. Configure Cline MCP settings (Power BI + filesystem)
+Write-Host "  Configuring Cline MCP servers..." -ForegroundColor Yellow
+
+# Find Cline MCP settings file (VS Code globalStorage)
+$clineExtId = "saoudrizwan.claude-dev"
+$vscodeStoragePaths = @(
+    "$env:APPDATA\Code\User\globalStorage\$clineExtId\settings\cline_mcp_settings.json",
+    "$env:APPDATA\Code - Insiders\User\globalStorage\$clineExtId\settings\cline_mcp_settings.json"
+)
+
+foreach ($mcpSettingsFile in $vscodeStoragePaths) {
+    $mcpSettingsDir = Split-Path $mcpSettingsFile -Parent
+    if (-not (Test-Path $mcpSettingsDir)) {
+        # Skip if Cline extension storage directory doesn't exist
+        continue
+    }
+
+    if (Test-Path $mcpSettingsFile) {
+        $mcpSettings = Get-Content $mcpSettingsFile -Raw | ConvertFrom-Json
+    } else {
+        $mcpSettings = [PSCustomObject]@{ mcpServers = [PSCustomObject]@{} }
+    }
+
+    # Add/update Power BI MCP server (exe, not npx)
+    $powerBiConfig = [PSCustomObject]@{
+        type = "stdio"
+        command = $powerBiMcpExe.Replace('\', '\\')
+        args = @("--start", "--readwrite", "--skip-confirmation", "--compatibility=full")
+        env = [PSCustomObject]@{}
+        timeout = 300
+        disabled = $false
+        autoApprove = @()
+    }
+    $mcpSettings.mcpServers | Add-Member -NotePropertyName "powerbi" -NotePropertyValue $powerBiConfig -Force
+
+    $mcpJson = $mcpSettings | ConvertTo-Json -Depth 10
+    [System.IO.File]::WriteAllText($mcpSettingsFile, $mcpJson, [System.Text.UTF8Encoding]::new($false))
+    Write-Host "  Cline MCP settings updated: $mcpSettingsFile" -ForegroundColor Green
+}
+
+Write-Host "  -> Power BI MCP: exe direct (no npx wrapper)" -ForegroundColor Gray
+
 # 4. Connection test
 Write-Host "[4/4] Testing API connection..." -ForegroundColor Yellow
 
