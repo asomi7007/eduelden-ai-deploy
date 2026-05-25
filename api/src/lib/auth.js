@@ -26,6 +26,8 @@ async function verifyAdmin(request) {
   const authHeader = request.headers.get('authorization') || '';
   if (authHeader.startsWith('Bearer ')) {
     const token = authHeader.slice(7).trim();
+    // Debug: log only non-sensitive comparison metadata
+    const debugInfo = `token_len=${token.length},pw_len=${(adminPassword||'').length},tok_len=${(adminToken||'').length},match_pw=${token === adminPassword},match_tok=${token === adminToken}`;
     if (adminToken && token === adminToken) {
       return { authenticated: true };
     }
@@ -33,7 +35,7 @@ async function verifyAdmin(request) {
     if (adminPassword && token === adminPassword) {
       return { authenticated: true };
     }
-    return { authenticated: false, error: 'Invalid bearer token' };
+    return { authenticated: false, error: `Invalid bearer token [${debugInfo}]` };
   }
 
   // Method 2: Body adminPw (for legacy admin.js compat)
