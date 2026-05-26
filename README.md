@@ -367,6 +367,7 @@ GitHub Repository Variables에 다음 값을 설정하세요 (deploy-all.sh가 �
 | 제품 요구사항 (PRD) | [docs/PRD.md](docs/PRD.md) | [docs/PRD.ko.md](docs/PRD.ko.md) |
 | 설치 매뉴얼 | [docs/INSTALL.md](docs/INSTALL.md) | [docs/INSTALL.ko.md](docs/INSTALL.ko.md) |
 | 사용자 가이드 | [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | [docs/USER-GUIDE.ko.md](docs/USER-GUIDE.ko.md) |
+| 기술 아키텍처 해설 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | — |
 | 예산 계획 | [docs/budget-plan.md](docs/budget-plan.md) | |
 | 수동 설정 가이드 | [docs/manual-setup-guide.md](docs/manual-setup-guide.md) | |
 | 리소스 정리 | [docs/resource-cleanup.md](docs/resource-cleanup.md) | |
