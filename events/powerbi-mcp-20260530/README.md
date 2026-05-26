@@ -17,15 +17,17 @@
 |-----------|------|
 | VS Code | 코드 에디터 + AI 에이전트 실행 환경 |
 | Cline 확장 | VS Code에서 AI 에이전트(MCP) 구동 |
+| Git | Cline checkpoint 기능 지원 |
 | Node.js 22+ | MCP 서버 실행 런타임 |
 | Power BI Desktop | 대시보드 제작 도구 |
+| Chrome 또는 Edge | Playwright MCP 브라우저 (자동 감지) |
 
 ## MCP 서버
 
 | 서버 | 패키지 | 실행 방식 | 용도 |
 |------|--------|----------|------|
 | Power BI | `@microsoft/powerbi-modeling-mcp-win32-x64` | **exe 직접 실행** (npx 미사용) | AI가 Power BI Desktop을 직접 제어 |
-| Playwright | `@playwright/mcp` | cmd.exe + npx | 웹 브라우저 자동화 (디자인 참조) |
+| Playwright | `@playwright/mcp` | cmd.exe + npx (`--browser` 자동 감지) | 웹 브라우저 자동화 (디자인 참조) |
 | Filesystem | `@modelcontextprotocol/server-filesystem` | cmd.exe + npx | 실습 파일 읽기/쓰기 |
 
 > **Power BI MCP 주의**: 제네릭 래퍼(`@microsoft/powerbi-modeling-mcp`)를 npx로 실행하면 stdout에 `Detected platform: win32...` 텍스트가 먼저 출력되어 MCP JSON-RPC 전송이 오염됩니다. 반드시 플랫폼별 패키지의 exe를 직접 실행하세요. (ARM64 PC는 `powerbi-modeling-mcp-win32-arm64` 자동 선택)
@@ -57,13 +59,14 @@ powershell -ExecutionPolicy Bypass -File "setup-powerbi-mcp.ps1" -StudentId 01 -
 | 단계 | 내용 |
 |------|------|
 | 1 | VS Code 설치 (이미 있으면 건너뜀) |
-| 2 | Cline 확장 설치 (`saoudrizwan.claude-dev`) |
+| 2 | Cline 확장 설치 + VS Code 터미널 설정 (PowerShell + shell integration) |
+| 2.5 | Git 설치 (Cline checkpoint 기능 지원) |
 | 3 | Node.js 22+ 설치 (MCP 서버 런타임) |
 | 4 | Power BI Desktop 설치 (Microsoft Store) |
 | 5 | API 설정 (config.json + 환경변수) |
-| 6 | Cline MCP 서버 3개 구성 (Power BI exe + Playwright + Filesystem) |
+| 6 | Cline MCP 서버 3개 구성 (Power BI exe + Playwright + Filesystem) + Chrome/Edge 감지 |
 | 7 | 실습 파일(`practice.pbix`) 바탕화면에 다운로드 |
-| 8 | API 연결 테스트 |
+| 8 | API 연결 테스트 + Vision(이미지) 테스트 |
 
 > **주의**: Cline API Provider/Base URL/API Key/Model은 Cline UI에서 수동 입력 필요 (스크립트로 자동화 불가). 스크립트 실행 후 바탕화면의 `CLINE_API_SETUP.txt` 파일 참조.
 >
@@ -100,3 +103,8 @@ powershell -ExecutionPolicy Bypass -File "setup-powerbi-mcp.ps1" -StudentId 01 -
 | Cline에서 API 설정이 안 됨 | Cline은 API provider/key를 VS Code SQLite DB에 저장 — 파일로 주입 불가 | Cline UI에서 수동 입력 (바탕화면 `CLINE_API_SETUP.txt` 참조) |
 | VS Code에서 MCP 서버가 안 뜸 | 스크립트 실행 중 VS Code가 열려 있었음 | VS Code 재시작 또는 `Ctrl+Shift+P` → "Reload Window" |
 | 바탕 화면 경로를 못 찾음 | OneDrive 동기화로 바탕화면이 `OneDrive\바탕 화면`으로 리다이렉트 | 스크립트가 자동 감지 (Shell.Application + OneDrive 후보 + mojibake 복구) |
+| Playwright MCP 실행 시 `Chromium distribution 'chrome' is not found` | PC에 Chrome이 없고 Edge만 설치됨 | **이미 수정됨** (v3). 스크립트가 Chrome/Edge를 자동 감지하여 `--browser` 인자를 설정합니다. 둘 다 없으면 Chrome을 자동 설치합니다. |
+| Cline 터미널에서 `Starting directory (cwd) does not exist` | OneDrive가 바탕화면을 리다이렉트하여 `C:\Users\...\Desktop` 경로가 없음 | **이미 수정됨** (v3). 스크립트가 junction을 생성하여 호환 경로를 확보합니다. |
+| `Shell Integration Unavailable` 경고 | VS Code 터미널 프로필이 미설정 | **이미 수정됨** (v3). 스크립트가 PowerShell 기본 프로필 + shell integration을 자동 설정합니다. |
+| `Git must be installed to use checkpoints` | Cline checkpoint에 Git이 필요하나 미설치 | **이미 수정됨** (v3). 스크립트가 Git을 자동 설치합니다. |
+| Cline에서 이미지를 인식 못 함 | 파일 경로를 텍스트로 보내면 Cline이 이미지로 인식하지 않음 | 이미지 파일을 Cline 채팅에 첨부하거나, Playwright MCP의 스크린샷 도구를 사용하세요. `gpt-54-mini`는 API 레벨에서 이미지 입력을 지원합니다. |

@@ -320,11 +320,14 @@ GitHub Repository Variables에 다음 값을 설정합니다 (`deploy-all.sh`가
 | 단계 | 내용 |
 |------|------|
 | VS Code 설치 | winget으로 설치 (이미 있으면 건너뜀) |
-| Cline 확장 설치 | `saoudrizwan.claude-dev` |
+| Cline 확장 설치 | `saoudrizwan.claude-dev` + VS Code 터미널 프로필 설정 |
+| Git 설치 | Cline checkpoint 기능 지원 (winget 또는 직접 다운로드) |
 | Cline API 설정 | APIM URL + 학생 키 + 모델 ID를 settings.json에 주입 |
 | Power BI MCP 설치 | `C:\MCPServers\PowerBIModelingMCP\` 경로에 exe 배포 |
-| Cline MCP 설정 | claude_mcp_settings.json에 Power BI MCP 서버 등록 (exe 직접 실행, npx 미사용) |
-| 연결 테스트 | APIM 엔드포인트로 간단한 ping 호출 |
+| 브라우저 감지 | Chrome/Edge 자동 감지, 없으면 Chrome 설치 (Playwright MCP용) |
+| Cline MCP 설정 | Power BI (exe) + Playwright (`--browser` 자동) + Filesystem 등록 |
+| Desktop 호환 | OneDrive 리다이렉트 시 junction 생성으로 cwd 오류 방지 |
+| 연결 테스트 | 텍스트 API + Vision(이미지) API 테스트 |
 
 > **Power BI MCP 주의**: npx 래퍼를 사용하면 stdout에 경고 메시지가 섞여 MCP JSON-RPC 프로토콜이 오염됩니다. 반드시 exe를 직접 실행하도록 설정하십시오.
 
@@ -411,6 +414,10 @@ GitHub Repository Variables에 다음 값을 설정합니다 (`deploy-all.sh`가
 | 대시보드 APIM 로그 미표시 | 진단 설정이 레거시 모드 | Resource-specific 모드로 전환 (`ApiManagementGatewayLogs` 확인) |
 | Cline 파라미터 오류 | `prediction`, `stream_options` 등 미지원 파라미터 | APIM 인바운드 정책에서 자동 제거 (이미 적용됨) |
 | Power BI MCP 연결 실패 | npx 래퍼 stdout 오염으로 MCP 프로토콜 깨짐 | exe 직접 실행 (`C:\MCPServers\PowerBIModelingMCP\`) |
+| Playwright MCP `chrome is not found` | Chrome 미설치, Edge만 있음 | 스크립트가 Chrome/Edge 자동 감지 (`--browser msedge` 전환) |
+| Cline 터미널 `cwd does not exist` | OneDrive로 바탕화면 리다이렉트 | 스크립트가 `Desktop` junction 자동 생성 |
+| `Shell Integration Unavailable` | VS Code 터미널 프로필 미설정 | 스크립트가 PowerShell + shell integration 자동 설정 |
+| Cline checkpoint Git 오류 | Git 미설치 | 스크립트가 Git 자동 설치 (STEP 2.5) |
 
 ---
 

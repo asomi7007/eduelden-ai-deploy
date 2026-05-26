@@ -79,6 +79,21 @@ if (-not $DesktopPath -or -not (Test-Path $DesktopPath)) {
     New-Item -ItemType Directory -Force -Path $DesktopPath | Out-Null
 }
 
+# Cline/VS Code often initializes tasks with the conventional English Desktop
+# path even when Windows redirects the actual Desktop to OneDrive/Korean
+# "바탕 화면". Make the conventional path exist so terminals and screenshots do
+# not fail with "cwd C:\Users\...\Desktop does not exist".
+$LegacyDesktopPath = "$env:USERPROFILE\Desktop"
+if ($DesktopPath -and (Test-Path -LiteralPath $DesktopPath) -and $DesktopPath -ne $LegacyDesktopPath -and -not (Test-Path -LiteralPath $LegacyDesktopPath)) {
+    try {
+        New-Item -ItemType Junction -Path $LegacyDesktopPath -Target $DesktopPath -Force | Out-Null
+        Write-Host "  Desktop compatibility path: $LegacyDesktopPath -> $DesktopPath" -ForegroundColor Gray
+    } catch {
+        New-Item -ItemType Directory -Force -Path $LegacyDesktopPath | Out-Null
+        Write-Host "  Desktop compatibility directory created: $LegacyDesktopPath" -ForegroundColor Yellow
+    }
+}
+
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "  AI-Driven Power BI: MCP Workshop - Environment Setup" -ForegroundColor Cyan
@@ -90,6 +105,17 @@ Write-Host ""
 # --- Helper: Check if command exists ---
 function Test-CommandExists($cmd) {
     return [bool](Get-Command $cmd -ErrorAction SilentlyContinue)
+}
+
+# --- Helper: Return the first existing path from a candidate list ---
+function Get-FirstExistingPath([string[]]$Paths) {
+    foreach ($path in $Paths) {
+        $repaired = Repair-Utf8MojibakePath $path
+        if ($repaired -and (Test-Path -LiteralPath $repaired)) {
+            return $repaired
+        }
+    }
+    return $null
 }
 
 # --- Helper: Write UTF-8 without BOM ---
@@ -135,6 +161,76 @@ if (-not $SkipInstall) {
     Write-Host "  Cline extension installed  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
 } else {
     Write-Host "[2/$TOTAL_STEPS] Skipped (SkipInstall)  ($(Format-Elapsed $stepTimer))" -ForegroundColor Gray
+}
+
+# VS Code terminal defaults for Cline command execution. Cline shell
+# integration is most reliable when the default profile is an explicitly
+# supported shell and shell integration is enabled.
+$vsCodeSettingsFile = "$env:APPDATA\Code\User\settings.json"
+$vsCodeSettingsDir = Split-Path -Parent $vsCodeSettingsFile
+New-Item -ItemType Directory -Force -Path $vsCodeSettingsDir | Out-Null
+try {
+    if (Test-Path -LiteralPath $vsCodeSettingsFile) {
+        $vsCodeSettings = Get-Content -LiteralPath $vsCodeSettingsFile -Raw -Encoding UTF8 | ConvertFrom-Json
+    } else {
+        $vsCodeSettings = [PSCustomObject]@{}
+    }
+} catch {
+    $vsCodeSettings = [PSCustomObject]@{}
+}
+$vsCodeSettings | Add-Member -NotePropertyName "terminal.integrated.defaultProfile.windows" -NotePropertyValue "PowerShell" -Force
+$vsCodeSettings | Add-Member -NotePropertyName "terminal.integrated.shellIntegration.enabled" -NotePropertyValue $true -Force
+$vsCodeSettings | Add-Member -NotePropertyName "terminal.integrated.automationProfile.windows" -NotePropertyValue ([PSCustomObject]@{
+    path = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+    args = @("-NoLogo")
+}) -Force
+$vsCodeSettings | Add-Member -NotePropertyName "terminal.integrated.profiles.windows" -NotePropertyValue ([PSCustomObject]@{
+    PowerShell = [PSCustomObject]@{
+        source = "PowerShell"
+        icon = "terminal-powershell"
+    }
+}) -Force
+Write-Utf8NoBom $vsCodeSettingsFile ($vsCodeSettings | ConvertTo-Json -Depth 10)
+Write-Host "      VS Code terminal profile configured: PowerShell + shell integration" -ForegroundColor Green
+
+# ===========================================================
+# STEP 2.5: Git (Cline checkpoints require it)
+# ===========================================================
+if (-not $SkipInstall) {
+    if (Test-CommandExists "git") {
+        Write-Host "      Git already installed: $(git --version)  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
+    } else {
+        Write-Host "      Installing Git for Cline checkpoints..." -ForegroundColor Yellow
+        if (Test-CommandExists "winget") {
+            winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements --silent 2>$null
+        } else {
+            $gitInstaller = "$env:TEMP\git-setup.exe"
+            $gitRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/git-for-windows/git/releases/latest" -TimeoutSec 30
+            $gitAsset = $gitRelease.assets | Where-Object { $_.name -match '^Git-.*-64-bit\.exe$' } | Select-Object -First 1
+            if (-not $gitAsset) { throw "Could not find latest Git for Windows 64-bit installer asset." }
+            Invoke-WebRequest -Uri $gitAsset.browser_download_url -OutFile $gitInstaller
+            Start-Process -FilePath $gitInstaller -ArgumentList "/VERYSILENT /NORESTART /NOCANCEL /SP-" -Wait
+        }
+        $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
+        if (Test-CommandExists "git") {
+            Write-Host "      Git installed: $(git --version)" -ForegroundColor Green
+        } else {
+            $gitCmdDir = "C:\Program Files\Git\cmd"
+            $gitExe = Join-Path $gitCmdDir "git.exe"
+            if (Test-Path -LiteralPath $gitExe) {
+                $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+                $pathParts = @($userPath -split ';' | Where-Object { $_ })
+                if (-not ($pathParts | Where-Object { $_.TrimEnd('\') -ieq $gitCmdDir.TrimEnd('\') })) {
+                    $newUserPath = if ([string]::IsNullOrWhiteSpace($userPath)) { $gitCmdDir } else { "$userPath;$gitCmdDir" }
+                    [System.Environment]::SetEnvironmentVariable("Path", $newUserPath, "User")
+                }
+                $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
+                Write-Host "      Git installed and added to user PATH: $(& $gitExe --version)" -ForegroundColor Green
+            } else {
+                Write-Host "      WARNING: Git install finished but git.exe was not found. Restart VS Code/PowerShell or install Git manually." -ForegroundColor Yellow
+            }
+        }
+    }
 }
 
 # ===========================================================
@@ -289,6 +385,43 @@ if (-not (Test-Path $npmCacheFix)) {
 }
 $mcpEnv = [PSCustomObject]@{ npm_config_cache = $npmCacheFix }
 
+# Playwright MCP currently defaults to the Chrome channel on Windows. Some
+# student PCs only have Microsoft Edge, so detect an installed browser and pass
+# it explicitly instead of letting Playwright fail at first use.
+$chromePath = Get-FirstExistingPath @(
+    "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe",
+    "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
+    "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe"
+)
+$edgePath = Get-FirstExistingPath @(
+    "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe",
+    "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
+    "$env:LOCALAPPDATA\Microsoft\Edge\Application\msedge.exe"
+)
+
+if (-not $chromePath -and -not $edgePath -and -not $SkipInstall -and (Test-CommandExists "winget")) {
+    Write-Host "  Installing Google Chrome for Playwright MCP..." -ForegroundColor Yellow
+    $null = winget install --id Google.Chrome --source winget --accept-package-agreements --accept-source-agreements --silent 2>$null
+    $chromePath = Get-FirstExistingPath @(
+        "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe",
+        "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
+        "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe"
+    )
+}
+
+$playwrightBrowserArgs = @()
+$playwrightBrowserLabel = "default"
+if ($chromePath) {
+    $playwrightBrowserArgs = @("--browser", "chrome")
+    $playwrightBrowserLabel = "chrome ($chromePath)"
+} elseif ($edgePath) {
+    $playwrightBrowserArgs = @("--browser", "msedge")
+    $playwrightBrowserLabel = "msedge ($edgePath)"
+} else {
+    Write-Host "  WARNING: Chrome/Edge was not found. Playwright MCP may fail until a browser is installed." -ForegroundColor Red
+    Write-Host "           Install Chrome manually or run: winget install --id Google.Chrome --source winget" -ForegroundColor Yellow
+}
+
 # --- Power BI MCP: Install exe directly (NOT npx) ---
 # The generic @microsoft/powerbi-modeling-mcp wrapper writes "Detected platform..."
 # to stdout before MCP JSON-RPC starts, corrupting Cline's stdio transport.
@@ -339,18 +472,22 @@ $mcp.mcpServers | Add-Member -NotePropertyName "powerbi" -NotePropertyValue ([PS
 # Playwright MCP Server (official Microsoft package: @playwright/mcp)
 # No stdout noise issue — npx via cmd.exe is safe here
 $mcp.mcpServers | Add-Member -NotePropertyName "playwright" -NotePropertyValue ([PSCustomObject]@{
+    type = "stdio"
     command = "cmd.exe"
-    args = @("/d", "/c", "npx", "-y", "@playwright/mcp@latest")
+    args = @("/d", "/c", "npx", "-y", "@playwright/mcp@latest") + $playwrightBrowserArgs
     env = $mcpEnv
+    timeout = 60
     disabled = $false
     autoApprove = @()
 }) -Force
 
 # Filesystem MCP Server (official: @modelcontextprotocol/server-filesystem)
 $mcp.mcpServers | Add-Member -NotePropertyName "filesystem" -NotePropertyValue ([PSCustomObject]@{
+    type = "stdio"
     command = "cmd.exe"
     args = @("/d", "/c", "npx", "-y", "@modelcontextprotocol/server-filesystem", $DesktopPath)
     env = $mcpEnv
+    timeout = 60
     disabled = $false
     autoApprove = @()
 }) -Force
@@ -358,7 +495,7 @@ $mcp.mcpServers | Add-Member -NotePropertyName "filesystem" -NotePropertyValue (
 Write-Utf8NoBom $mcpFile ($mcp | ConvertTo-Json -Depth 10)
 Write-Host "  MCP settings: $mcpFile" -ForegroundColor Green
 Write-Host "    - powerbi    : exe direct ($powerBiArch, no npx)" -ForegroundColor Gray
-Write-Host "    - playwright : @playwright/mcp (cmd.exe + npx)" -ForegroundColor Gray
+Write-Host "    - playwright : @playwright/mcp (cmd.exe + npx, browser: $playwrightBrowserLabel)" -ForegroundColor Gray
 Write-Host "    - filesystem : @modelcontextprotocol/server-filesystem ($DesktopPath)  ($(Format-Elapsed $stepTimer))" -ForegroundColor Gray
 
 # --- Manual API provider/key/model configuration (Cline UI) ---
@@ -382,6 +519,11 @@ Cline API Setup (manual — values cannot be auto-applied)
 4. Save. MCP servers (powerbi / playwright / filesystem) are
    already configured at:
    $mcpFile
+
+Image note:
+   gpt-54-mini supports image input through the API, but Cline can only
+   analyze an image when the image is attached to the chat or returned by
+   an MCP/browser tool. A plain file path in terminal output is not enough.
 "@
 Write-Utf8NoBom $clineReadme $clineReadmeBody
 
@@ -435,6 +577,40 @@ try {
         -Method POST -Headers $headers -Body $testBody -TimeoutSec 30
     $reply = $response.choices[0].message.content
     Write-Host "  API response: $reply  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
+
+    # Vision smoke test: verify image inputs reach the selected model through APIM.
+    try {
+        Add-Type -AssemblyName System.Drawing
+        $bmp = New-Object System.Drawing.Bitmap 80, 40
+        $gfx = [System.Drawing.Graphics]::FromImage($bmp)
+        $gfx.Clear([System.Drawing.Color]::White)
+        $brush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::Red)
+        $gfx.FillRectangle($brush, 8, 8, 64, 24)
+        $ms = New-Object System.IO.MemoryStream
+        $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
+        $imageBase64 = [Convert]::ToBase64String($ms.ToArray())
+        $gfx.Dispose(); $brush.Dispose(); $bmp.Dispose(); $ms.Dispose()
+
+        $visionBody = @{
+            model = "gpt-54-mini"
+            messages = @(@{
+                role = "user"
+                content = @(
+                    @{ type = "text"; text = "Look at the image. Reply with exactly one English color word." },
+                    @{ type = "image_url"; image_url = @{ url = "data:image/png;base64,$imageBase64" } }
+                )
+            })
+            max_completion_tokens = 30
+        } | ConvertTo-Json -Depth 8
+
+        $visionResponse = Invoke-RestMethod -Uri "$OPENAI_ENDPOINT/v1/chat/completions" `
+            -Method POST -Headers $headers -Body $visionBody -TimeoutSec 30
+        $visionReply = ($visionResponse.choices[0].message.content).Trim()
+        Write-Host "  Vision response: $visionReply" -ForegroundColor Green
+    } catch {
+        Write-Host "  Vision test warning: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "  Text API works, but image input should be tested manually in Cline." -ForegroundColor Yellow
+    }
 } catch {
     Write-Host "  Connection test failed: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "  This may be normal if APIM is still deploying." -ForegroundColor Yellow
@@ -455,10 +631,13 @@ Write-Host "  Installed:" -ForegroundColor White
 Write-Host "    - VS Code + Cline extension" -ForegroundColor Gray
 Write-Host "    - Node.js 22+ (for MCP servers)" -ForegroundColor Gray
 Write-Host "    - Power BI Desktop" -ForegroundColor Gray
+Write-Host "    - Git (for Cline checkpoints)" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  Auto-configured:" -ForegroundColor White
 Write-Host "    - Power BI MCP: exe direct (no npx, no stdout noise)" -ForegroundColor Gray
+Write-Host "    - Playwright MCP: browser auto-detected ($playwrightBrowserLabel)" -ForegroundColor Gray
 Write-Host "    - Cline MCP servers (powerbi, playwright, filesystem)" -ForegroundColor Gray
+Write-Host "    - VS Code terminal: PowerShell + shell integration" -ForegroundColor Gray
 Write-Host "    - API reference file: $DesktopPath\CLINE_API_SETUP.txt" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  Manual step required (cannot be scripted):" -ForegroundColor Yellow
