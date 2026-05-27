@@ -162,7 +162,14 @@ function estimateCost(model, inputTokens, outputTokens) {
 const UNIFIED_LOGS = `
 let UnifiedLogs = union isfuzzy=true
   (ApiManagementGatewayLogs
-   | project TimeGenerated, ResponseCode=toint(ResponseCode), RequestSize=tolong(RequestSize), ResponseSize=tolong(ResponseSize), BackendUrl=Url, TotalTimeMs=toreal(TotalTime), ApimSubscriptionId=tostring(ApimSubscriptionId)),
+   | extend _SubId = tostring(ApimSubscriptionId)
+   | extend _HeaderVal = tostring(BackendRequestHeaders["X-Student-Id"])
+   | extend StudentId = case(
+       isnotempty(_SubId), _SubId,
+       isnotempty(_HeaderVal), strcat("sub-student-", _HeaderVal),
+       "unknown"
+     )
+   | project TimeGenerated, ResponseCode=toint(ResponseCode), RequestSize=tolong(RequestSize), ResponseSize=tolong(ResponseSize), BackendUrl=Url, TotalTimeMs=toreal(TotalTime), ApimSubscriptionId=StudentId),
   (AzureDiagnostics
    | where Category == 'GatewayLogs'
    | project TimeGenerated, ResponseCode=toint(responseCode_d), RequestSize=tolong(requestSize_d), ResponseSize=tolong(responseSize_d), BackendUrl=backendUrl_s, TotalTimeMs=toreal(DurationMs), ApimSubscriptionId="unknown");
