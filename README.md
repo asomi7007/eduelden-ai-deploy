@@ -321,7 +321,7 @@ GitHub Repository Variables에 다음 값을 설정합니다 (`deploy-all.sh`가
 | 단계 | 내용 |
 |------|------|
 | VS Code 설치 | winget으로 설치 (이미 있으면 건너뜀) |
-| Cline 확장 설치 | `saoudrizwan.claude-dev` + VS Code 터미널 프로필 설정 |
+| 확장 설치 | Cline (`saoudrizwan.claude-dev`) + markdownlint (`DavidAnson.vscode-markdownlint`) + VS Code 터미널 프로필 설정 |
 | Git 설치 | Cline checkpoint 기능 지원 (winget 또는 직접 다운로드) |
 | Cline API 설정 | APIM URL + 학생 키 + 모델 ID를 settings.json에 주입 |
 | Power BI MCP 설치 | `C:\MCPServers\PowerBIModelingMCP\` 경로에 exe 배포 |

@@ -176,13 +176,14 @@ if (-not $SkipInstall) {
 }
 
 # ===========================================================
-# STEP 2: Cline Extension
+# STEP 2: Cline Extension + Markdownlint Extension
 # ===========================================================
 $stepTimer.Restart()
 if (-not $SkipInstall) {
-    Write-Host "[2/$TOTAL_STEPS] Installing Cline extension..." -ForegroundColor Yellow
+    Write-Host "[2/$TOTAL_STEPS] Installing VS Code extensions (Cline, markdownlint)..." -ForegroundColor Yellow
     code --install-extension saoudrizwan.claude-dev --force 2>$null
-    Write-Host "  Cline extension installed  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
+    code --install-extension DavidAnson.vscode-markdownlint --force 2>$null
+    Write-Host "  Cline + markdownlint extensions installed  ($(Format-Elapsed $stepTimer))" -ForegroundColor Green
 } else {
     Write-Host "[2/$TOTAL_STEPS] Skipped (SkipInstall)  ($(Format-Elapsed $stepTimer))" -ForegroundColor Gray
 }

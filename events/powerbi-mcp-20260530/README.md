@@ -17,6 +17,7 @@
 |-----------|------|
 | VS Code | 코드 에디터 + AI 에이전트 실행 환경 |
 | Cline 확장 | VS Code에서 AI 에이전트(MCP) 구동 |
+| markdownlint 확장 | Markdown 문서 린트 검사 |
 | Git | Cline checkpoint 기능 지원 |
 | Node.js 22+ | MCP 서버 실행 런타임 |
 | Power BI Desktop | 대시보드 제작 도구 |
@@ -78,9 +79,10 @@ powershell -ExecutionPolicy Bypass -File "setup-powerbi-mcp.ps1" -StudentId 01 -
 
 1. [VS Code](https://code.visualstudio.com/download) 설치
 2. VS Code에서 Cline 확장 설치 (`saoudrizwan.claude-dev`)
-3. [Node.js 22 LTS](https://nodejs.org/) 설치
-4. [Power BI Desktop](https://aka.ms/pbidesktopstore) 설치
-5. Cline MCP 설정에서 3개 서버 추가 (Power BI는 반드시 exe 직접 실행)
+3. VS Code에서 markdownlint 확장 설치 (`DavidAnson.vscode-markdownlint`)
+4. [Node.js 22 LTS](https://nodejs.org/) 설치
+5. [Power BI Desktop](https://aka.ms/pbidesktopstore) 설치
+6. Cline MCP 설정에서 3개 서버 추가 (Power BI는 반드시 exe 직접 실행)
 
 ## 관리자 작업
 
