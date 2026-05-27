@@ -60,15 +60,17 @@ powershell -ExecutionPolicy Bypass -File "setup-powerbi-mcp.ps1" -StudentId 01 -
 |------|------|
 | 1 | VS Code 설치 (이미 있으면 건너뜀) |
 | 2 | Cline 확장 설치 + VS Code 터미널 설정 (PowerShell + shell integration) |
-| 2.5 | Git 설치 (Cline checkpoint 기능 지원) |
+| 2.5 | Git 설치 + 작업폴더 Git 초기화 (Cline checkpoint 지원) |
 | 3 | Node.js 22+ 설치 (MCP 서버 런타임) |
 | 4 | Power BI Desktop 설치 (Microsoft Store) |
 | 5 | API 설정 (config.json + 환경변수) |
 | 6 | Cline MCP 서버 3개 구성 (Power BI exe + Playwright + Filesystem) + Chrome/Edge 감지 |
 | 7 | 실습 파일(`practice.pbix`) 바탕화면에 다운로드 |
-| 8 | API 연결 테스트 + Vision(이미지) 테스트 |
+| 8 | API 연결 테스트 + Vision(이미지) 테스트 + VS Code 작업폴더 자동 열기 |
 
 > **주의**: Cline API Provider/Base URL/API Key/Model은 Cline UI에서 수동 입력 필요 (스크립트로 자동화 불가). 스크립트 실행 후 바탕화면의 `CLINE_API_SETUP.txt` 파일 참조.
+>
+> **Desktop에서 Cline을 시작하지 마세요.** Cline은 Desktop 디렉터리에서 checkpoint를 비활성화합니다. 스크립트가 `문서\New project 3` 폴더를 자동 생성하고 VS Code로 열어줍니다. 항상 이 작업폴더에서 Cline을 시작하세요.
 >
 > **VS Code가 열려 있었다면** 재시작 또는 Reload Window 실행 권장.
 
@@ -108,3 +110,4 @@ powershell -ExecutionPolicy Bypass -File "setup-powerbi-mcp.ps1" -StudentId 01 -
 | `Shell Integration Unavailable` 경고 | VS Code 터미널 프로필이 미설정 | **이미 수정됨** (v3). 스크립트가 PowerShell 기본 프로필 + shell integration을 자동 설정합니다. |
 | `Git must be installed to use checkpoints` | Cline checkpoint에 Git이 필요하나 미설치 | **이미 수정됨** (v3). 스크립트가 Git을 자동 설치합니다. |
 | Cline에서 이미지를 인식 못 함 | 파일 경로를 텍스트로 보내면 Cline이 이미지로 인식하지 않음 | 이미지 파일을 Cline 채팅에 첨부하거나, Playwright MCP의 스크린샷 도구를 사용하세요. `gpt-54-mini`는 API 레벨에서 이미지 입력을 지원합니다. |
+| Cline checkpoint `Cannot use checkpoints in Desktop directory` | Cline이 Desktop 디렉터리에서 checkpoint를 차단함 | Desktop이 아닌 작업폴더(`문서\New project 3`)에서 VS Code를 열고 Cline을 시작하세요. 스크립트가 자동으로 작업폴더를 생성하고 Git을 초기화합니다. |

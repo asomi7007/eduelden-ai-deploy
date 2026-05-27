@@ -14,6 +14,9 @@
     APIM base URL (default: https://apim-eduelden-ai.azure-api.net)
 .PARAMETER PracticeFileUrl
     URL to download practice .pbix file
+.PARAMETER WorkspacePath
+    VS Code/Cline workspace folder. Do not use Desktop; Cline checkpoints
+    are disabled in Desktop directories.
 .PARAMETER SkipInstall
     Skip software installation (only configure)
 .EXAMPLE
@@ -32,6 +35,9 @@ param(
 
     [Parameter(Mandatory=$false)]
     [string]$PracticeFileUrl = "https://github.com/asomi7007/eduelden-ai-deploy/raw/main/events/powerbi-mcp-20260530/files/%EC%8B%A4%EC%8A%B5%ED%8C%8C%EC%9D%BC.pbix",
+
+    [Parameter(Mandatory=$false)]
+    [string]$WorkspacePath,
 
     [switch]$SkipInstall
 )
@@ -94,11 +100,29 @@ if ($DesktopPath -and (Test-Path -LiteralPath $DesktopPath) -and $DesktopPath -n
     }
 }
 
+# --- Cline workspace path ---
+# Do not use Desktop as the Cline workspace. Cline intentionally disables
+# checkpoints in Desktop directories, even when Git is installed.
+$DocumentsPath = [Environment]::GetFolderPath("MyDocuments")
+$DocumentsPath = Repair-Utf8MojibakePath $DocumentsPath
+if (-not $DocumentsPath -or -not (Test-Path -LiteralPath $DocumentsPath)) {
+    $DocumentsPath = "$env:USERPROFILE\Documents"
+    New-Item -ItemType Directory -Force -Path $DocumentsPath | Out-Null
+}
+if ([string]::IsNullOrWhiteSpace($WorkspacePath)) {
+    $WorkspacePath = Join-Path $DocumentsPath "New project 3"
+}
+$WorkspacePath = Repair-Utf8MojibakePath $WorkspacePath
+if (-not (Test-Path -LiteralPath $WorkspacePath)) {
+    New-Item -ItemType Directory -Force -Path $WorkspacePath | Out-Null
+}
+
 Write-Host ""
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "  AI-Driven Power BI: MCP Workshop - Environment Setup" -ForegroundColor Cyan
 Write-Host "  Date: 2026-05-30 | Student ID: $StudentId" -ForegroundColor Cyan
 Write-Host "  Desktop: $DesktopPath" -ForegroundColor Cyan
+Write-Host "  VS Code Workspace: $WorkspacePath" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -231,6 +255,29 @@ if (-not $SkipInstall) {
             }
         }
     }
+}
+
+# Initialize the workspace as a Git repository so Cline checkpoints can work.
+# This is intentionally not done in Desktop, where Cline disables checkpoints.
+$env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
+if (Test-CommandExists "git") {
+    if (-not (Test-Path -LiteralPath (Join-Path $WorkspacePath ".git"))) {
+        git -C $WorkspacePath init 2>$null | Out-Null
+        git -C $WorkspacePath config user.name "Cline Checkpoints" 2>$null
+        git -C $WorkspacePath config user.email "cline-checkpoints@example.local" 2>$null
+        Write-Host "      Git workspace initialized for Cline checkpoints: $WorkspacePath" -ForegroundColor Green
+    } else {
+        Write-Host "      Git workspace already initialized: $WorkspacePath" -ForegroundColor Green
+    }
+    git -C $WorkspacePath config user.name "Cline Checkpoints" 2>$null
+    git -C $WorkspacePath config user.email "cline-checkpoints@example.local" 2>$null
+    git -C $WorkspacePath rev-parse --verify HEAD 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        git -C $WorkspacePath commit --allow-empty -m "Initial workspace for Cline checkpoints" 2>$null | Out-Null
+        Write-Host "      Git initial checkpoint commit created" -ForegroundColor Green
+    }
+} else {
+    Write-Host "      WARNING: Git is unavailable; Cline checkpoints may not work until VS Code/PowerShell is restarted." -ForegroundColor Yellow
 }
 
 # ===========================================================
@@ -482,10 +529,11 @@ $mcp.mcpServers | Add-Member -NotePropertyName "playwright" -NotePropertyValue (
 }) -Force
 
 # Filesystem MCP Server (official: @modelcontextprotocol/server-filesystem)
+# Allows access to both Desktop (practice file) and Workspace (Cline project)
 $mcp.mcpServers | Add-Member -NotePropertyName "filesystem" -NotePropertyValue ([PSCustomObject]@{
     type = "stdio"
     command = "cmd.exe"
-    args = @("/d", "/c", "npx", "-y", "@modelcontextprotocol/server-filesystem", $DesktopPath)
+    args = @("/d", "/c", "npx", "-y", "@modelcontextprotocol/server-filesystem", $DesktopPath, $WorkspacePath)
     env = $mcpEnv
     timeout = 60
     disabled = $false
@@ -496,7 +544,7 @@ Write-Utf8NoBom $mcpFile ($mcp | ConvertTo-Json -Depth 10)
 Write-Host "  MCP settings: $mcpFile" -ForegroundColor Green
 Write-Host "    - powerbi    : exe direct ($powerBiArch, no npx)" -ForegroundColor Gray
 Write-Host "    - playwright : @playwright/mcp (cmd.exe + npx, browser: $playwrightBrowserLabel)" -ForegroundColor Gray
-Write-Host "    - filesystem : @modelcontextprotocol/server-filesystem ($DesktopPath)  ($(Format-Elapsed $stepTimer))" -ForegroundColor Gray
+Write-Host "    - filesystem : @modelcontextprotocol/server-filesystem ($DesktopPath, $WorkspacePath)  ($(Format-Elapsed $stepTimer))" -ForegroundColor Gray
 
 # --- Manual API provider/key/model configuration (Cline UI) ---
 # These cannot be written to disk: Cline stores them in VS Code's
@@ -519,6 +567,13 @@ Cline API Setup (manual — values cannot be auto-applied)
 4. Save. MCP servers (powerbi / playwright / filesystem) are
    already configured at:
    $mcpFile
+
+Workspace note:
+   Open this folder in VS Code before starting Cline tasks:
+   $WorkspacePath
+
+   Do not start Cline from Desktop. Cline disables checkpoints in
+   Desktop directories.
 
 Image note:
    gpt-54-mini supports image input through the API, but Cline can only
@@ -617,6 +672,16 @@ try {
     Write-Host "  You can test manually later in Cline." -ForegroundColor Yellow
 }
 
+# Open VS Code with the workspace folder (not Desktop)
+if (Test-CommandExists "code") {
+    try {
+        code -r $WorkspacePath 2>$null
+        Write-Host "  VS Code workspace opened: $WorkspacePath" -ForegroundColor Green
+    } catch {
+        Write-Host "  Could not auto-open VS Code workspace: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
+
 # ===========================================================
 # DONE
 # ===========================================================
@@ -638,6 +703,7 @@ Write-Host "    - Power BI MCP: exe direct (no npx, no stdout noise)" -Foregroun
 Write-Host "    - Playwright MCP: browser auto-detected ($playwrightBrowserLabel)" -ForegroundColor Gray
 Write-Host "    - Cline MCP servers (powerbi, playwright, filesystem)" -ForegroundColor Gray
 Write-Host "    - VS Code terminal: PowerShell + shell integration" -ForegroundColor Gray
+Write-Host "    - Cline workspace: $WorkspacePath (Git initialized)" -ForegroundColor Gray
 Write-Host "    - API reference file: $DesktopPath\CLINE_API_SETUP.txt" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  Manual step required (cannot be scripted):" -ForegroundColor Yellow
@@ -648,11 +714,17 @@ Write-Host "      API Key  : (from env AI_CLASS_API_KEY)" -ForegroundColor Gray
 Write-Host "      Model    : gpt-54-mini" -ForegroundColor Gray
 Write-Host ""
 Write-Host "  Desktop: $DesktopPath" -ForegroundColor White
+Write-Host "  VS Code workspace: $WorkspacePath" -ForegroundColor White
 Write-Host "  Practice file: $destFile" -ForegroundColor White
 Write-Host ""
 Write-Host "  Next steps:" -ForegroundColor Yellow
-Write-Host "    1. Open VS Code (restart it if it was open during setup)" -ForegroundColor White
+Write-Host "    1. VS Code should have opened with workspace: $WorkspacePath" -ForegroundColor White
+Write-Host "       (If not, open VS Code and open this folder manually)" -ForegroundColor Gray
 Write-Host "    2. Configure Cline API in the UI (see above)" -ForegroundColor White
 Write-Host "    3. Open the practice file in Power BI Desktop" -ForegroundColor White
 Write-Host "    4. In Cline, ask: 'Analyze the file open in Power BI Desktop'" -ForegroundColor White
+Write-Host ""
+Write-Host "  IMPORTANT: Do NOT start Cline from Desktop." -ForegroundColor Red
+Write-Host "  Cline disables checkpoints in Desktop directories." -ForegroundColor Red
+Write-Host "  Always use the workspace folder above." -ForegroundColor Red
 Write-Host ""

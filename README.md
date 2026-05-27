@@ -327,7 +327,8 @@ GitHub Repository Variables에 다음 값을 설정합니다 (`deploy-all.sh`가
 | 브라우저 감지 | Chrome/Edge 자동 감지, 없으면 Chrome 설치 (Playwright MCP용) |
 | Cline MCP 설정 | Power BI (exe) + Playwright (`--browser` 자동) + Filesystem 등록 |
 | Desktop 호환 | OneDrive 리다이렉트 시 junction 생성으로 cwd 오류 방지 |
-| 연결 테스트 | 텍스트 API + Vision(이미지) API 테스트 |
+| 작업폴더 생성 | `문서\New project 3` Git 초기화 (Cline checkpoint는 Desktop에서 비활성) |
+| 연결 테스트 | 텍스트 API + Vision(이미지) API 테스트 + VS Code 작업폴더 자동 열기 |
 
 > **Power BI MCP 주의**: npx 래퍼를 사용하면 stdout에 경고 메시지가 섞여 MCP JSON-RPC 프로토콜이 오염됩니다. 반드시 exe를 직접 실행하도록 설정하십시오.
 
@@ -418,6 +419,7 @@ GitHub Repository Variables에 다음 값을 설정합니다 (`deploy-all.sh`가
 | Cline 터미널 `cwd does not exist` | OneDrive로 바탕화면 리다이렉트 | 스크립트가 `Desktop` junction 자동 생성 |
 | `Shell Integration Unavailable` | VS Code 터미널 프로필 미설정 | 스크립트가 PowerShell + shell integration 자동 설정 |
 | Cline checkpoint Git 오류 | Git 미설치 | 스크립트가 Git 자동 설치 (STEP 2.5) |
+| Cline checkpoint Desktop 차단 | Desktop에서 checkpoint 비활성화됨 | 작업폴더(`문서\New project 3`)에서 시작 (스크립트 자동 설정) |
 
 ---
 
