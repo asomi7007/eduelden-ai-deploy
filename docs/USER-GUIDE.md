@@ -9,6 +9,7 @@
 ### 1.1 Daily Operations
 
 #### Start of Class
+
 1. Open the **admin dashboard** (separate SWA): `https://calm-beach-02d18ca00.7.azurestaticapps.net`
 2. Log in with the admin token — sent via the `X-Admin-Token` custom header (not the standard Authorization header, because SWA overwrites it)
 3. The dashboard has 6 pages: **Login**, **Overview** (budget gauge, model usage), **Students** list, **Student Detail** (hourly chart), **Bulk Control** (enable/disable keys), **Alert Settings**
@@ -16,19 +17,21 @@
 5. Share the onboarding URL and passcode with students
 
 #### During Class
+
 - Use the admin dashboard **Overview** page for real-time monitoring — it shows total requests, estimated cost, budget gauge, and model breakdown
 - Use the **Students** page to view per-student usage with last-active time
 - Track onboarding progress via the slot grid on the onboarding SWA (auto-refreshes)
 - Check GitHub Issues for any `error` or `pending` labels
 
 #### End of Class
+
 - Run cost check: GitHub Actions > `cost-monitor.yml` > Run workflow
 - Review daily chart on the dashboard before dismissing students
 - If needed, disable student keys via the dashboard or CLI (see Key Management below)
 
 ### 1.2 Student Onboarding Flow
 
-```
+```text
 Student visits SWA URL
     ↓
 Enters: Student ID (01-50) + Email + Passcode
@@ -48,19 +51,20 @@ Student receives email with:
   - Manual setup instructions
 ```
 
-> **Note**: GitHub Free plan allows 20 concurrent workflow jobs. If 50 students 
-> apply simultaneously, some will queue (2-5 min delay). Recommend staggering: 
+> **Note**: GitHub Free plan allows 20 concurrent workflow jobs. If 50 students
+> apply simultaneously, some will queue (2-5 min delay). Recommend staggering:
 > have students apply in groups of 10.
 
 ### 1.3 Admin Dashboard
 
 The admin monitoring dashboard (`swa-eduelden-dashboard`) is a separate React application from the student onboarding SWA. Access it at:
 
-```
+```text
 https://swa-eduelden-dashboard.azurestaticapps.net
 ```
 
 #### Login
+
 1. Navigate to the dashboard URL
 2. Enter the admin token (configured as `DASHBOARD_ADMIN_TOKEN` in the SWA environment)
 3. Click **Login** — token is stored in your browser session (not persisted across tabs)
@@ -76,11 +80,13 @@ https://swa-eduelden-dashboard.azurestaticapps.net
 | **Alerts** | Configure 3-tier budget alert thresholds (default: 50%/80%/95%), set per-student daily token threshold, manage admin notification email |
 
 #### Data Freshness
+
 Dashboard data is sourced from Log Analytics (APIM GatewayLogs). Results are **cached for 5 minutes** in the API layer. There is no manual refresh button — simply wait 5 minutes for new data to appear.
 
 ### 1.4 Key Management
 
 #### Rotate a Student's Key
+
 ```bash
 # Via GitHub Actions
 # Go to Actions > key-management.yml > Run workflow
@@ -92,6 +98,7 @@ az rest --method POST \
 ```
 
 #### Disable a Student's Key
+
 ```bash
 az apim subscription update --service-name apim-{name}-ai \
   --resource-group rg-{name} \
@@ -100,6 +107,7 @@ az apim subscription update --service-name apim-{name}-ai \
 ```
 
 #### Bulk Disable All Keys
+
 ```bash
 for i in $(seq -w 1 50); do
   az apim subscription update --service-name apim-{name}-ai \
@@ -115,6 +123,7 @@ done
 - **Automated**: `cost-monitor.yml` runs daily at 09:00 KST
 - **Budget alerts**: Email to admin at 50%, 80%, 95% of $800
 - **Manual check**:
+
   ```bash
   az consumption usage list --resource-group rg-{name} \
     --start-date $(date -d "-7 days" +%Y-%m-%d) \
@@ -127,6 +136,7 @@ done
 **Option A: Student self-cancels** via the SWA onboarding page (needs passcode)
 
 **Option B: Admin cancels** via the admin panel or API:
+
 ```bash
 curl -X POST "https://{swa-url}/api/cancel" \
   -H "Content-Type: application/json" \
@@ -136,12 +146,13 @@ curl -X POST "https://{swa-url}/api/cancel" \
 ### 1.7 Post-Class Cleanup
 
 See `docs/resource-cleanup.md` for full procedure. Key steps:
+
 1. Suspend all APIM subscriptions
 2. Delete model deployments
 3. Delete APIM instance (stops ~$50/mo charge)
 4. Optionally delete the entire resource group
 
-> **Warning**: After deleting APIM, it remains in soft-delete state for 48 hours. 
+> **Warning**: After deleting APIM, it remains in soft-delete state for 48 hours.
 > You cannot recreate an APIM with the same name during this period.
 > To purge immediately: `az apim deletedservice purge --service-name apim-{name}-ai --location {region}`
 
@@ -152,6 +163,7 @@ See `docs/resource-cleanup.md` for full procedure. Key steps:
 ### 2.1 Getting Started (Automatic Setup)
 
 #### Step 1: Request Onboarding
+
 1. Visit the onboarding page (URL provided by instructor)
 2. Choose an available student number (01-50)
 3. Enter your email address
@@ -161,22 +173,25 @@ See `docs/resource-cleanup.md` for full procedure. Key steps:
 
 #### Step 2: Download & Run Setup Script
 
-> **Important**: If VS Code is not yet installed, run PowerShell as **Administrator** 
-> (right-click PowerShell > "Run as administrator"). If VS Code is already installed, 
+> **Important**: If VS Code is not yet installed, run PowerShell as **Administrator**
+> (right-click PowerShell > "Run as administrator"). If VS Code is already installed,
 > normal user permissions are sufficient.
 
 Open PowerShell and paste:
+
 ```powershell
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/{owner}/{repo}/main/scripts/setup-student.ps1" -OutFile setup-student.ps1
 ```
 
 Run the script (replace values from your email):
+
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
 .\setup-student.ps1 -StudentId {YOUR_ID} -ApiKey "{YOUR_KEY}"
 ```
 
 The script will:
+
 - Install VS Code (if not already installed)
 - Install the Cline extension
 - Install Power BI MCP (`C:\MCPServers\PowerBIModelingMCP\`) as a Windows exe (not npx) and configure Cline MCP settings for Power BI integration
@@ -188,6 +203,7 @@ The script will:
 > the new MCP settings to take effect.
 
 #### Step 3: Start Coding
+
 1. Open VS Code
 2. Click the Cline icon in the left sidebar
 3. Type a message like "Hello!" → you should get an AI response
@@ -196,15 +212,18 @@ The script will:
 ### 2.2 Manual Setup (If Automatic Fails)
 
 #### Install VS Code
+
 Download from: https://code.visualstudio.com/download
 
 #### Install Cline Extension
+
 1. Open VS Code
 2. Press `Ctrl+Shift+X` (Extensions)
 3. Search for `Cline`
 4. Install **Cline** (by saoudrizwan)
 
 #### Configure Cline
+
 1. Click the Cline icon in the left sidebar
 2. Select **"Bring my own API key"**
 3. Choose **API Provider**: `OpenAI Compatible`
@@ -262,7 +281,7 @@ Error message: `429 Too Many Requests`
 
 ## Appendix A: Architecture Quick Reference
 
-```
+```text
 Student Flow:
   Student Browser
       ↓ HTTPS
@@ -306,7 +325,7 @@ Admin Flow:
 
 The APIM policy handles the translation between OpenAI-compatible format (what Cline sends) and Azure OpenAI format (what the backend expects):
 
-```
+```text
 Cline sends:                         APIM rewrites to:
 POST /openai/v1/chat/completions  →  POST /openai/deployments/gpt-54-mini/chat/completions?api-version=2024-10-21
 POST /openai/chat/completions     →  POST /openai/deployments/gpt-54-mini/chat/completions?api-version=2024-10-21
@@ -314,11 +333,13 @@ Body: {"model":"gpt-54-mini",...}     (model extracted from body, injected into 
 ```
 
 Additionally, the APIM inbound policy strips parameters unsupported by Azure OpenAI:
+
 - `prediction`, `stream_options`, `service_tier`, `store`, `metadata`, `reasoning_effort`
 
 This prevents 400/403 errors when Cline sends these parameters.
 
 The policy also:
+
 - **Injects the real Azure OpenAI key** using the Named Value `{{aoai-api-key}}` — the key is stored securely in APIM's Named Values store, never in source code
 - **Accepts any auth header style** from the student client (`Authorization: Bearer`, `api-key`, or `Ocp-Apim-Subscription-Key`)
 

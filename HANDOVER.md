@@ -7,7 +7,7 @@
 
 ## TL;DR — Claude Code에게 줄 첫 프롬프트
 
-```
+```text
 이 폴더의 CLAUDE.md와 HANDOVER.md를 읽고, Phase별 체크리스트를 TodoWrite로 등록한 다음
 Phase 0부터 시작해줘. Azure MCP가 연결되어 있는지 먼저 mcp list로 확인하고,
 연결되어 있으면 그걸로 az 명령을 실행해. 안 되면 사용자에게 Cloud Shell에서 실행할
@@ -19,6 +19,7 @@ Phase 0부터 시작해줘. Azure MCP가 연결되어 있는지 먼저 mcp list�
 ## 지금까지 한 일 (세션 요약)
 
 ### Cowork 초기 세션
+
 1. ✅ 가이드 docx 파일 분석 — 8개 Phase, 50명 학생, $800 예산, 3개 모델 구조 파악
 2. ✅ 가이드 vs 실제 환경 차이 식별:
    - 가이드 적힌 리소스명 `eduelden09-8782-resource` → 실제는 `eduelden-ai-resource`
@@ -28,20 +29,21 @@ Phase 0부터 시작해줘. Azure MCP가 연결되어 있는지 먼저 mcp list�
 5. ✅ **Claude Code로 이관 결정**
 
 ### Claude Code 세션 (Phase 진행)
-6. ✅ Phase 0 — 사전 준비 점검 완료 (구독·리소스·학생계정 확인)
-7. ✅ Phase 1 — 예산 $800 + 알림 3단계 (50%/80%/95%) 생성 완료
-8. ✅ Phase 2 — 모델 배포 완료 (GPT-5.4-mini, GPT-5.5, DeepSeek-V4-Flash x2)
-9. ✅ Phase 3 — Entra ID 보안그룹 + RBAC + Graph API 앱 등록 완료
-10. ✅ Phase 4 — APIM `apim-eduelden-ai` 배포 + 정책 적용 완료
+
+1. ✅ Phase 0 — 사전 준비 점검 완료 (구독·리소스·학생계정 확인)
+2. ✅ Phase 1 — 예산 $800 + 알림 3단계 (50%/80%/95%) 생성 완료
+3. ✅ Phase 2 — 모델 배포 완료 (GPT-5.4-mini, GPT-5.5, DeepSeek-V4-Flash x2)
+4. ✅ Phase 3 — Entra ID 보안그룹 + RBAC + Graph API 앱 등록 완료
+5. ✅ Phase 4 — APIM `apim-eduelden-ai` 배포 + 정책 적용 완료
     - Named Value `{{aoai-api-key}}`로 키 안전 참조
     - Cline 호환 파라미터 자동 제거 정책 (`prediction`, `stream_options` 등)
     - 학생 구독 키 50개 생성 (`sub-student-01` ~ `sub-student-50`)
     - 진단 설정: Resource-specific 모드 (`ApiManagementGatewayLogs`)
-11. ✅ Phase 5 — GitHub Actions 온보딩 워크플로우 완료 (student-onboarding, key-management, cost-monitor)
-12. ✅ Phase 6 — `setup-student.ps1` 완성 (VS Code, Cline, Power BI MCP 설치 포함)
+6. ✅ Phase 5 — GitHub Actions 온보딩 워크플로우 완료 (student-onboarding, key-management, cost-monitor)
+7. ✅ Phase 6 — `setup-student.ps1` 완성 (VS Code, Cline, Power BI MCP 설치 포함)
     - npx 래퍼 대신 Windows exe 직접 실행 방식으로 MCP 등록
     - `C:\MCPServers\PowerBIModelingMCP\` 경로
-13. ✅ Phase 7 — SWA 배포 완료
+8. ✅ Phase 7 — SWA 배포 완료
     - 온보딩 SWA: `swa-eduelden-onboard`
     - 대시보드 SWA: `swa-eduelden-dashboard` (`calm-beach-02d18ca00.7.azurestaticapps.net`)
     - 대시보드 소스: `dashboard/` 폴더 (React + Vite + Recharts)
@@ -49,7 +51,7 @@ Phase 0부터 시작해줘. Azure MCP가 연결되어 있는지 먼저 mcp list�
     - 대시보드 API 6개 함수: overview, daily, students, control, alerts, health
     - 인증: `X-Admin-Token` 커스텀 헤더 (SWA Authorization 헤더 충돌 회피)
     - KQL: `union ApiManagementGatewayLogs, AzureDiagnostics` (양쪽 모드 호환)
-14. ✅ Phase 8 — 모니터링 설정 + 엔드투엔드 테스트 완료
+9. ✅ Phase 8 — 모니터링 설정 + 엔드투엔드 테스트 완료
 
 ## 사용자가 확정한 의사결정
 
@@ -73,6 +75,7 @@ Phase 0부터 시작해줘. Azure MCP가 연결되어 있는지 먼저 mcp list�
 ## Phase별 체크리스트 (Claude Code TodoWrite로 등록할 항목)
 
 ### Phase 0 — 사전 준비 점검
+
 - [x] 0-1. 구독 활성·리소스 그룹 접근 확인 (`az group show`)
 - [x] 0-2. 현재 사용자 RBAC 권한 확인 (Owner 또는 동급)
 - [x] 0-3. AI Foundry 리소스 + **모델 카탈로그 조회** (가이드 모델명 검증)
@@ -81,11 +84,13 @@ Phase 0부터 시작해줘. Azure MCP가 연결되어 있는지 먼저 mcp list�
 - [x] 0-6. 테넌트 ID + 관리자 계정 확인
 
 ### Phase 1 — 예산 및 비용 통제
+
 - [x] 1-1. Cost Management 예산 $800 생성 (RG 범위, Monthly)
 - [x] 1-2. 알림 3단계 (50%/$400, 80%/$640, 95%/$760) → admin@eldensoluton.kr
 - [x] 1-3. 모델별 예산 배분 계획 문서화
 
 ### Phase 2 — AI Foundry 모델 배포
+
 - [x] 2-0. **모델 카탈로그 재확인** (Phase 0-3 결과 기반으로 모델명 최종 확정)
 - [x] 2-1. 모델 A 배포 (GPT-5.5, TPM 50K)
 - [x] 2-2. 모델 B 배포 (GPT-5.4-mini, TPM 100K)
@@ -93,6 +98,7 @@ Phase 0부터 시작해줘. Azure MCP가 연결되어 있는지 먼저 mcp list�
 - [x] 2-4. Playground에서 3개 모델 응답 테스트
 
 ### Phase 3 — Entra ID + RBAC
+
 - [x] 3-1. 학생 계정 확인 (이미 존재함, 50명 전체 검증)
 - [x] 3-2. 보안그룹 `AI-Class-Students-Eduelden` 생성
 - [x] 3-3. 학생 50명을 그룹에 일괄 추가
@@ -101,6 +107,7 @@ Phase 0부터 시작해줘. Azure MCP가 연결되어 있는지 먼저 mcp list�
 - [x] 3-6. Mail.Send 권한 추가 + **관리자 동의 클릭(Portal 수동)**
 
 ### Phase 4 — APIM 설정
+
 - [x] 4-1. APIM 인스턴스 `apim-eduelden-ai` 배포 (Developer SKU, ~$50/월)
 - [x] 4-2. OpenAI Proxy API 등록 + 정책 (Rate Limit, Quota, Named Value 키 주입)
 - [x] 4-3. DeepSeek API 등록 + 라운드로빈 정책
@@ -111,6 +118,7 @@ Phase 0부터 시작해줘. Azure MCP가 연결되어 있는지 먼저 mcp list�
 - [x] 4-8. Log Analytics 진단 설정: Resource-specific 모드 (`ApiManagementGatewayLogs`)
 
 ### Phase 5 — GitHub Actions 온보딩
+
 - [x] 5-1. Private repo `asomi7007/eduelden-ai-deploy` 생성
 - [x] 5-2. 배포 스크립트 4종 작성 (`01_deploy_foundry.sh`, `02_manage_keys.sh`, `setup-student.ps1`, `cost-monitor.sh`)
 - [x] 5-3. GitHub Actions 워크플로우 3종 작성 (student-onboarding.yml, key-management.yml, cost-monitor.yml)
@@ -120,12 +128,14 @@ Phase 0부터 시작해줘. Azure MCP가 연결되어 있는지 먼저 mcp list�
 - [x] 5-7. 테스트 계정 1명 온보딩 → 이메일 수신 확인
 
 ### Phase 6 — 학생 PC 설정 스크립트
+
 - [x] 6-1. `setup-student.ps1` 완성 (VS Code/Cline 설치, API 설정, 연결 테스트)
 - [x] 6-2. PowerShell 실행 정책 안내 포함
 - [x] 6-3. 수동 설정 대체 가이드 문서
 - [x] 6-4. Power BI MCP 설치 자동화 (`C:\MCPServers\PowerBIModelingMCP\`, exe 직접 실행)
 
 ### Phase 7 — Static Web Apps 배포 (온보딩 + 대시보드)
+
 - [x] 7-1. `ai-class-starter` repo 준비 (FastAPI 샘플 + 일부러 넣은 버그 + 빈 폴더 옵션)
 - [x] 7-2. README — 4단계 실습 가이드 (분석/버그수정/기능추가/풀앱생성)
 - [x] 7-3. 온보딩 SWA `swa-eduelden-onboard` 배포
@@ -140,12 +150,14 @@ Phase 0부터 시작해줘. Azure MCP가 연결되어 있는지 먼저 mcp list�
 - [x] 7-9. `dashboard-deploy.yml` 워크플로우 작성
 
 ### Phase 8 — 모니터링 및 정리
+
 - [x] 8-1. cost-monitor.yml 매일 09:00 KST 실행
 - [x] 8-2. 학생별 APIM 사용량 조회 스크립트
 - [x] 8-3. 키 일괄 비활성화·재발급 스크립트
 - [x] 8-4. 수업 후 리소스 정리 절차서
 
 ### 최종 검증
+
 - [x] V-1. 테스트 학생 1명 풀 동선 (Issue 신청 → 이메일 → Cline 연결 → 3개 모델 호출)
 - [x] V-2. APIM Rate Limit 동작 확인 (10/분 초과 시 429)
 - [x] V-3. 비용 알림 50% 트리거 시뮬레이션
@@ -176,6 +188,7 @@ Phase 0부터 시작해줘. Azure MCP가 연결되어 있는지 먼저 mcp list�
 ## 시크릿 관리 원칙 (중요)
 
 다음 값들은 **절대로 chat에 평문 출력하지 마세요**:
+
 - `AZURE_CREDENTIALS` (서비스 주체 JSON)
 - `GRAPH_CLIENT_SECRET`
 - `ADMIN_TOKEN` (대시보드 인증 토큰)
@@ -184,6 +197,7 @@ Phase 0부터 시작해줘. Azure MCP가 연결되어 있는지 먼저 mcp list�
 - `AZURE_SWA_DASHBOARD_TOKEN` (대시보드 SWA 배포 토큰)
 
 대신:
+
 - `/tmp/eduelden-secrets/` (Cloud Shell) 또는 로컬 폴더에 파일로 저장
 - GitHub Secrets 등록은 `gh secret set NAME --body "$VALUE"` 로 변수 참조
 - 사용자에게 보여줄 때는 마지막 4자리만 마스킹해서 확인
@@ -207,6 +221,7 @@ Phase 0부터 시작해줘. Azure MCP가 연결되어 있는지 먼저 mcp list�
 `Azure_AI_Foundry_바이브코딩_가이드_1차시_2026-5-19-.docx`
 
 가이드의 핵심 모순(가이드 vs 실제):
+
 - 리소스명 불일치 (위 표 참고)
 - 모델명이 미래 모델(`gpt-5.5`)로 적혀있어 실제 카탈로그 재확인 필요
 

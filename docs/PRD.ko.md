@@ -7,6 +7,7 @@
 ## 1. 제품 개요
 
 Azure AI Foundry 바이브코딩 수업을 위한 **셀프서비스 학생 온보딩 플랫폼**이에요. 학생(최대 50명)이 웹 페이지를 방문해서 학번과 이메일을 입력하면, 자동으로 다음을 받게 돼요:
+
 - APIM 구독 키 (3개 AI 모델에 통합 접근)
 - 설정 안내와 PowerShell 자동 설정 스크립트가 포함된 환영 이메일
 - 사전 구성된 VS Code + Cline 확장으로 바로 AI 코딩 시작
@@ -28,7 +29,7 @@ Azure AI Foundry 바이브코딩 수업을 위한 **셀프서비스 학생 온�
 
 ## 2. 아키텍처
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        학생 흐름                                     │
 │                                                                      │
@@ -88,7 +89,7 @@ Azure AI Foundry 바이브코딩 수업을 위한 **셀프서비스 학생 온�
 
 ### 컴포넌트 맵
 
-```
+```text
 eduelden-ai-deploy/
 ├── config.env.template             # 배포 설정 템플릿
 ├── config.env                      # 사용자 설정 (git에서 제외)
@@ -170,7 +171,7 @@ eduelden-ai-deploy/
 | `deepseek-v4-flash-2` | DeepSeek-V4-Flash | Serverless | 대안 모델 (인스턴스 2) |
 
 > **참고**: 모델 이름은 Azure 배포 이름이며, 실제 모델 식별자가 아니에요. 배포 전에 `az cognitiveservices account list-models` 명령으로 AI Foundry 카탈로그에서 사용 가능한 모델을 확인하세요.
-
+>
 > **학생용 모델 ID**: 학생은 Cline에서 모델 ID로 `deepseek-v4-flash`를 사용해요. APIM 정책이 내부적으로 라운드로빈을 통해 `deepseek-v4-flash-1` 또는 `deepseek-v4-flash-2`로 라우팅해요. 학생은 두 개의 인스턴스에 대해 알 필요가 없어요.
 
 ### 3.3 Entra ID
@@ -206,6 +207,7 @@ eduelden-ai-deploy/
 APIM 정책은 **네 가지 문제**와 미지원 파라미터 제거를 처리해야 해요:
 
 #### 문제 1: 다중 헤더 인증
+
 Cline은 `Authorization: Bearer <key>`를 보내고, curl은 `api-key`나 `Ocp-Apim-Subscription-Key`를 보낼 수 있어요. 정책은 세 가지 모두를 받아야 해요:
 
 ```xml
@@ -221,7 +223,9 @@ Cline은 `Authorization: Bearer <key>`를 보내고, curl은 `api-key`나 `Ocp-A
 ```
 
 #### 문제 2: URL 형식 변환
+
 Cline (OpenAI SDK)은 프로바이더 설정에 따라 다음 두 가지 URL 패턴 중 하나를 보낼 수 있어요:
+
 - `POST /openai/v1/chat/completions` (`/v1` 포함 — Cline이 자동으로 추가)
 - `POST /openai/chat/completions` (`/v1` 없이)
 
@@ -248,6 +252,7 @@ Azure OpenAI가 기대하는 형식: `POST /openai/deployments/{model}/chat/comp
 ```
 
 #### 문제 3: 백엔드 키 주입
+
 학생의 인증 헤더를 제거하고 진짜 Azure OpenAI 키를 주입해요. 키는 정책 XML에 평문으로 삽입하지 않고 Named Value(`{{aoai-api-key}}`)로 저장해요:
 
 ```xml
@@ -261,6 +266,7 @@ Azure OpenAI가 기대하는 형식: `POST /openai/deployments/{model}/chat/comp
 > **보안 참고**: `{{aoai-api-key}}`(APIM Named Value)를 사용하면 키가 Azure에서 중앙 관리되고, 정책 소스 코드나 Git 히스토리에 절대 노출되지 않아요. Azure Portal에서 Named Value만 교체하면 정책 XML을 수정할 필요가 없어요.
 
 #### 문제 5: 미지원 파라미터 제거
+
 Cline 및 기타 OpenAI 호환 클라이언트가 보내는 파라미터 중 Azure OpenAI가 지원하지 않는 것들을 정책에서 제거해요:
 
 제거 대상 파라미터: `prediction`, `stream_options`, `service_tier`, `store`, `metadata`, `reasoning_effort`
@@ -277,6 +283,7 @@ Cline 및 기타 OpenAI 호환 클라이언트가 보내는 파라미터 중 Azu
 ```
 
 #### 문제 4: DeepSeek 로드 밸런싱
+
 두 개의 DeepSeek 인스턴스(`deepseek-v4-flash-1`과 `deepseek-v4-flash-2`)는 APIM 인바운드 정책에서 라운드로빈으로 부하 분산돼요:
 
 ```xml
@@ -301,6 +308,7 @@ Cline 및 기타 OpenAI 호환 클라이언트가 보내는 파라미터 중 Azu
 ## 5. GitHub Actions 워크플로우 -- 학생 온보딩 파이프라인
 
 ### 5.1 트리거
+
 - `issues.opened` 이벤트 + `onboarding` 라벨
 
 ### 5.2 단계
@@ -379,6 +387,7 @@ Azure Static Web Apps는 **`/api/admin*` 경로를 내부적으로 예약**하�
 **해결 방법**: 대체 라우트 이름을 사용하세요 (예: `/api/adminlist` 대신 `/api/manage`).
 
 `staticwebapp.config.json`:
+
 ```json
 {
   "navigationFallback": { "rewrite": "/index.html" },
@@ -440,6 +449,7 @@ PowerShell 스크립트를 GitHub에서 `Invoke-WebRequest`로 다운로드하�
 대시보드는 모든 API 호출에 커스텀 `X-Admin-Token` HTTP 헤더를 사용해요. 표준 `Authorization: Bearer` 헤더는 사용하지 **않아요**. Azure SWA의 내장 인증이 `Authorization` 헤더를 가로채서 재작성하기 때문에 백엔드 함수에서 사용할 수 없기 때문이에요.
 
 흐름:
+
 1. 관리자가 `/login` 페이지에서 토큰을 입력
 2. 토큰이 `sessionStorage`에 저장됨
 3. 모든 대시보드 API 호출에 `X-Admin-Token: <token>` 헤더를 포함
@@ -472,6 +482,7 @@ PowerShell 스크립트를 GitHub에서 `Invoke-WebRequest`로 다운로드하�
 ### 9.6 배포
 
 별도의 GitHub Actions 워크플로우: `.github/workflows/dashboard-deploy.yml`
+
 - 트리거: `main` 브랜치에 push (경로: `dashboard/**` 또는 `api/**`), 또는 수동 디스패치
 - 빌드: `dashboard/`에서 `npm run build` → `dashboard/dist/`로 출력
 - 배포: `Azure/static-web-apps-deploy@v1` (`app_location: dashboard`, `api_location: api`)
@@ -489,6 +500,7 @@ APIM에서 Resource-specific 진단 로깅 모드를 사용해요. 이렇게 하
 ## 11. 온보딩 프론트엔드 (SWA)
 
 싱글 페이지 HTML 앱 (`docs/index.html`)으로 구성돼요:
+
 - **학생 패널**: 학번(01-50), 이메일, 패스코드 입력 → 제출
 - **슬롯 그리드**: 50개 슬롯의 사용 가능/대기 중/완료 상태 표시 (실시간, `/api/slots` 통해)
 - **관리자 패널**: 비밀번호 보호, 모든 온보딩 항목과 통계 표시
@@ -506,6 +518,7 @@ APIM에서 Resource-specific 진단 로깅 모드를 사용해요. 이렇게 하
 ### 레이스 컨디션 처리
 
 `onboard.js`는 생성 후 중복 검사를 포함해요:
+
 - Issue 생성 후, 동일 학번의 모든 열린 Issue를 다시 조회
 - 중복이 발견되면 가장 낮은 Issue 번호(먼저 생성된 것)만 유지
 - 나중에 생성된 중복 Issue는 `rejected` 라벨로 닫기

@@ -21,24 +21,28 @@
 각 Phase를 수동으로 따라가는 대신, 한 번에 모두 배포하고 싶다면:
 
 ### 1. 설정
+
 ```bash
 cp config.env.template config.env
 # config.env를 조직에 맞는 값으로 편집하세요
 ```
 
 ### 2. 배포
+
 ```bash
 chmod +x scripts/deploy-all.sh
 ./scripts/deploy-all.sh
 ```
 
 ### 3. 특정 Phase부터 재개
+
 ```bash
 ./scripts/deploy-all.sh --phase 4    # Phase 4부터 재개
 ./scripts/deploy-all.sh --dry-run    # 실행하지 않고 미리보기
 ```
 
 > 자동 스크립트는 Phase 1-7을 처리해요. 다음 작업은 직접 해야 해요:
+>
 > - APIM 정책 수동 적용 (Phase 4 — PRD.ko.md 섹션 4.3 참고)
 > - Portal에서 ACS Email 도메인 설정 완료 (Phase 5)
 > - SWA 구성에서 `GITHUB_PAT` 설정 (Phase 7)
@@ -275,6 +279,7 @@ done
 ### APIM 정책 적용
 
 APIM 정책의 핵심 사항:
+
 - **Named Value 참조**: Azure OpenAI 키는 `set-header` 요소에서 `{{aoai-api-key}}`로 참조됩니다 (하드코딩 금지).
 - **파라미터 제거**: 다음 6개 파라미터는 **모든 모델 요청**에서 일괄 제거됩니다 (gpt-55만이 아닌 전체 모델):
   `prediction`, `stream_options`, `service_tier`, `store`, `metadata`, `reasoning_effort`
@@ -439,6 +444,7 @@ git add . && git commit -m "Add dashboard" && git push
 ```
 
 **주의사항**:
+
 - 대시보드는 SWA의 내장 `Authorization` 헤더 처리와 충돌을 피하기 위해 `Authorization: Bearer` 대신 `X-Admin-Token` 헤더로 인증해요.
 - `dashboard-deploy.yml` 워크플로우는 `main` push 시 트리거되며, `dashboard/` 폴더에서 `npm run build`로 빌드해요.
 - 대시보드 URL 확인: `az staticwebapp show --name swa-{name}-dashboard --resource-group rg-{name} --query defaultHostname -o tsv`
@@ -495,6 +501,7 @@ curl -X POST "https://apim-{name}-ai.azure-api.net/deepseek/chat/completions" \
 ### setup-student.ps1 — 설치 내용
 
 이 스크립트는 학생 Windows PC에서 실행되며 다음을 설치해요:
+
 1. VS Code (미설치 시)
 2. Cline 확장 (`saoudrizwan.claude-dev`)
 3. Cline 설정 (`~/.cline/data/globalState.json`) — APIM 엔드포인트 + 학생 API 키 포함

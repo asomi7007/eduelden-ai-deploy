@@ -9,7 +9,7 @@
 
 ### 1.1 전체 요청 흐름
 
-```
+```text
 학생 PC (VS Code + Cline)
     │
     │  POST /openai/v1/chat/completions
@@ -66,12 +66,14 @@ APIM 정책(XML)이 요청을 받으면 6가지 변환을 순서대로 수행합
 **④ URL 재작성**
 
 Cline(OpenAI 호환 클라이언트)은 이렇게 보냅니다:
-```
+
+```text
 POST /openai/v1/chat/completions
 ```
 
 Azure OpenAI는 이걸 기대합니다:
-```
+
+```text
 POST /openai/deployments/gpt-54-mini/chat/completions?api-version=2024-10-21
 ```
 
@@ -137,7 +139,7 @@ DeepSeek은 2개 인스턴스를 배포하고 APIM 라운드로빈으로 분산�
 
 ### 2.1 배포 파이프라인 개요
 
-```
+```text
 개발자 git push (main 브랜치)
     │
     ├─► azure-static-web-apps-*.yml  → 온보딩 SWA 자동 배포
@@ -153,6 +155,7 @@ DeepSeek은 2개 인스턴스를 배포하고 APIM 라운드로빈으로 분산�
 GitHub에 push하면 Azure Static Web Apps가 자동으로 빌드하고 배포합니다.
 
 **온보딩 SWA**:
+
 ```yaml
 app_location: "/docs"          # 프론트엔드 소스 (정적 HTML)
 api_location: "/api"           # Azure Functions 소스
@@ -160,6 +163,7 @@ output_location: ""            # 빌드 불필요 (정적 파일)
 ```
 
 **대시보드 SWA**:
+
 ```yaml
 app_location: "/dashboard"     # React 소스
 api_location: "/api"           # Azure Functions 소스 (공유)
@@ -240,7 +244,7 @@ az monitor diagnostic-settings create \
 
 학생 PC 환경 설정은 PowerShell 스크립트로 자동화됩니다:
 
-```
+```text
 setup-student.ps1 실행
     │
     ├─ [1/4] VS Code 설치 (없으면 다운로드 + 사일런트 설치)
@@ -258,7 +262,7 @@ setup-student.ps1 실행
 
 제네릭 래퍼 패키지(`@microsoft/powerbi-modeling-mcp`)를 npx로 실행하면, 래퍼가 플랫폼을 감지하면서 stdout에 일반 텍스트를 먼저 출력합니다:
 
-```
+```text
 Detected platform: win32, architecture: x64
 Using @microsoft/powerbi-modeling-mcp-win32-x64 version...
 ```
@@ -298,7 +302,7 @@ PowerShell에서 `$ErrorActionPreference = "Stop"`을 설정하면, 외부 프�
 
 처음에는 표준 `Authorization: Bearer` 헤더를 사용했습니다. 하지만 Azure SWA는 내장 인증(EasyAuth) 기능 때문에 인바운드 `Authorization` 헤더를 가로채서 365자짜리 자체 토큰으로 덮어씁니다. 백엔드 Azure Function이 받는 `Authorization` 헤더는 관리자가 보낸 값이 아니라 SWA가 만든 값입니다.
 
-```
+```text
 관리자 → Authorization: Bearer my-secret-token
                     ↓ SWA가 가로챔
 백엔드 ← Authorization: Bearer eyJ0eXAiOi...(365자 SWA 토큰)
@@ -401,7 +405,7 @@ APIM 구독 키는 세 가지 상태를 가집니다:
 
 ### 4.1 온보딩 흐름
 
-```
+```text
 ① 강사가 온보딩 URL + 패스코드 공유
     ↓
 ② 학생이 웹 페이지에서 학번 + 이메일 + 패스코드 입력
@@ -430,6 +434,7 @@ APIM 구독 키는 세 가지 상태를 가집니다:
 하지만 Entra ID 테넌트에 Exchange Online 라이선스가 없거나 비활성화되면 Graph API의 `Mail.Send` 권한이 있어도 발송이 실패합니다. 이 환경에서는 Exchange 라이선스가 중단된 상태였습니다.
 
 Azure Communication Services(ACS) Email은:
+
 - Exchange 라이선스가 필요 없습니다
 - 첫 1,000통/월이 무료입니다
 - HMAC-SHA256 인증으로 키 기반 발송이 가능합니다
@@ -454,7 +459,7 @@ ACS 발송 주소는 `DoNotReply@{ACS도메인}`이 됩니다. 학교 도메인�
 
 MCP(Model Context Protocol)를 통해 Cline이 Power BI Desktop에 직접 연결합니다:
 
-```
+```text
 Cline (AI 에이전트)
     │ MCP stdio (JSON-RPC)
     ▼
@@ -465,6 +470,7 @@ Power BI Desktop (열려 있는 .pbix 파일)
 ```
 
 AI가 할 수 있는 일:
+
 - 테이블 스키마 조회
 - DAX 수식 실행
 - 측정값(Measure) 생성/수정

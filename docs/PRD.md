@@ -7,6 +7,7 @@
 ## 1. Product Overview
 
 A **self-service student onboarding platform** for an Azure AI Foundry vibe-coding class. Students (up to 50) visit a web page, enter their student ID and email, and automatically receive:
+
 - An APIM subscription key (unified access to 3 AI models)
 - A welcome email with setup instructions and a PowerShell auto-setup script
 - Pre-configured VS Code + Cline extension ready for AI-assisted coding
@@ -28,7 +29,7 @@ A **self-service student onboarding platform** for an Azure AI Foundry vibe-codi
 
 ## 2. Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        Student Flow                                  │
 │                                                                      │
@@ -88,7 +89,7 @@ A **self-service student onboarding platform** for an Azure AI Foundry vibe-codi
 
 ### Component Map
 
-```
+```text
 eduelden-ai-deploy/
 ├── config.env.template             # Deployment configuration template
 ├── config.env                      # Your configuration (git-ignored)
@@ -170,7 +171,7 @@ eduelden-ai-deploy/
 | `deepseek-v4-flash-2` | DeepSeek-V4-Flash | Serverless | Alternative model (instance 2) |
 
 > **Note**: Model names are Azure deployment names, not actual model identifiers. Verify available models in your AI Foundry catalog with `az cognitiveservices account list-models` before deploying.
-
+>
 > **Student-facing Model ID**: Students use `deepseek-v4-flash` as the model ID in Cline. The APIM policy internally routes to either `deepseek-v4-flash-1` or `deepseek-v4-flash-2` via round-robin. Students do not need to know about the two instances.
 
 ### 3.3 Entra ID
@@ -206,6 +207,7 @@ eduelden-ai-deploy/
 The APIM policy must handle **four problems** plus unsupported parameter stripping:
 
 #### Problem 1: Multi-Header Authentication
+
 Cline sends `Authorization: Bearer <key>`, curl may send `api-key` or `Ocp-Apim-Subscription-Key`. The policy must accept all three:
 
 ```xml
@@ -221,7 +223,9 @@ Cline sends `Authorization: Bearer <key>`, curl may send `api-key` or `Ocp-Apim-
 ```
 
 #### Problem 2: URL Format Translation
+
 Cline (OpenAI SDK) may send either of these URL patterns depending on the provider configuration:
+
 - `POST /openai/v1/chat/completions` (with `/v1` — Cline appends this automatically)
 - `POST /openai/chat/completions` (without `/v1`)
 
@@ -248,6 +252,7 @@ The policy must handle both patterns. The condition checks for `/chat/completion
 ```
 
 #### Problem 3: Backend Key Injection
+
 Strip the student's auth headers and inject the real Azure OpenAI key. The key is stored as a Named Value (`{{aoai-api-key}}`) in APIM rather than being embedded in plaintext in the policy XML:
 
 ```xml
@@ -261,6 +266,7 @@ Strip the student's auth headers and inject the real Azure OpenAI key. The key i
 > **Security note**: Using `{{aoai-api-key}}` (APIM Named Value) means the key is managed centrally in Azure and never appears in policy source code or Git history. Rotate the Named Value in the Azure Portal without touching policy XML.
 
 #### Problem 5: Unsupported Parameter Stripping
+
 Cline and other OpenAI-compatible clients send parameters that Azure OpenAI does not accept. The policy strips them from the request body before forwarding:
 
 Stripped parameters: `prediction`, `stream_options`, `service_tier`, `store`, `metadata`, `reasoning_effort`
@@ -277,6 +283,7 @@ Stripped parameters: `prediction`, `stream_options`, `service_tier`, `store`, `m
 ```
 
 #### Problem 4: DeepSeek Load Balancing
+
 The two DeepSeek instances (`deepseek-v4-flash-1` and `deepseek-v4-flash-2`) are load-balanced via round-robin in the APIM inbound policy:
 
 ```xml
@@ -301,6 +308,7 @@ The two DeepSeek instances (`deepseek-v4-flash-1` and `deepseek-v4-flash-2`) are
 ## 5. GitHub Actions Workflow — Student Onboarding Pipeline
 
 ### 5.1 Trigger
+
 - `issues.opened` event with label `onboarding`
 
 ### 5.2 Steps
@@ -379,6 +387,7 @@ Azure Static Web Apps **reserves `/api/admin*` paths** internally. Any API endpo
 **Solution**: Use alternative route names (e.g., `/api/manage` instead of `/api/adminlist`).
 
 `staticwebapp.config.json`:
+
 ```json
 {
   "navigationFallback": { "rewrite": "/index.html" },
@@ -440,6 +449,7 @@ A standalone React + Vite SWA deployed separately from the onboarding SWA. Provi
 The dashboard uses a custom `X-Admin-Token` HTTP header for all API calls. Standard `Authorization: Bearer` headers are **not used** because Azure SWA's built-in auth intercepts and rewrites the `Authorization` header, making it unavailable to the backend function.
 
 Flow:
+
 1. Admin enters token on `/login` page
 2. Token is stored in `sessionStorage`
 3. Every dashboard API call includes `X-Admin-Token: <token>` header
@@ -472,6 +482,7 @@ Flow:
 ### 9.6 Deployment
 
 Separate GitHub Actions workflow: `.github/workflows/dashboard-deploy.yml`
+
 - Triggers: push to `main` (paths `dashboard/**` or `api/**`), or manual dispatch
 - Build: `npm run build` in `dashboard/` → output to `dashboard/dist/`
 - Deploy: `Azure/static-web-apps-deploy@v1` with `app_location: dashboard`, `api_location: api`
@@ -481,6 +492,7 @@ Separate GitHub Actions workflow: `.github/workflows/dashboard-deploy.yml`
 ## 11. Onboarding Frontend (SWA)
 
 Single-page HTML app (`docs/index.html`) with:
+
 - **Student Panel**: Enter student ID (01-50), email, passcode → submit
 - **Slot Grid**: 50 slots showing available/pending/done status (real-time via `/api/slots`)
 - **Admin Panel**: Password-protected, shows all onboarding entries with stats
@@ -498,6 +510,7 @@ Single-page HTML app (`docs/index.html`) with:
 ### Race Condition Handling
 
 `onboard.js` includes post-creation duplicate check:
+
 - After creating an issue, re-fetches all open issues for the same student ID
 - If duplicates found, keeps the one with the lowest issue number (first created)
 - Closes later duplicates with `rejected` label

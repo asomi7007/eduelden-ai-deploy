@@ -21,24 +21,28 @@
 If you want to deploy everything at once instead of following each phase manually:
 
 ### 1. Configure
+
 ```bash
 cp config.env.template config.env
 # Edit config.env with your organization's values
 ```
 
 ### 2. Deploy
+
 ```bash
 chmod +x scripts/deploy-all.sh
 ./scripts/deploy-all.sh
 ```
 
 ### 3. Resume from a specific phase
+
 ```bash
 ./scripts/deploy-all.sh --phase 4    # Resume from Phase 4
 ./scripts/deploy-all.sh --dry-run    # Preview without executing
 ```
 
 > The automated script handles Phases 1-7. You still need to:
+>
 > - Apply APIM policies manually (Phase 4 — see PRD.md Section 4.3)
 > - Complete ACS Email domain setup in Portal (Phase 5)
 > - Set `GITHUB_PAT` in SWA Configuration (Phase 7)
@@ -275,6 +279,7 @@ done
 ### APIM Policy Application
 
 Key points about the APIM policy:
+
 - **Named Value reference**: The Azure OpenAI key is referenced as `{{aoai-api-key}}` (not hardcoded) in the `set-header` element.
 - **Parameter stripping**: The following 6 parameters are removed from **all model requests** (not just gpt-55) to ensure Azure OpenAI compatibility:
   `prediction`, `stream_options`, `service_tier`, `store`, `metadata`, `reasoning_effort`
@@ -439,6 +444,7 @@ git add . && git commit -m "Add dashboard" && git push
 ```
 
 **Notes**:
+
 - The dashboard uses `X-Admin-Token` header for authentication (not `Authorization: Bearer`) to avoid conflicts with SWA's built-in Authorization header handling.
 - The `dashboard-deploy.yml` workflow triggers on push to `main` and builds from the `dashboard/` folder using `npm run build`.
 - Dashboard URL: retrieved with `az staticwebapp show --name swa-{name}-dashboard --resource-group rg-{name} --query defaultHostname -o tsv`
@@ -495,6 +501,7 @@ All bash scripts read from `config.env` in the project root. Copy `config.env.te
 ### setup-student.ps1 — What it installs
 
 The script runs on each student's Windows PC and installs:
+
 1. VS Code (if not present)
 2. Cline extension (`saoudrizwan.claude-dev`)
 3. Cline configuration (`~/.cline/data/globalState.json`) with APIM endpoint + student API key

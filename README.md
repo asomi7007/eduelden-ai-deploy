@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Azure-0078D4?logo=microsoftazure)](https://azure.microsoft.com)
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=nodedotjs)](https://nodejs.org)
-[![Students](https://img.shields.io/badge/Students-50명-blue)]()
+[![Students](https://img.shields.io/badge/Students-50명-blue)](#-프로젝트-개요)
 
 > 학생 50명이 AI와 함께 코딩하는 수업을 위한 셀프서비스 온보딩 플랫폼입니다.
 
@@ -42,7 +42,7 @@
 
 ## 🏗️ 아키텍처
 
-```
+```text
   ┌──────────────────────────────────────────────────────────────┐
   │                        학생 (Chrome)                          │
   └──────────────────────┬───────────────────────────────────────┘
@@ -158,7 +158,7 @@ Cline 확장은 **OpenAI 형식**(`POST /openai/chat/completions`)으로 요청�
 
 ## 📂 디렉터리 구조
 
-```
+```text
 eduelden-ai-deploy/
 │
 ├── README.md                          # 프로젝트 소개
@@ -309,6 +309,7 @@ GitHub Repository Variables에 다음 값을 설정합니다 (`deploy-all.sh`가
 - `APIM_GATEWAY` — APIM 게이트웨이 URL
 
 > **학생 설정 스크립트**: `setup-student.ps1`은 `-ApimUrl` 매개변수로 APIM 주소를 변경할 수 있습니다:
+>
 > ```powershell
 > .\setup-student.ps1 -StudentId 01 -ApiKey "key" -ApimUrl "https://apim-myaiclass-ai.azure-api.net"
 > ```

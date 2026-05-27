@@ -34,7 +34,7 @@
 
 ## 파일 구조
 
-```
+```text
 events/powerbi-mcp-20260530/
 ├── config.json              # 행사 설정
 ├── setup-powerbi-mcp.ps1    # 학생 PC 자동 설치 스크립트
@@ -87,6 +87,7 @@ powershell -ExecutionPolicy Bypass -File "setup-powerbi-mcp.ps1" -StudentId 01 -
 ### 이메일 발송
 
 `email-template.html`의 플레이스홀더를 치환하여 발송:
+
 - `{{STUDENT_NAME}}` — 학생 이름
 - `{{STUDENT_ID}}` — 학생 계정 (예: 01)
 - `{{STUDENT_NUM}}` — 학생 번호 (예: 01)
