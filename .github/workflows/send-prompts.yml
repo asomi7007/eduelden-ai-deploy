@@ -1,0 +1,38 @@
+name: Send Practice Prompts
+
+# 활성(onboarding 'done') 학생에게 실습 프롬프트 안내 메일을 일괄 발송
+# 수동 실행 전용 (Actions 탭 > Run workflow)
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '미리보기만 (수신자 목록만 출력, 발송 안 함)'
+        type: boolean
+        default: true
+      event_id:
+        description: '이벤트 ID'
+        default: 'powerbi-mcp-20260530'
+      only_email:
+        description: '테스트: 이 이메일에게만 발송 (비우면 활성 전원)'
+        default: ''
+
+permissions:
+  issues: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Send practice-prompt emails
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACS_CONNECTION_STRING: ${{ secrets.ACS_CONNECTION_STRING }}
+          ACS_SENDER_ADDRESS: ${{ secrets.ACS_SENDER_ADDRESS }}
+          EVENT_ID: ${{ inputs.event_id }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+          ONLY_EMAIL: ${{ inputs.only_email }}
+        run: node emails/send-prompts.js
