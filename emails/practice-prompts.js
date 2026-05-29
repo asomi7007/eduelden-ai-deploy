@@ -22,9 +22,9 @@ const PROMPTS = [
     no: 2,
     title: 'Power BI 테마 JSON 생성',
     mcp: ['Playwright MCP', 'Filesystem MCP', 'Power BI MCP'],
-    prompt: '이 사이트를 Playwright MCP로 참고해서 Power BI 테마 JSON 파일을 만들어 줘.\nhttps://app.powerbi.com/view?r=...(강사가 안내한 참조 대시보드 URL)',
+    prompt: '이 사이트를 Playwright MCP로 참고해서 Power BI 테마 JSON 파일을 만들어 줘.\nhttps://app.powerbi.com/view?r=eyJrIjoiMWJlZDE4NzMtNjBlZi00OGY5LTk4ZDYtZjYzMGMyN2IzYTkxIiwidCI6Ijc0MzBjOGJlLWQ1ZTMtNDgxYi1hNTcwLTZjOGI0MzRkZGY4OCIsImMiOjZ9&pageName=ReportSection2e5116d592f50302d0cc',
     desc: 'Playwright MCP가 참조 대시보드 사이트를 자동 방문해 색상 팔레트·폰트·시각적 스타일을 분석하고, Filesystem MCP로 Power BI 테마 JSON 파일을 저장합니다. (3개 MCP 협업)',
-    note: 'URL이 길므로 강사가 안내하는 참조 대시보드 주소를 미리 복사해 두세요.',
+    note: 'URL이 길므로 위 주소 전체를 복사해서 프롬프트에 붙여넣으세요.',
   },
   {
     no: 3,

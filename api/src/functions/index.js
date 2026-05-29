@@ -4,6 +4,7 @@ require('./onboard');
 require('./cancel');
 require('./admin');
 require('./reset');
+require('./send-prompts');
 require('./dashboard-overview');
 require('./dashboard-daily');
 require('./dashboard-students');

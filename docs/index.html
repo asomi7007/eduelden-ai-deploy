@@ -139,6 +139,43 @@
     box-shadow: 0 0 0 2px rgba(5,150,105,0.3);
   }
 
+  /* 프롬프트 발송 그리드 */
+  .pslot {
+    text-align: center;
+    padding: 8px 0;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border: 1px solid var(--gray-200);
+    background: #fff;
+    color: var(--gray-400);
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .pslot.inactive {
+    background: #f8fafc;
+    color: #cbd5e1;
+    border-color: #eef2f7;
+    cursor: not-allowed;
+  }
+  .pslot.active {
+    background: #fff;
+    color: #16a34a;
+    border-color: #16a34a;
+    cursor: pointer;
+  }
+  .pslot.active:hover { background: #f0fdf4; }
+  .pslot.selected {
+    background: #16a34a;
+    color: #fff;
+    border-color: #16a34a;
+    box-shadow: 0 0 0 2px rgba(22,163,74,0.35);
+    cursor: pointer;
+  }
+  .pslot-legend { display:flex; gap:14px; flex-wrap:wrap; font-size:0.78rem; color:var(--gray-500); margin:4px 0 10px; }
+  .pslot-legend span { display:inline-flex; align-items:center; gap:5px; }
+  .pslot-dot { width:12px; height:12px; border-radius:3px; display:inline-block; border:1px solid var(--gray-300); }
+
   .spinner {
     display: inline-block;
     width: 18px; height: 18px;
@@ -407,6 +444,31 @@
           아직 신청 내역이 없습니다.
         </p>
       </div>
+
+      <div class="card">
+        <h2>📧 실습 프롬프트 메일 발송</h2>
+        <p style="font-size:0.88rem;color:var(--gray-500);margin-bottom:8px">
+          <b style="color:#16a34a">진행중(활성)</b>인 학생만 선택할 수 있어요. 번호를 누르면 선택, 다시 누르면 취소됩니다.
+        </p>
+        <div class="pslot-legend">
+          <span><i class="pslot-dot" style="background:#fff;border-color:#16a34a"></i> 진행중(선택 가능)</span>
+          <span><i class="pslot-dot" style="background:#16a34a;border-color:#16a34a"></i> 선택됨</span>
+          <span><i class="pslot-dot" style="background:#f8fafc;border-color:#eef2f7"></i> 비활성</span>
+        </div>
+        <div id="promptGrid" class="slot-grid"></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0">
+          <button class="btn btn-outline btn-sm" onclick="promptSelectAllActive()">활성 전체 선택</button>
+          <button class="btn btn-outline btn-sm" onclick="promptClearSelection()">선택 해제</button>
+          <span style="margin-left:auto;font-size:0.9rem;color:var(--gray-600)">선택: <b id="promptSelCount">0</b>명</span>
+        </div>
+        <div id="promptSelectedEmails" style="font-size:0.85rem;color:var(--gray-600);background:var(--gray-50);border-radius:8px;padding:10px 12px;margin-bottom:12px;min-height:20px">
+          선택된 대상이 없습니다.
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="sendPrompts()">📧 선택한 학생에게 발송</button>
+        </div>
+        <div id="alertPrompt" class="alert" style="margin-top:12px"></div>
+      </div>
     </div>
   </div>
 
@@ -428,6 +490,7 @@ let selectedSlot = '';
 let showRejected = false;
 let sortMode = 'student'; // 'student' | 'issue'
 let adminEntries = [];
+let promptSelected = new Set(); // 프롬프트 발송 대상 학생번호
 
 // ============================================================
 // INIT
@@ -732,6 +795,98 @@ async function adminRefresh() {
   document.getElementById('adminRejected').textContent = stats.rejected;
 
   renderAdminTable();
+  renderPromptGrid();
+}
+
+// ============================================================
+// 프롬프트 메일 발송 (활성 학생 선택 그리드)
+// ============================================================
+function activeEmailMap() {
+  // 활성(done) 학생만: studentId -> email
+  const map = {};
+  adminEntries.forEach(r => {
+    if (r.status === 'done' && r.email) map[r.studentId] = r.email;
+  });
+  return map;
+}
+
+function renderPromptGrid() {
+  const grid = document.getElementById('promptGrid');
+  if (!grid) return;
+  const emails = activeEmailMap();
+
+  // 더 이상 활성이 아닌 선택은 제거
+  [...promptSelected].forEach(id => { if (!emails[id]) promptSelected.delete(id); });
+
+  let html = '';
+  for (let i = 1; i <= 50; i++) {
+    const id = String(i).padStart(2, '0');
+    const isActive = !!emails[id];
+    const isSel = promptSelected.has(id);
+    const cls = !isActive ? 'pslot inactive' : (isSel ? 'pslot selected' : 'pslot active');
+    const onclick = isActive ? ` onclick="togglePromptSelect('${id}')"` : '';
+    const title = isActive ? ` title="${emails[id]}"` : ' title="비활성 (온보딩 미완료)"';
+    html += `<div class="${cls}"${onclick}${title}>${id}</div>`;
+  }
+  grid.innerHTML = html;
+  updatePromptSelection();
+}
+
+function togglePromptSelect(id) {
+  if (promptSelected.has(id)) promptSelected.delete(id);
+  else promptSelected.add(id);
+  renderPromptGrid();
+}
+
+function promptSelectAllActive() {
+  const emails = activeEmailMap();
+  Object.keys(emails).forEach(id => promptSelected.add(id));
+  renderPromptGrid();
+}
+
+function promptClearSelection() {
+  promptSelected.clear();
+  renderPromptGrid();
+}
+
+function updatePromptSelection() {
+  const emails = activeEmailMap();
+  const ids = [...promptSelected].sort();
+  document.getElementById('promptSelCount').textContent = ids.length;
+  const box = document.getElementById('promptSelectedEmails');
+  if (ids.length === 0) {
+    box.textContent = '선택된 대상이 없습니다.';
+    return;
+  }
+  box.innerHTML = ids.map(id =>
+    `<span style="display:inline-block;background:#fff;border:1px solid #16a34a;color:#166534;border-radius:6px;padding:2px 8px;margin:2px 4px 2px 0;font-size:0.82rem"><b>${id}</b> ${emails[id]}</span>`
+  ).join('');
+}
+
+async function sendPrompts() {
+  hideAlert('alertPrompt');
+  const ids = [...promptSelected].sort();
+  if (ids.length === 0) {
+    return showAlert('alertPrompt', 'error', '발송할 학생을 1명 이상 선택해주세요.');
+  }
+  const emails = activeEmailMap();
+  const uniqueEmails = [...new Set(ids.map(id => emails[id]))];
+  if (!confirm(`선택한 ${ids.length}명에게 실습 프롬프트 메일을 발송할까요?\n\n번호: ${ids.join(', ')}\n수신 메일: ${uniqueEmails.length}개 주소`)) return;
+
+  try {
+    showAlert('alertPrompt', 'warning', '⏳ 발송 요청 중...');
+    const result = await apiFetch('/send-prompts', {
+      method: 'POST',
+      body: JSON.stringify({ adminPw, studentIds: ids })
+    });
+    const link = result.runUrl
+      ? ` <a href="${result.runUrl}" target="_blank" style="color:inherit;text-decoration:underline">실행 로그 보기</a>`
+      : '';
+    showAlert('alertPrompt', 'success', `✅ ${result.message}. 발송은 백그라운드에서 처리됩니다.${link}`);
+    promptClearSelection();
+  } catch (e) {
+    showAlert('alertPrompt', 'error', `❌ 발송 실패: ${e.message}`);
+  }
 }
 
 function renderAdminTable() {

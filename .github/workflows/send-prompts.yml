@@ -16,6 +16,9 @@ on:
       only_email:
         description: '테스트: 이 이메일에게만 발송 (비우면 활성 전원)'
         default: ''
+      student_ids:
+        description: '선택 발송: 콤마구분 학생번호 (예: 22,49,50). 비우면 활성 전원'
+        default: ''
 
 permissions:
   issues: read
@@ -35,4 +38,5 @@ jobs:
           EVENT_ID: ${{ inputs.event_id }}
           DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
           ONLY_EMAIL: ${{ inputs.only_email }}
+          STUDENT_IDS: ${{ inputs.student_ids }}
         run: node emails/send-prompts.js

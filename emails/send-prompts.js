@@ -108,8 +108,20 @@ async function sendEmail(toAddress, subject, html) {
 async function main() {
   const dryRun = process.env.DRY_RUN === '1' || process.argv.includes('--dry-run');
   const onlyEmail = (process.env.ONLY_EMAIL || '').trim().toLowerCase();
+  // STUDENT_IDS: 콤마구분 학생번호 (예: "22,49,50"). 지정 시 해당 학생만 발송.
+  const studentIds = (process.env.STUDENT_IDS || '')
+    .split(',')
+    .map((s) => s.trim().padStart(2, '0'))
+    .filter((s) => /^\d{2}$/.test(s));
 
   let students = await getActiveStudents();
+
+  // 선택 발송: 지정된 학생번호만 (관리자 페이지에서 선택한 대상)
+  if (studentIds.length > 0) {
+    const set = new Set(studentIds);
+    students = students.filter((s) => set.has(s.studentId));
+    console.log(`\n[STUDENT_IDS 필터] 요청 ${studentIds.length}명 → 활성 매칭 ${students.length}명`);
+  }
 
   // 테스트 발송: 특정 이메일만 (해당 이메일의 첫 학생 1명만 발송 → 중복 방지)
   if (onlyEmail) {
