@@ -874,15 +874,19 @@ async function sendPrompts() {
   if (!confirm(`선택한 ${ids.length}명에게 실습 프롬프트 메일을 발송할까요?\n\n번호: ${ids.join(', ')}\n수신 메일: ${uniqueEmails.length}개 주소`)) return;
 
   try {
-    showAlert('alertPrompt', 'warning', '⏳ 발송 요청 중...');
+    showAlert('alertPrompt', 'warning', '⏳ 발송 중... (수신자 수에 따라 수 초 소요)');
     const result = await apiFetch('/send-prompts', {
       method: 'POST',
       body: JSON.stringify({ adminPw, studentIds: ids })
     });
-    const link = result.runUrl
-      ? ` <a href="${result.runUrl}" target="_blank" style="color:inherit;text-decoration:underline">실행 로그 보기</a>`
-      : '';
-    showAlert('alertPrompt', 'success', `✅ ${result.message}. 발송은 백그라운드에서 처리됩니다.${link}`);
+    const failCount = (result.failed || []).length;
+    const type = failCount === 0 ? 'success' : 'warning';
+    let msg = `${failCount === 0 ? '✅' : '⚠️'} ${result.message}`;
+    if (failCount > 0) {
+      msg += '<br><span style="font-size:0.85rem">실패: ' +
+        result.failed.map(f => `${f.studentId}(${f.error})`).join(', ') + '</span>';
+    }
+    showAlert('alertPrompt', type, msg);
     promptClearSelection();
   } catch (e) {
     showAlert('alertPrompt', 'error', `❌ 발송 실패: ${e.message}`);
