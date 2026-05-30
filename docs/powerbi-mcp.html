@@ -103,6 +103,16 @@
   .slot.taken { background: #dbeafe; color: #1d4ed8; border-color: #93bbfd; cursor: not-allowed; }
   .slot.selected { background: var(--success-bg); color: var(--success); border-color: var(--success); box-shadow: 0 0 0 2px rgba(5,150,105,0.3); }
 
+  /* 프롬프트 발송 그리드 */
+  .pslot { text-align:center; padding:9px 0; border-radius:6px; font-size:0.8rem; font-weight:700; border:1px solid var(--g200); background:#fff; color:var(--g400); transition:all 0.12s; user-select:none; -webkit-tap-highlight-color:transparent; }
+  .pslot.inactive { background:#f8fafc; color:#cbd5e1; border-color:#eef2f7; cursor:not-allowed; }
+  .pslot.active { background:#fff; color:#16a34a; border-color:#16a34a; cursor:pointer; }
+  .pslot.active:active { transform:scale(0.93); }
+  .pslot.selected { background:#16a34a; color:#fff; border-color:#16a34a; box-shadow:0 0 0 2px rgba(22,163,74,0.35); cursor:pointer; }
+  .pslot-legend { display:flex; gap:14px; flex-wrap:wrap; font-size:0.78rem; color:var(--g500); margin:4px 0 10px; }
+  .pslot-legend span { display:inline-flex; align-items:center; gap:5px; }
+  .pslot-dot { width:12px; height:12px; border-radius:3px; display:inline-block; border:1px solid var(--g300); }
+
   /* Form */
   .field { margin-bottom: 14px; }
   label { display: block; font-weight: 600; font-size: 0.85rem; color: var(--g700); margin-bottom: 4px; }
@@ -346,6 +356,29 @@
         </div>
         <p id="adminEmpty" class="hidden" style="text-align:center;padding:20px;color:var(--g500)">신청 내역이 없습니다.</p>
       </div>
+
+      <div class="card">
+        <h2>📧 실습 프롬프트 메일 발송</h2>
+        <p style="font-size:0.85rem;color:var(--g500);margin-bottom:8px">
+          <b style="color:#16a34a">진행중(활성)</b>인 학생만 선택할 수 있어요. 번호를 누르면 선택, 다시 누르면 취소됩니다.
+        </p>
+        <div class="pslot-legend">
+          <span><i class="pslot-dot" style="background:#fff;border-color:#16a34a"></i> 진행중(선택 가능)</span>
+          <span><i class="pslot-dot" style="background:#16a34a;border-color:#16a34a"></i> 선택됨</span>
+          <span><i class="pslot-dot" style="background:#f8fafc;border-color:#eef2f7"></i> 비활성</span>
+        </div>
+        <div id="promptGrid" class="slot-grid"></div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0">
+          <button class="btn btn-outline btn-sm" onclick="promptSelectAllActive()">활성 전체 선택</button>
+          <button class="btn btn-outline btn-sm" onclick="promptClearSelection()">선택 해제</button>
+          <span style="margin-left:auto;font-size:0.9rem;color:var(--g700)">선택: <b id="promptSelCount">0</b>명</span>
+        </div>
+        <div id="promptSelectedEmails" style="font-size:0.85rem;color:var(--g500);background:var(--g50);border-radius:8px;padding:10px 12px;margin-bottom:12px;min-height:20px">
+          선택된 대상이 없습니다.
+        </div>
+        <button class="btn btn-primary" onclick="sendPrompts()">📧 선택한 학생에게 발송</button>
+        <div id="alertPrompt" class="alert" style="margin-top:12px"></div>
+      </div>
     </div>
   </div>
 
@@ -360,6 +393,7 @@ let selectedSlot = '';
 let showRejected = false;
 let sortMode = 'student';
 let adminEntries = [];
+let promptSelected = new Set();
 
 // ─── QR ───
 function generateQR(canvas, size) {
@@ -529,6 +563,71 @@ async function adminRefresh() {
   document.getElementById('adminPending').textContent = stats.pending;
   document.getElementById('adminRejected').textContent = stats.rejected;
   renderAdminTable();
+  renderPromptGrid();
+}
+
+// ─── 프롬프트 메일 발송 ───
+function activeEmailMap() {
+  const map = {};
+  adminEntries.forEach(r => { if (r.status === 'done' && r.email) map[r.studentId] = r.email; });
+  return map;
+}
+function renderPromptGrid() {
+  const grid = document.getElementById('promptGrid');
+  if (!grid) return;
+  const emails = activeEmailMap();
+  [...promptSelected].forEach(id => { if (!emails[id]) promptSelected.delete(id); });
+  let html = '';
+  for (let i = 1; i <= 50; i++) {
+    const id = String(i).padStart(2, '0');
+    const isActive = !!emails[id];
+    const isSel = promptSelected.has(id);
+    const cls = !isActive ? 'pslot inactive' : (isSel ? 'pslot selected' : 'pslot active');
+    const onclick = isActive ? ' onclick="togglePromptSelect(\'' + id + '\')"' : '';
+    const title = isActive ? ' title="' + emails[id] + '"' : ' title="비활성 (온보딩 미완료)"';
+    html += '<div class="' + cls + '"' + onclick + title + '>' + id + '</div>';
+  }
+  grid.innerHTML = html;
+  updatePromptSelection();
+}
+function togglePromptSelect(id) {
+  if (promptSelected.has(id)) promptSelected.delete(id); else promptSelected.add(id);
+  renderPromptGrid();
+}
+function promptSelectAllActive() {
+  const emails = activeEmailMap();
+  Object.keys(emails).forEach(id => promptSelected.add(id));
+  renderPromptGrid();
+}
+function promptClearSelection() { promptSelected.clear(); renderPromptGrid(); }
+function updatePromptSelection() {
+  const emails = activeEmailMap();
+  const ids = [...promptSelected].sort();
+  document.getElementById('promptSelCount').textContent = ids.length;
+  const box = document.getElementById('promptSelectedEmails');
+  if (ids.length === 0) { box.textContent = '선택된 대상이 없습니다.'; return; }
+  box.innerHTML = ids.map(id =>
+    '<span style="display:inline-block;background:#fff;border:1px solid #16a34a;color:#166534;border-radius:6px;padding:2px 8px;margin:2px 4px 2px 0;font-size:0.82rem"><b>' + id + '</b> ' + emails[id] + '</span>'
+  ).join('');
+}
+async function sendPrompts() {
+  hideAlert('alertPrompt');
+  const ids = [...promptSelected].sort();
+  if (ids.length === 0) return showAlert('alertPrompt', 'error', '발송할 학생을 1명 이상 선택해주세요.');
+  const emails = activeEmailMap();
+  const uniq = [...new Set(ids.map(id => emails[id]))];
+  if (!confirm('선택한 ' + ids.length + '명에게 실습 프롬프트 메일을 발송할까요?\n\n번호: ' + ids.join(', ') + '\n수신 메일: ' + uniq.length + '개 주소')) return;
+  try {
+    showAlert('alertPrompt', 'warning', '⏳ 발송 중... (수신자 수에 따라 수 초 소요)');
+    const result = await apiFetch('/send-prompts', { method: 'POST', body: JSON.stringify({ adminPw, studentIds: ids }) });
+    const failCount = (result.failed || []).length;
+    let msg = (failCount === 0 ? '✅ ' : '⚠️ ') + result.message;
+    if (failCount > 0) msg += '<br><span style="font-size:0.85rem">실패: ' + result.failed.map(f => f.studentId + '(' + f.error + ')').join(', ') + '</span>';
+    showAlert('alertPrompt', failCount === 0 ? 'success' : 'warning', msg);
+    promptClearSelection();
+  } catch (e) {
+    showAlert('alertPrompt', 'error', '❌ 발송 실패: ' + e.message);
+  }
 }
 
 function renderAdminTable() {

@@ -74,7 +74,11 @@ app.http('send-prompts', {
       }
 
       const studentIds = Array.isArray(body.studentIds)
-        ? body.studentIds.map((s) => String(s).trim().padStart(2, '0')).filter((s) => /^\d{2}$/.test(s))
+        ? body.studentIds
+            .map((s) => String(s).trim())
+            .filter(Boolean)
+            .map((s) => s.padStart(2, '0'))
+            .filter((s) => /^\d{2}$/.test(s))
         : [];
 
       if (studentIds.length === 0) {

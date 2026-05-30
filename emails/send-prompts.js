@@ -111,7 +111,9 @@ async function main() {
   // STUDENT_IDS: 콤마구분 학생번호 (예: "22,49,50"). 지정 시 해당 학생만 발송.
   const studentIds = (process.env.STUDENT_IDS || '')
     .split(',')
-    .map((s) => s.trim().padStart(2, '0'))
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => s.padStart(2, '0'))
     .filter((s) => /^\d{2}$/.test(s));
 
   let students = await getActiveStudents();
