@@ -20,14 +20,17 @@ function shareToken(keyId) {
  */
 function encSecret(raw) {
   const secret = process.env.ADMIN_TOKEN || 'fallback';
-  const c = crypto.createCipheriv('aes-256-cbc', crypto.createHash('sha256').update(secret).digest(), Buffer.alloc(16, 0));
-  return c.update(raw, 'utf8').final('base64') + '|' + c.final('base64');
+  const key = crypto.createHash('sha256').update(secret).digest();
+  const c = crypto.createCipheriv('aes-256-cbc', key, Buffer.alloc(16, 0));
+  const enc = Buffer.concat([c.update(raw, 'utf8'), c.final()]);
+  return enc.toString('base64');
 }
 function decSecret(stored) {
   const secret = process.env.ADMIN_TOKEN || 'fallback';
-  const [p1, p2] = stored.split('|');
-  const d = crypto.createDecipheriv('aes-256-cbc', crypto.createHash('sha256').update(secret).digest(), Buffer.alloc(16, 0));
-  return d.update(Buffer.from(p1, 'base64')) + d.final(Buffer.from(p2, 'base64')).toString();
+  const key = crypto.createHash('sha256').update(secret).digest();
+  const d = crypto.createDecipheriv('aes-256-cbc', key, Buffer.alloc(16, 0));
+  const dec = Buffer.concat([d.update(Buffer.from(stored, 'base64')), d.final()]);
+  return dec.toString('utf8');
 }
 
 async function getStoredKey(keyId) {
