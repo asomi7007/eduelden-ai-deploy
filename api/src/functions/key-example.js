@@ -3,7 +3,7 @@
 const { app } = require('@azure/functions');
 const { verifyAdmin, handleCors, successResponse, errorResponse } = require('../lib/auth');
 const { buildSnippets } = require('../lib/snippets');
-const { listKeys } = require('../lib/tableStorage');
+const { listKeys, getWorkshop } = require('../lib/tableStorage');
 const crypto = require('crypto');
 
 function shareToken(keyId) {
@@ -59,6 +59,9 @@ app.http('keyExample', {
       }
       const rawKey = decSecret(k.encryptedKey);
       const snippets = buildSnippets(rawKey, model);
+      const workshop = await getWorkshop(k.workshopId);
+      const allowedModels = (workshop && workshop.allowedModels && workshop.allowedModels.length)
+        ? workshop.allowedModels : ['model-router'];
       const origin = process.env.PUBLIC_BASE_URL || `https://${(request.headers.get('x-forwarded-host') || request.headers.get('host') || '').split(',')[0].trim()}`;
       return successResponse({
         keyId,
@@ -66,6 +69,7 @@ app.http('keyExample', {
         workshopId: k.workshopId,
         expiresAt: k.expiresAt,
         model,
+        allowedModels,
         ...snippets,
         shareUrl: `${origin}/share/${keyId}?t=${shareToken(keyId)}`,
       });
