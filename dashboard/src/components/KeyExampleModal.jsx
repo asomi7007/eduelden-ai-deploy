@@ -10,7 +10,7 @@ const CopyField = ({ label, value, mono = true }) => {
   };
   return (
     <div className="mb-2">
-      <p className="text-xs text-gray-500 mb-1">{label}</p>
+      {label && <p className="text-xs text-gray-500 mb-1">{label}</p>}
       <div className="flex gap-2">
         <code className={`flex-1 text-xs bg-gray-50 border rounded px-2 py-2 break-all ${mono ? 'font-mono' : ''}`}>{value}</code>
         <button onClick={copy} className="px-3 bg-slate-700 text-white rounded text-xs whitespace-nowrap">
@@ -60,52 +60,53 @@ export default function KeyExampleModal({ keyId, onClose }) {
 
         {data && (
           <>
+            {/* 접속 정보 — 2칸만 (URL + 키) */}
             <div className="mb-4 p-3 bg-slate-50 rounded-lg border">
               <p className="text-xs font-bold text-slate-600 mb-2">접속 정보 — 각 항목 복사해서 입력하세요</p>
-              <CopyField label="Display name (표시 이름)" value={data.owner || keyId} mono={false} />
               <CopyField label="Wire API (Base URL)" value={`https://apim-eduelden-ai.azure-api.net/openai/v1`} />
-              <CopyField label="API 키 (Custom headers — Ocp-Apim-Subscription-Key 값)" value={data.header ? data.header.replace('Ocp-Apim-Subscription-Key: ', '') : ''} />
-              <CopyField label="Custom header 전체" value={data.header || ''} />
-              {data.shareUrl && <CopyField label="공유 링크 (QR 대상)" value={data.shareUrl} />}
+              <CopyField label="API 키 (API Key 칸에 이 값만)" value={data.header ? data.header.replace('Ocp-Apim-Subscription-Key: ', '') : ''} />
             </div>
 
+            {/* 모델 목록 — 표시명 + 한줄 설명 + 복사 */}
             <div className="mb-4">
-              <p className="text-xs font-bold text-gray-600 mb-1">Model ID — 이 실습에 배정된 모델 (텍스트 전용)</p>
+              <p className="text-xs font-bold text-gray-600 mb-1">Model — 클릭하면 예제에 적용, ID 복사로 복사</p>
               <div className="space-y-1">
-                {(data.allowedModels || ['model-router']).map((m) => (
-                  <div key={m} className={`flex gap-2 items-center rounded border px-2 py-1.5 ${model === m ? 'border-green-600 bg-green-50' : 'border-gray-200'}`}>
-                    <button onClick={() => { setModel(m); load(m); }} className="flex-1 text-left">
+                {(data.allowedModels || ['model-router']).map((m) => {
+                  const selected = model === m;
+                  return (
+                  <div key={m} className={`flex gap-2 items-center rounded border px-2 py-1.5 ${selected ? 'border-green-600 bg-green-50' : 'border-gray-200'}`}>
+                    <button onClick={() => { setModel(m); load(m); }} className="flex-1 text-left min-w-0">
                       <p className="text-sm font-semibold text-gray-800">{(data.displayNames || {})[m] || m}</p>
-                      <code className="text-[11px] text-gray-400 font-mono">{m}</code>
+                      <p className="text-[11px] text-gray-500 truncate">{(data.modelDescriptions || {})[m] || m}</p>
+                      <code className="text-[10px] text-gray-400 font-mono">{m}</code>
                     </button>
                     <button onClick={() => copy(m)}
-                      className="px-2 py-1 bg-green-700 text-white rounded text-xs">{msg === '복사됨!' && model === m ? '✓' : '복사'}</button>
+                      className="px-2 py-1 bg-green-700 text-white rounded text-xs whitespace-nowrap">{msg === '복사됨!' && selected ? '✓' : 'ID 복사'}</button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
-              <p className="text-[11px] text-gray-400 mt-1">클릭해서 예제에 적용 · 만료: {data.expiresAt?.slice(0, 16)} · 이미지 모델은 Copilot 앱 미지원으로 제외됨</p>
+              <p className="text-[11px] text-gray-400 mt-1">만료: {data.expiresAt?.slice(0, 16)} · 이미지 모델은 Copilot 앱 미지원으로 제외</p>
             </div>
 
-            <div className="mb-5 flex gap-4 items-center bg-gray-50 p-4 rounded-lg">
-              {qrUrl && <img src={qrUrl} alt="QR" className="w-32 h-32 border rounded bg-white" />}
-              <div className="flex-1">
-                <p className="text-sm font-bold mb-1">📱 참가자 공유 QR</p>
-                <p className="text-xs text-gray-500 mb-2">찍으면 로그인 없이 위와 동일한 접속 정보 + 모델 선택이 보입니다</p>
-                <div className="flex gap-2">
-                  <code className="flex-1 text-[11px] bg-white border rounded px-2 py-1 truncate">{data.shareUrl}</code>
-                  <button onClick={() => copy(data.shareUrl)} className="px-2 py-1 bg-gray-800 text-white rounded text-xs">URL 복사</button>
+            {/* QR — 컴팩트 */}
+            <div className="mb-5 bg-gray-50 p-3 rounded-lg flex gap-3 items-center">
+              <img src={qrUrl} alt="QR" className="w-24 h-24 border rounded bg-white shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-bold mb-0.5">📱 참가자 공유 QR</p>
+                <p className="text-[11px] text-gray-500 mb-1.5">찍으면 로그인 없이 접속 정보가 보입니다</p>
+                <div className="flex gap-1.5">
+                  <code className="flex-1 text-[10px] bg-white border rounded px-1.5 py-1 truncate min-w-0">{data.shareUrl}</code>
+                  <button onClick={() => copy(data.shareUrl)} className="px-2 py-1 bg-gray-800 text-white rounded text-[11px] whitespace-nowrap shrink-0">복사</button>
                 </div>
-                <a href={qrUrl.replace('size=280x280', 'size=600x600')} target="_blank" rel="noreferrer"
-                   className="text-xs underline text-blue-600 mt-1 inline-block">큰 QR 이미지 열기</a>
               </div>
             </div>
 
+            {/* 코드 예제 — python/curl만 */}
             <div className="flex gap-1 mb-2">
-              {['python', 'curl', 'vscode', 'header'].map((t) => (
+              {['python', 'curl'].map((t) => (
                 <button key={t} onClick={() => setTab(t)}
-                  className={`px-3 py-1.5 rounded-t text-sm font-mono ${tab === t ? 'bg-gray-800 text-white' : 'bg-gray-100'}`}>
-                  {t === 'vscode' ? 'VS Code' : t}
-                </button>
+                  className={`px-3 py-1.5 rounded-t text-sm font-mono ${tab === t ? 'bg-gray-800 text-white' : 'bg-gray-100'}`}>{t}</button>
               ))}
             </div>
             <div className="relative">
