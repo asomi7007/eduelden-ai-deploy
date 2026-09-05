@@ -7,6 +7,11 @@ import StudentsPage from './pages/StudentsPage';
 import StudentDetailPage from './pages/StudentDetailPage';
 import ControlPage from './pages/ControlPage';
 import AlertsPage from './pages/AlertsPage';
+import WorkshopsPage from './pages/WorkshopsPage';
+import AccessKeysPage from './pages/AccessKeysPage';
+import ModelsPage from './pages/ModelsPage';
+import UsagePage from './pages/UsagePage';
+import AuditLogsPage from './pages/AuditLogsPage';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -35,6 +40,11 @@ function AppRoutes() {
         <Route path="students/:id" element={<StudentDetailPage />} />
         <Route path="control" element={<ControlPage />} />
         <Route path="alerts" element={<AlertsPage />} />
+        <Route path="workshops" element={<WorkshopsPage />} />
+        <Route path="keys" element={<AccessKeysPage />} />
+        <Route path="models" element={<ModelsPage />} />
+        <Route path="usage" element={<UsagePage />} />
+        <Route path="audit" element={<AuditLogsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
