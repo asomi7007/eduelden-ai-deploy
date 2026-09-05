@@ -110,16 +110,21 @@ print(response.choices[0].message.content)`,
                 <p className="text-xs font-bold text-gray-600">Model ID — 사용할 모델 하나를 골라 복사</p>
               </div>
               <div className="space-y-1">
-                {(data.allowedModels || ['model-router']).map((m) => (
+                {(data.allowedModels || ['model-router']).map((m) => {
+                  const disp = (data.displayNames || {})[m] || m;
+                  return (
                   <div key={m} className="flex gap-2 items-center">
-                    <code className="flex-1 text-sm bg-gray-50 border rounded px-2 py-2 font-mono">{m}</code>
-                    <span className="text-xs text-gray-400 hidden sm:block">{(data.displayNames || {})[m] || ''}</span>
+                    <div className="flex-1 bg-gray-50 border rounded px-2 py-2">
+                      <p className="text-sm font-semibold text-gray-800">{disp}</p>
+                      <code className="text-[11px] text-gray-400 font-mono">{m}</code>
+                    </div>
                     <button onClick={() => copy('model-' + m, m)}
-                      className="px-3 bg-green-700 text-white rounded text-xs whitespace-nowrap">
-                      {copied === 'model-' + m ? '✓ 복사됨' : '복사'}
+                      className="px-3 py-2 bg-green-700 text-white rounded text-xs whitespace-nowrap">
+                      {copied === 'model-' + m ? '✓ 복사됨' : 'ID 복사'}
                     </button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
               <p className="text-[11px] text-gray-400 mt-1">※ model-router를 쓰면 질문에 맞춰 자동으로 최적 모델이 선택됩니다</p>
             </div>
