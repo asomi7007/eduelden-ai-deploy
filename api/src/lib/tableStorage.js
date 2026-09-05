@@ -32,7 +32,7 @@ function getTable(name) {
   const key = process.env.STORAGE_ACCOUNT_KEY;
   const credential = key
     ? new AzureNamedKeyCredential(ACCOUNT, key)
-    : new (require('@azure/identity').DefaultAzureCredential)();
+    : new (require('@azure/identity').DefaultAzureCredential)({ managedIdentityClientId: process.env.MANAGED_IDENTITY_CLIENT_ID });
   return new TableClient(endpoint, TABLES[name], credential);
 }
 
