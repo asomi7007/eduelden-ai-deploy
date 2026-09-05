@@ -83,6 +83,18 @@ app.http('adminKeys', {
         return successResponse({ keyId, owner, primaryKey: secrets.primaryKey, expiresAt: workshop.expiresAt });
       }
 
+      if (request.method === 'DELETE') {
+        const keyId = request.params.keyId;
+        if (!keyId) return errorResponse('keyId required', 400);
+        const keys = (await listKeys()).filter((k) => k.keyId === keyId);
+        if (!keys.length) return errorResponse('key not found', 404);
+        const k = keys[0];
+        await deleteSubscription(k.apimSubscriptionId);
+        await deleteKeyEntity(k.workshopId, k.keyId);
+        await writeAudit('key.delete', keyId);
+        return successResponse({ ok: true });
+      }
+
       return errorResponse('method not allowed', 405);
     } catch (e) {
       return errorResponse(e.message, 500);
