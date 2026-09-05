@@ -3,7 +3,7 @@
 const { app } = require('@azure/functions');
 const { successResponse, errorResponse } = require('../lib/auth');
 const { buildSnippets, baseUrl } = require('../lib/snippets');
-const { listKeys, getWorkshop } = require('../lib/tableStorage');
+const { listKeys, getWorkshop, listModels } = require('../lib/tableStorage');
 const crypto = require('crypto');
 
 function shareToken(keyId) {
@@ -43,8 +43,13 @@ app.http('sharedKeyInfo', {
         apiKey = k.encryptedKey ? decSecret(k.encryptedKey) : '';
       } catch { apiKey = ''; }
       const workshop = await getWorkshop(k.workshopId);
-      const allowedModels = (workshop && workshop.allowedModels && workshop.allowedModels.length)
-        ? workshop.allowedModels : ['model-router'];
+      const allModels = await listModels();
+      const imageModels = new Set(allModels.filter((m) => m.modelType === 'image').map((m) => m.modelId));
+      // 텍스트 전용: Copilot 앱은 chat completions 규격만 사용 — 이미지 모델은 노출 제외
+      const allowedModels = ((workshop && workshop.allowedModels && workshop.allowedModels.length)
+        ? workshop.allowedModels : ['model-router']).filter((m) => !imageModels.has(m));
+      const displayNames = {};
+      allModels.forEach((m) => { displayNames[m.modelId] = m.displayName; });
       const snippets = buildSnippets(apiKey, allowedModels[0]);
       return successResponse({
         keyId: k.keyId,
@@ -54,7 +59,8 @@ app.http('sharedKeyInfo', {
         apiKey,                    // 실제 키 전체
         maskedKey: k.maskedKey,    // 참고용 마스킹
         baseUrl: baseUrl(),
-        allowedModels,             // 실습에 배정된 모델만
+        allowedModels,             // 실습에 배정된 텍스트 모델만 (이미지 제외)
+        displayNames,              // 모델 표시명
         snippets,                  // 기본 예제 (첫 모델 기준)
       });
     } catch (e) {
