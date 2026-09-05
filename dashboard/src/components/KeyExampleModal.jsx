@@ -16,6 +16,8 @@ export default function KeyExampleModal({ keyId, onClose }) {
         apiClient(`/admin/keys/${keyId}/example?model=${m}`),
         apiClient('/admin/models').catch(() => []),
       ]);
+      // SWA 내부호스트 → 실제 공개 도메인 치환
+      if (d.shareUrl) d.shareUrl = d.shareUrl.replace(/^https?:\/\/[^/]+/, window.location.origin);
       setData(d);
       if (ms.length) setModels(ms.filter(x => x.enabled !== false).map(x => x.modelId));
       setLoaded(true);
