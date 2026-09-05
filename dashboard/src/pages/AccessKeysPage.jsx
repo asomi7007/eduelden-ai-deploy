@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../api/client';
+import KeyExampleModal from '../components/KeyExampleModal';
 
 export default function AccessKeysPage() {
   const [keys, setKeys] = useState([]);
@@ -9,6 +10,7 @@ export default function AccessKeysPage() {
   const [busy, setBusy] = useState(false);
   // 발급 직후 키 표시 (한 번만)
   const [reveal, setReveal] = useState(null);
+  const [exampleKey, setExampleKey] = useState(null);
   // CSV 벌크
   const [bulkWorkshop, setBulkWorkshop] = useState('');
   const [bulkNames, setBulkNames] = useState('');
@@ -175,6 +177,7 @@ export default function AccessKeysPage() {
                   ) : k.status !== 'DELETED' && (
                     <button onClick={() => action(k.keyId, 'activate')} className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">활성화</button>
                   )}
+                  <button onClick={() => setExampleKey(k.keyId)} className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-bold">📝 예제</button>
                   <button onClick={() => action(k.keyId, 'delete')} className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs">폐기</button>
                 </td>
               </tr>
@@ -185,6 +188,8 @@ export default function AccessKeysPage() {
           </tbody>
         </table>
       </div>
-    </div>
+    
+      {exampleKey && <KeyExampleModal keyId={exampleKey} onClose={() => setExampleKey(null)} />}
+</div>
   );
 }
