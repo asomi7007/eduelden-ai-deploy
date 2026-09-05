@@ -23,6 +23,43 @@ const CopyField = ({ label, value, accent = false }) => {
   );
 };
 
+const EFFORTS = ['low', 'medium', 'high'];
+
+/** 모델 설정 블록 — 관리자 모달과 동일 구성/순서 */
+const ModelSetup = ({ m, d, selected, onSelect, onCopy, copiedKey }) => {
+  const caps = (d.modelCapabilities || {})[m] || {};
+  const efforts = caps.reasoningEfforts || [];
+  return (
+    <div className={`rounded border px-3 py-2 ${selected ? 'border-green-600 bg-green-50' : 'border-gray-200'}`}>
+      <div className="flex items-center gap-2">
+        <button onClick={onSelect} className="flex-1 text-left min-w-0">
+          <p className="text-sm font-semibold text-gray-800">{(d.displayNames || {})[m] || m}</p>
+          <p className="text-[11px] text-gray-500 truncate">{(d.modelDescriptions || {})[m] || ''}</p>
+        </button>
+        <button onClick={onCopy} className="px-2 py-1 bg-green-700 text-white rounded text-xs whitespace-nowrap shrink-0">
+          {copiedKey ? '✓' : 'ID 복사'}
+        </button>
+      </div>
+      <div className="mt-1.5 flex items-center gap-2">
+        <p className="text-[11px] text-gray-400 w-20 shrink-0">Wire model</p>
+        <code className="text-[11px] text-gray-700 font-mono bg-gray-100 rounded px-1.5 py-0.5">{m}</code>
+      </div>
+      {efforts.length > 0 && (
+        <div className="mt-1 flex items-center gap-2 flex-wrap">
+          <p className="text-[11px] text-gray-400 w-20 shrink-0">Reasoning effort</p>
+          {EFFORTS.map((e) => (
+            <label key={e} className={`flex items-center gap-1 text-[11px] ${efforts.includes(e) ? 'text-gray-700' : 'text-gray-300'}`}>
+              <input type="checkbox" checked={efforts.includes(e)} readOnly disabled={!efforts.includes(e)}
+                className="accent-green-600 w-3 h-3" />
+              {e}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 /** 비로그인 공유 페이지 — 관리자 예제 모달과 동일한 수준의 정보 */
 export default function SharePage() {
   const { keyId } = useParams();
@@ -86,35 +123,24 @@ print(response.choices[0].message.content)`,
 
         {data && (
           <>
-            {/* 접속 정보 — 관리자 모달과 동일 구성 (URL + 키) */}
             <div className="mb-4 p-3 bg-slate-50 rounded-lg border">
               <p className="text-xs font-bold text-slate-600 mb-2">접속 정보 — 각 항목 복사해서 입력하세요</p>
               <CopyField label="Wire API (Base URL)" value={URL_} />
               <CopyField label="API 키 (API Key 칸에 이 값만)" value={KEY || '(키 없음)'} accent />
             </div>
 
-            {/* 모델 목록 — 표시명 + 한줄 설명 + ID + 복사 */}
             <div className="mb-4">
-              <p className="text-xs font-bold text-gray-600 mb-1">Model — 원하는 모델의 ID를 복사</p>
-              <div className="space-y-1">
+              <p className="text-xs font-bold text-gray-600 mb-1">Model — Wire model 값 복사, 지원하는 Reasoning effort만 체크 표시</p>
+              <div className="space-y-1.5">
                 {(data.allowedModels || ['model-router']).map((m) => (
-                  <div key={m} className={`flex gap-2 items-center rounded border px-2 py-1.5 ${model === m ? 'border-green-600 bg-green-50' : 'border-gray-200'}`}>
-                    <button onClick={() => setModel(m)} className="flex-1 text-left min-w-0">
-                      <p className="text-sm font-semibold text-gray-800">{(data.displayNames || {})[m] || m}</p>
-                      <p className="text-[11px] text-gray-500 truncate">{(data.modelDescriptions || {})[m] || m}</p>
-                      <code className="text-[10px] text-gray-400 font-mono">{m}</code>
-                    </button>
-                    <button onClick={() => copy('model-' + m, m)}
-                      className="px-2 py-1 bg-green-700 text-white rounded text-xs whitespace-nowrap shrink-0">
-                      {copied === 'model-' + m ? '✓' : 'ID 복사'}
-                    </button>
-                  </div>
+                  <ModelSetup key={m} m={m} d={data} selected={model === m}
+                    onSelect={() => setModel(m)}
+                    onCopy={() => copy('model-' + m, m)} copiedKey={copied === 'model-' + m} />
                 ))}
               </div>
               <p className="text-[11px] text-gray-400 mt-1">만료: {data.expiresAt?.slice(0, 16).replace('T', ' ')} · 분당 10회 / 일 200회 · 이미지 모델은 미지원</p>
             </div>
 
-            {/* 코드 예제 — python/curl만, 탭 */}
             {current && (
               <div className="mb-2">
                 <div className="flex gap-1 mb-2">
