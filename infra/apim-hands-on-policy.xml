@@ -1,0 +1,79 @@
+<policies>
+	<inbound>
+		<base />
+		<set-variable name="auth-key" value="@{
+      var auth = context.Request.Headers.GetValueOrDefault("Authorization","");
+      if(auth.StartsWith("Bearer ",StringComparison.OrdinalIgnoreCase)) {
+        return auth.Substring(7).Trim();
+      }
+      var ak = context.Request.Headers.GetValueOrDefault("api-key","");
+      if(!string.IsNullOrEmpty(ak)) {
+        return ak;
+      }
+      return context.Request.Headers.GetValueOrDefault("Ocp-Apim-Subscription-Key","");
+    }" />
+		<choose>
+			<when condition="@(string.IsNullOrEmpty((string)context.Variables["auth-key"]))">
+				<return-response>
+					<set-status code="401" reason="Unauthorized" />
+					<set-header name="Content-Type" exists-action="override">
+						<value>application/json</value>
+					</set-header>
+					<set-body>{"error":{"code":"401","message":"API key required"}}</set-body>
+				</return-response>
+			</when>
+		</choose>
+		<rate-limit calls="10" renewal-period="60" />
+		<choose>
+			<when condition="@(context.Request.Url.Path.EndsWith("/models"))">
+				<!-- 모델 목록: 백엔드 /openai/models 로 전달 -->
+				<rewrite-uri template="/v1/models" copy-unmatched-params="true" />
+			</when>
+			<when condition="@(context.Request.Url.Path.Contains("/responses"))">
+				<!-- Responses API: 본문의 model을 deployments 경로로 재작성하지 않고 v1 직행 -->
+				<rewrite-uri template="/v1/responses" copy-unmatched-params="true" />
+			</when>
+			<when condition="@(context.Request.Url.Path.Contains("/chat/completions") &amp;&amp; !context.Request.Url.Path.Contains("/deployments/"))">
+				<set-variable name="reqBody" value="@(context.Request.Body.As&lt;JObject&gt;(preserveContent: true))" />
+				<!-- 비표준 필드 제거: Copilot 앱 등 클라이언트가 보내는 내부 옵션 (snippy 등) → Foundry가 unrecognized argument 400으로 거부함 -->
+				<set-body>@{
+          var body = (JObject)context.Variables["reqBody"];
+          var allowed = new string[] { "model", "messages", "temperature", "top_p", "max_tokens", "max_completion_tokens", "stream", "stop", "presence_penalty", "frequency_penalty", "n", "response_format", "tools", "tool_choice", "logprobs", "top_logprobs", "user", "seed", "reasoning_effort", "stream_options", "parallel_tool_calls", "modalities", "audio", "prediction", "web_search_options", "function_call", "functions", "metadata" };
+          var toRemove = new System.Collections.Generic.List&lt;string&gt;();
+          foreach (var prop in body.Properties()) { bool ok = false; foreach (var a in allowed) { if (prop.Name == a) { ok = true; break; } } if (!ok) { toRemove.Add(prop.Name); } }
+          foreach (var rm in toRemove) { body.Remove(rm); }
+          return body.ToString(Newtonsoft.Json.Formatting.None);
+        }</set-body>
+				<rewrite-uri template="@("/v1/chat/completions")" copy-unmatched-params="true" />
+			</when>
+		</choose>
+		<!-- 요청 body 트레이스: Ocp-Apim-Trace 헤더 있으면 trace에 기록 -->
+		<choose>
+			<when condition="@(context.Request.Headers.GetValueOrDefault("Ocp-Apim-Trace","") == "true")">
+				<set-variable name="traceBody" value="@{
+          try {
+            var b = context.Request.Body.As&lt;JObject&gt;(preserveContent: true);
+            return b.ToString(Newtonsoft.Json.Formatting.None);
+          } catch { return "(unreadable)"; }
+        }" />
+				<trace source="request-body-dump" severity="information">
+					<message>@("BODY: " + (string)context.Variables["traceBody"])</message>
+				</trace>
+			</when>
+		</choose>
+		<set-header name="Authorization" exists-action="delete" />
+		<set-header name="Ocp-Apim-Subscription-Key" exists-action="delete" />
+		<set-header name="api-key" exists-action="delete" />
+		<set-backend-service id="foundry-managed-id" backend-id="backend-foundry-mi" />
+		<authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+	</inbound>
+	<backend>
+		<base />
+	</backend>
+	<outbound>
+		<base />
+	</outbound>
+	<on-error>
+	<base />
+	</on-error>
+</policies>

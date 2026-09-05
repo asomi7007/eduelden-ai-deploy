@@ -1,5 +1,8 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Settings, Bell, LogOut } from 'lucide-react';
+import {
+  LayoutDashboard, Users, Settings, Bell, LogOut,
+  FlaskConical, KeyRound, Cpu, BarChart3, ScrollText,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const icons = {
@@ -7,10 +10,20 @@ const icons = {
   Users,
   Settings,
   Bell,
+  FlaskConical,
+  KeyRound,
+  Cpu,
+  BarChart3,
+  ScrollText,
 };
 
 const navItems = [
   { path: '/', label: '개요', icon: 'LayoutDashboard' },
+  { path: '/workshops', label: '실습 관리', icon: 'FlaskConical' },
+  { path: '/keys', label: 'API 키 관리', icon: 'KeyRound' },
+  { path: '/models', label: '모델 관리', icon: 'Cpu' },
+  { path: '/usage', label: '사용량 통계', icon: 'BarChart3' },
+  { path: '/audit', label: '감사 로그', icon: 'ScrollText' },
   { path: '/students', label: '학생 관리', icon: 'Users' },
   { path: '/control', label: '일괄 제어', icon: 'Settings' },
   { path: '/alerts', label: '알림 설정', icon: 'Bell' },
