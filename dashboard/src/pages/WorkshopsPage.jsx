@@ -9,6 +9,7 @@ export default function WorkshopsPage() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [usageWs, setUsageWs] = useState(null);
+  const [editWs, setEditWs] = useState(null); // 수정 중인 실습 객체
   const [form, setForm] = useState({
     workshopId: '', name: '',
     validFrom: '', expiresAt: '',
@@ -72,6 +73,47 @@ export default function WorkshopsPage() {
     setBusy(false);
   };
 
+  const editWorkshop = (w) => {
+    const toLocal = (iso) => iso ? new Date(new Date(iso).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
+    setForm({
+      workshopId: w.workshopId,
+      name: w.name,
+      validFrom: toLocal(w.validFrom),
+      expiresAt: toLocal(w.expiresAt),
+      allowedModels: [...(w.allowedModels || ['model-router'])],
+      requestsPerMinute: w.requestsPerMinute ?? 10,
+      dailyRequestLimit: w.dailyRequestLimit ?? 200,
+      org: w.org || '',
+      tokenLimitPerKey: w.tokenLimitPerKey ?? 0,
+    });
+    setEditWs(w.workshopId);
+    setShowForm(true);
+  };
+
+  const saveEdit = async (e) => {
+    e.preventDefault();
+    setBusy(true); setMsg('');
+    try {
+      await apiClient(`/admin/workshops/${editWs}`, {
+        method: 'PATCH',
+        body: {
+          name: form.name,
+          validFrom: form.validFrom ? new Date(form.validFrom).toISOString() : undefined,
+          expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : undefined,
+          allowedModels: form.allowedModels,
+          requestsPerMinute: Number(form.requestsPerMinute),
+          dailyRequestLimit: Number(form.dailyRequestLimit),
+          org: form.org,
+          tokenLimitPerKey: Number(form.tokenLimitPerKey),
+        },
+      });
+      setMsg(editWs + ' 수정 완료');
+      setEditWs(null); setShowForm(false);
+      load();
+    } catch (err) { setMsg(err.message); }
+    setBusy(false);
+  };
+
   const cloneWorkshop = (w) => {
     setForm({
       workshopId: `${w.workshopId}-copy-${Date.now().toString(36).slice(-4)}`,
@@ -118,11 +160,13 @@ export default function WorkshopsPage() {
       {msg && <div className="mb-4 p-3 bg-blue-50 text-blue-800 rounded">{msg}</div>}
 
       {showForm && (
-        <form onSubmit={create} className="mb-6 p-4 bg-white rounded-lg shadow space-y-3">
+        <form onSubmit={editWs ? saveEdit : create} className="mb-6 p-4 bg-white rounded-lg shadow space-y-3">
+          <p className="font-bold text-gray-700">{editWs ? '✏️ 실습 수정: ' + editWs : '새 실습 생성'}</p>
           <div className="grid grid-cols-2 gap-3">
             <input required placeholder="실습ID (예: lab-20260910)" value={form.workshopId}
               onChange={(e) => setForm({ ...form, workshopId: e.target.value })}
-              className="border rounded px-3 py-2" />
+              disabled={!!editWs}
+              className={`border rounded px-3 py-2 ${editWs ? 'bg-gray-100 text-gray-500' : ''}`} />
             <input required placeholder="실습명" value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="border rounded px-3 py-2" />
@@ -166,9 +210,15 @@ export default function WorkshopsPage() {
               ))}
             </div>
           </div>
-          <button disabled={busy} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
-            {busy ? '생성 중…' : '실습 생성'}
-          </button>
+          <div className="flex gap-2">
+            <button disabled={busy} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50">
+              {busy ? '저장 중…' : (editWs ? '수정 저장' : '실습 생성')}
+            </button>
+            {editWs && (
+              <button type="button" onClick={() => { setEditWs(null); setShowForm(false); }}
+                className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">취소</button>
+            )}
+          </div>
         </form>
       )}
 
@@ -193,7 +243,8 @@ export default function WorkshopsPage() {
                 <td className="p-3 text-xs">{w.org || '-'}</td>
                 <td className="p-3">{badge(w.status)}</td>
                 <td className="p-3 space-x-1 whitespace-nowrap">
-                  <button onClick={() => setUsageWs(w.workshopId)} className="px-2 py-1 bg-sky-100 text-sky-800 rounded text-xs hover:bg-sky-200">📊 내역</button>
+                  <button onClick={() => editWorkshop(w)} className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-xs hover:bg-indigo-200">✏️ 수정</button>
+                <button onClick={() => setUsageWs(w.workshopId)} className="px-2 py-1 bg-sky-100 text-sky-800 rounded text-xs hover:bg-sky-200">📊 내역</button>
                   <button onClick={() => extend(w)} className="px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs hover:bg-amber-200">연장</button>
                   <button onClick={() => cloneWorkshop(w)} className="px-2 py-1 bg-gray-100 rounded text-xs hover:bg-gray-200">복제</button>
                   {w.status !== 'CLOSED' && (
