@@ -4,6 +4,7 @@ const { app } = require('@azure/functions');
 const { verifyAdmin, handleCors, successResponse, errorResponse } = require('../lib/auth');
 const { listKeys, upsertKey, deleteKeyEntity, getWorkshop, upsertWorkshop, writeAudit } = require('../lib/tableStorage');
 const { createLabSubscription, regenerateKey, setSubscriptionState, deleteSubscription, maskKey } = require('../lib/apim');
+const { encSecret } = require('./key-example');
 
 function newKeyId() {
   const d = new Date();
@@ -47,6 +48,7 @@ app.http('adminKeys', {
               keyId, workshopId, name: keyId, owner,
               apimSubscriptionId: subId,
               maskedKey: maskKey(secrets.primaryKey),
+              encryptedKey: encSecret(secrets.primaryKey),
               status: 'ACTIVE',
               issuedAt: new Date().toISOString(),
               expiresAt: workshop.expiresAt,
@@ -71,6 +73,7 @@ app.http('adminKeys', {
           keyId, workshopId, name: keyId, owner,
           apimSubscriptionId: subId,
           maskedKey: maskKey(secrets.primaryKey),
+          encryptedKey: encSecret(secrets.primaryKey),
           status: 'ACTIVE',
           issuedAt: new Date().toISOString(),
           expiresAt: workshop.expiresAt,
@@ -117,6 +120,7 @@ app.http('adminKeyAction', {
         await upsertKey({
           ...k,
           maskedKey: maskKey(which === 'secondary' ? secrets.secondaryKey : secrets.primaryKey),
+          encryptedKey: encSecret(secrets.primaryKey),
           lastRotatedAt: new Date().toISOString(),
         });
         await writeAudit('key.regenerate', { keyId, which });
