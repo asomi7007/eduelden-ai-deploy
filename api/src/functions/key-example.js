@@ -2,7 +2,7 @@
 
 const { app } = require('@azure/functions');
 const { verifyAdmin, handleCors, successResponse, errorResponse } = require('../lib/auth');
-const { buildSnippets, MODEL_DESCRIPTIONS } = require('../lib/snippets');
+const { buildSnippets, MODEL_DESCRIPTIONS, MODEL_CAPABILITIES } = require('../lib/snippets');
 const { listKeys, getWorkshop, listModels } = require('../lib/tableStorage');
 const crypto = require('crypto');
 
@@ -76,6 +76,7 @@ app.http('keyExample', {
         allowedModels,
         displayNames,
         modelDescriptions: MODEL_DESCRIPTIONS,
+        modelCapabilities: MODEL_CAPABILITIES,
         ...snippets,
         shareUrl: `${origin}/share/${keyId}?t=${shareToken(keyId)}`,
       });
