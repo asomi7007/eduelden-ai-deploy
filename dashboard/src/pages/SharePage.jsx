@@ -26,7 +26,7 @@ const CopyField = ({ label, value, accent = false }) => {
 const EFFORTS = ['low', 'medium', 'high'];
 
 /** 모델 설정 블록 — 관리자 모달과 동일 구성/순서 */
-const ModelSetup = ({ m, d, selected, onSelect, onCopy, copiedKey }) => {
+const ModelSetup = ({ m, d, selected, onSelect, onCopy, copiedKey, onCopyValue }) => {
   const caps = (d.modelCapabilities || {})[m] || {};
   const efforts = caps.reasoningEfforts || [];
   return (
@@ -44,6 +44,25 @@ const ModelSetup = ({ m, d, selected, onSelect, onCopy, copiedKey }) => {
         <p className="text-[11px] text-gray-400 w-20 shrink-0">Wire model</p>
         <code className="text-[11px] text-gray-700 font-mono bg-gray-100 rounded px-1.5 py-0.5">{m}</code>
       </div>
+      {(() => {
+        const tl = (d.modelTokenLimits || {})[m] || {};
+        return (tl.maxPromptTokens != null) ? (
+          <div className="mt-0.5 space-y-0.5">
+            <div className="flex items-center gap-2">
+              <p className="text-[11px] text-gray-400 w-20 shrink-0">Max prompt tokens</p>
+              <code className="text-[11px] text-gray-700 font-mono bg-gray-100 rounded px-1.5 py-0.5">{tl.maxPromptTokens.toLocaleString()}</code>
+              <button onClick={() => onCopyValue('maxp-' + m, String(tl.maxPromptTokens))}
+                className="text-[10px] px-1.5 py-0.5 bg-slate-200 rounded hover:bg-slate-300">복사</button>
+            </div>
+            <div className="flex items-center gap-2">
+              <p className="text-[11px] text-gray-400 w-20 shrink-0">Max output tokens</p>
+              <code className="text-[11px] text-gray-700 font-mono bg-gray-100 rounded px-1.5 py-0.5">{tl.maxOutputTokens.toLocaleString()}</code>
+              <button onClick={() => onCopyValue('maxo-' + m, String(tl.maxOutputTokens))}
+                className="text-[10px] px-1.5 py-0.5 bg-slate-200 rounded hover:bg-slate-300">복사</button>
+            </div>
+          </div>
+        ) : null;
+      })()}
       {efforts.length > 0 && (
         <div className="mt-1 flex items-center gap-2 flex-wrap">
           <p className="text-[11px] text-gray-400 w-20 shrink-0">Reasoning effort</p>
@@ -125,6 +144,7 @@ print(response.choices[0].message.content)`,
           <>
             <div className="mb-4 p-3 bg-slate-50 rounded-lg border">
               <p className="text-xs font-bold text-slate-600 mb-2">접속 정보 — 각 항목 복사해서 입력하세요</p>
+              <CopyField label="Display name" value="Elden-Azure-AI" mono={false} />
               <CopyField label="Wire API (Base URL)" value={URL_} />
               <CopyField label="API 키 (API Key 칸에 이 값만)" value={KEY || '(키 없음)'} accent />
             </div>
@@ -135,7 +155,8 @@ print(response.choices[0].message.content)`,
                 {(data.allowedModels || ['model-router']).map((m) => (
                   <ModelSetup key={m} m={m} d={data} selected={model === m}
                     onSelect={() => setModel(m)}
-                    onCopy={() => copy('model-' + m, m)} copiedKey={copied === 'model-' + m} />
+                    onCopy={() => copy('model-' + m, m)} copiedKey={copied === 'model-' + m}
+                    onCopyValue={(k, v) => copy(k, v)} />
                 ))}
               </div>
               <p className="text-[11px] text-gray-400 mt-1">만료: {data.expiresAt?.slice(0, 16).replace('T', ' ')} · 분당 10회 / 일 200회 · 이미지 모델은 미지원</p>
