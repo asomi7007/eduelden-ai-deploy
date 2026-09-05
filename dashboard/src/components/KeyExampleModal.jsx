@@ -75,8 +75,8 @@ export default function KeyExampleModal({ keyId, onClose }) {
                 {(data.allowedModels || ['model-router']).map((m) => (
                   <div key={m} className={`flex gap-2 items-center rounded border px-2 py-1.5 ${model === m ? 'border-green-600 bg-green-50' : 'border-gray-200'}`}>
                     <button onClick={() => { setModel(m); load(m); }} className="flex-1 text-left">
-                      <code className="text-sm font-mono">{m}</code>
-                      <span className="text-xs text-gray-400 ml-2">{(data.displayNames || {})[m] || ''}</span>
+                      <p className="text-sm font-semibold text-gray-800">{(data.displayNames || {})[m] || m}</p>
+                      <code className="text-[11px] text-gray-400 font-mono">{m}</code>
                     </button>
                     <button onClick={() => copy(m)}
                       className="px-2 py-1 bg-green-700 text-white rounded text-xs">{msg === '복사됨!' && model === m ? '✓' : '복사'}</button>
