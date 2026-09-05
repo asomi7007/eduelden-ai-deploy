@@ -59,6 +59,17 @@ export default function WorkshopsPage() {
     setBusy(false);
   };
 
+  const deleteWorkshop = async (id) => {
+    if (!confirm(`${id} 실습을 완전 삭제할까요?\n소속 키도 전부 폐기되고 복구할 수 없습니다.`)) return;
+    setBusy(true);
+    try {
+      const r = await apiClient(`/admin/workshops/${id}`, { method: 'DELETE' });
+      setMsg(`${id} 삭제 완료 — 키 ${r.purged}개 폐기됨`);
+      load();
+    } catch (err) { setMsg(err.message); }
+    setBusy(false);
+  };
+
   const cloneWorkshop = (w) => {
     setForm({
       workshopId: `${w.workshopId}-copy-${Date.now().toString(36).slice(-4)}`,
@@ -184,6 +195,9 @@ export default function WorkshopsPage() {
                   <button onClick={() => cloneWorkshop(w)} className="px-2 py-1 bg-gray-100 rounded text-xs hover:bg-gray-200">복제</button>
                   {w.status !== 'CLOSED' && (
                     <button onClick={() => closeWorkshop(w.workshopId)} className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200">종료</button>
+                  )}
+                  {w.status === 'CLOSED' && (
+                    <button onClick={() => deleteWorkshop(w.workshopId)} className="px-2 py-1 bg-gray-800 text-white rounded text-xs hover:bg-black">🗑 삭제</button>
                   )}
                 </td>
               </tr>
