@@ -54,6 +54,18 @@ const MODEL_CAPABILITIES = {
   'gpt-image-2':       { reasoningEfforts: [],                      maxCompletionTokens: false },
 };
 
+/** 모델별 토큰 한도 — Foundry 배포 설정 기준 (2026-09-05 확인) */
+const MODEL_TOKEN_LIMITS = {
+  'model-router':      { maxPromptTokens: 272000, maxOutputTokens: 100000 },
+  'gpt-5.6-sol':       { maxPromptTokens: 272000, maxOutputTokens: 128000 },
+  'gpt-5.6-terra':     { maxPromptTokens: 272000, maxOutputTokens: 128000 },
+  'gpt-5.6-luna':      { maxPromptTokens: 272000, maxOutputTokens: 128000 },
+  'gpt-chat-latest':   { maxPromptTokens: 272000, maxOutputTokens: 128000 },
+  'DeepSeek-V4-Flash': { maxPromptTokens: 128000, maxOutputTokens: 64000 },
+  'grok-4.6':          { maxPromptTokens: 256000, maxOutputTokens: 64000 },
+  'gpt-image-2':       { maxPromptTokens: 4000,   maxOutputTokens: 16000 },
+};
+
 /** 모델별 한줄 설명 (특징 + 단가) */
 const MODEL_DESCRIPTIONS = {
   'model-router':      '자동 라우팅 — 질문에 맞춰 최적 모델 선택, 기본 추천',
@@ -68,3 +80,4 @@ const MODEL_DESCRIPTIONS = {
 
 module.exports.MODEL_DESCRIPTIONS = MODEL_DESCRIPTIONS;
 module.exports.MODEL_CAPABILITIES = MODEL_CAPABILITIES;
+module.exports.MODEL_TOKEN_LIMITS = MODEL_TOKEN_LIMITS;
