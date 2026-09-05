@@ -39,6 +39,21 @@ print(response.choices[0].message.content)`,
 
 module.exports = { buildSnippets, baseUrl };
 
+/** 모델 기능 메타 — 실측 기준 (2026-09-05)
+ * reasoningEfforts: reasoning_effort 파라미터로 실제 동작 확인된 값만
+ * maxCompletionTokens: max_tokens 미지원 → max_completion_tokens 필수 여부
+ */
+const MODEL_CAPABILITIES = {
+  'model-router':      { reasoningEfforts: ['low','medium','high'], maxCompletionTokens: false },
+  'gpt-5.6-sol':       { reasoningEfforts: ['low','medium','high'], maxCompletionTokens: true },
+  'gpt-5.6-terra':     { reasoningEfforts: ['low','medium','high'], maxCompletionTokens: true },
+  'gpt-5.6-luna':      { reasoningEfforts: ['low','medium','high'], maxCompletionTokens: true },
+  'gpt-chat-latest':   { reasoningEfforts: ['medium','high'],       maxCompletionTokens: true },
+  'DeepSeek-V4-Flash': { reasoningEfforts: ['low','medium','high'], maxCompletionTokens: false },
+  'grok-4.6':          { reasoningEfforts: ['low','medium','high'], maxCompletionTokens: false },
+  'gpt-image-2':       { reasoningEfforts: [],                      maxCompletionTokens: false },
+};
+
 /** 모델별 한줄 설명 (특징 + 단가) */
 const MODEL_DESCRIPTIONS = {
   'model-router':      '자동 라우팅 — 질문에 맞춰 최적 모델 선택, 기본 추천',
@@ -52,3 +67,4 @@ const MODEL_DESCRIPTIONS = {
 };
 
 module.exports.MODEL_DESCRIPTIONS = MODEL_DESCRIPTIONS;
+module.exports.MODEL_CAPABILITIES = MODEL_CAPABILITIES;
