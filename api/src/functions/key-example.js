@@ -59,7 +59,7 @@ app.http('keyExample', {
       }
       const rawKey = decSecret(k.encryptedKey);
       const snippets = buildSnippets(rawKey, model);
-      const origin = request.headers.get('origin') || `https://${request.headers.get('host') || ''}`;
+      const origin = process.env.PUBLIC_BASE_URL || `https://${(request.headers.get('x-forwarded-host') || request.headers.get('host') || '').split(',')[0].trim()}`;
       return successResponse({
         keyId,
         owner: k.owner,
