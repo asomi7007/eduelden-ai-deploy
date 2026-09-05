@@ -2,9 +2,8 @@
 
 const { app } = require('@azure/functions');
 const { successResponse, errorResponse } = require('../lib/auth');
-const { baseUrl } = require('../lib/snippets');
-const { buildSnippets } = require('../lib/snippets');
-const { listKeys } = require('../lib/tableStorage');
+const { buildSnippets, baseUrl } = require('../lib/snippets');
+const { listKeys, getWorkshop } = require('../lib/tableStorage');
 const crypto = require('crypto');
 
 function shareToken(keyId) {
@@ -43,6 +42,10 @@ app.http('sharedKeyInfo', {
       try {
         apiKey = k.encryptedKey ? decSecret(k.encryptedKey) : '';
       } catch { apiKey = ''; }
+      const workshop = await getWorkshop(k.workshopId);
+      const allowedModels = (workshop && workshop.allowedModels && workshop.allowedModels.length)
+        ? workshop.allowedModels : ['model-router'];
+      const snippets = buildSnippets(apiKey, allowedModels[0]);
       return successResponse({
         keyId: k.keyId,
         owner: k.owner,
@@ -51,6 +54,8 @@ app.http('sharedKeyInfo', {
         apiKey,                    // 실제 키 전체
         maskedKey: k.maskedKey,    // 참고용 마스킹
         baseUrl: baseUrl(),
+        allowedModels,             // 실습에 배정된 모델만
+        snippets,                  // 기본 예제 (첫 모델 기준)
       });
     } catch (e) {
       return errorResponse(e.message, 500);
