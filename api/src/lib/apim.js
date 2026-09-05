@@ -44,8 +44,21 @@ async function createLabSubscription(subscriptionId, displayName) {
 }
 
 async function regenerateKey(subscriptionId, which) {
-  const keyName = which === 'secondary' ? 'secondary' : 'primary';
-  const secrets = await armRequest('POST', `/subscriptions/${subscriptionId}/regenerateKey?keyType=${keyName}`);
+  // Consumption SKU는 regenerateKey action을 지원하지 않음 (404).
+  // 동일한 재생성 효과: 구독 삭제 → 동일 ID 재생성 → 새 시크릿 조회.
+  const displayName = subscriptionId.split('-').slice(2).join('-') || subscriptionId;
+  await armRequest('DELETE', `/subscriptions/${subscriptionId}`);
+  const productId = process.env.APIM_PRODUCT_ID || 'hands-on-ai';
+  const base = getApimBasePath();
+  await armRequest('PUT', `/subscriptions/${subscriptionId}`, {
+    properties: {
+      displayName,
+      scope: `${base}/products/${productId}`,
+      state: 'active',
+      allowTracing: false,
+    },
+  });
+  const secrets = await armRequest('POST', `/subscriptions/${subscriptionId}/listSecrets`);
   return { primaryKey: secrets.primaryKey, secondaryKey: secrets.secondaryKey };
 }
 
