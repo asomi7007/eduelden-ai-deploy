@@ -129,6 +129,12 @@ async function upsertWorkshop(w) {
   return { ok: true };
 }
 
+async function deleteWorkshopEntity(workshopId) {
+  const t = getTable('workshops');
+  await t.deleteEntity('WORKSHOP', workshopId);
+  return { ok: true };
+}
+
 // ---------- AccessKeys ----------
 function keyFromEntity(e) {
   return {
@@ -219,7 +225,7 @@ async function listAudit(limit = 100) {
 
 module.exports = {
   listModels, upsertModel,
-  listWorkshops, getWorkshop, upsertWorkshop,
+  listWorkshops, getWorkshop, upsertWorkshop, deleteWorkshopEntity,
   listKeys, upsertKey, deleteKeyEntity, findExpiringKeys,
   writeAudit, listAudit,
 };
