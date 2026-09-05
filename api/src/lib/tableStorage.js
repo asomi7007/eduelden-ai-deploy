@@ -28,8 +28,12 @@ function getService() {
 }
 
 function getTable(name) {
-  const svc = getService();
-  return svc.getTableClient(TABLES[name]);
+  const endpoint = `https://${ACCOUNT}.table.core.windows.net`;
+  const key = process.env.STORAGE_ACCOUNT_KEY;
+  const credential = key
+    ? new AzureNamedKeyCredential(ACCOUNT, key)
+    : new (require('@azure/identity').DefaultAzureCredential)();
+  return new TableClient(endpoint, TABLES[name], credential);
 }
 
 // ---------- Models ----------
