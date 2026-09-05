@@ -2,7 +2,7 @@
 
 const { app } = require('@azure/functions');
 const { successResponse, errorResponse } = require('../lib/auth');
-const { buildSnippets, baseUrl } = require('../lib/snippets');
+const { buildSnippets, baseUrl, MODEL_DESCRIPTIONS } = require('../lib/snippets');
 const { listKeys, getWorkshop, listModels } = require('../lib/tableStorage');
 const crypto = require('crypto');
 
@@ -61,6 +61,7 @@ app.http('sharedKeyInfo', {
         baseUrl: baseUrl(),
         allowedModels,             // 실습에 배정된 텍스트 모델만 (이미지 제외)
         displayNames,              // 모델 표시명
+        modelDescriptions: MODEL_DESCRIPTIONS,
         snippets,                  // 기본 예제 (첫 모델 기준)
       });
     } catch (e) {
