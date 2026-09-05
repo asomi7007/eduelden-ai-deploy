@@ -61,8 +61,8 @@ async function upsertModel(m) {
   const t = getTable('models');
   const now = new Date().toISOString();
   await t.upsertEntity({
-    PartitionKey: 'MODEL',
-    RowKey: m.modelId,
+    partitionKey: 'MODEL',
+    rowKey: m.modelId,
     DisplayName: m.displayName || m.modelId,
     DeploymentName: m.deploymentName || m.modelId,
     ModelType: m.modelType || 'text',
@@ -112,8 +112,8 @@ async function upsertWorkshop(w) {
   const t = getTable('workshops');
   const now = new Date().toISOString();
   await t.upsertEntity({
-    PartitionKey: 'WORKSHOP',
-    RowKey: w.workshopId,
+    partitionKey: 'WORKSHOP',
+    rowKey: w.workshopId,
     Name: w.name,
     ValidFrom: w.validFrom,
     ExpiresAt: w.expiresAt,
@@ -158,8 +158,8 @@ async function listKeys(workshopId) {
 async function upsertKey(k) {
   const t = getTable('keys');
   await t.upsertEntity({
-    PartitionKey: k.workshopId,
-    RowKey: k.keyId,
+    partitionKey: k.workshopId,
+    rowKey: k.keyId,
     WorkshopId: k.workshopId,
     Name: k.name,
     Owner: k.owner || '',
@@ -195,8 +195,8 @@ async function writeAudit(action, detail, actor) {
   const ts = new Date().toISOString();
   const rowKey = `${ts.replace(/[^0-9]/g, '')}-${Math.random().toString(36).slice(2, 8)}`;
   await t.upsertEntity({
-    PartitionKey: 'AUDIT',
-    RowKey: rowKey,
+    partitionKey: 'AUDIT',
+    rowKey: rowKey,
     Action: action,
     Detail: typeof detail === 'string' ? detail : JSON.stringify(detail),
     Actor: actor || 'admin',
