@@ -13,7 +13,7 @@ async function armRequest(method, path, body, context) {
   const { getManagementToken } = require('./azure-client-ext');
   const token = await getManagementToken();
   const base = getApimBasePath();
-  const url = `${base}${path}?api-version=${API_VERSION}`;
+  const url = `${base}${path}${path.includes('?') ? '&' : '?'}api-version=${API_VERSION}`;
   const res = await fetch(url, {
     method,
     headers: {
