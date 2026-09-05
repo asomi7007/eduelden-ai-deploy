@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../api/client';
 
 const CopyField = ({ label, value, mono = true }) => {
@@ -26,17 +26,23 @@ export default function KeyExampleModal({ keyId, onClose }) {
   const [model, setModel] = useState('');
   const [msg, setMsg] = useState('');
   const [tab, setTab] = useState('python');
+  const [loading, setLoading] = useState(false);
 
-  const load = async (m) => {
+  const load = useCallback(async (m) => {
+    setLoading(true);
     setMsg('');
     try {
       const d = await apiClient(`/admin/keys/${keyId}/example${m ? `?model=${m}` : ''}`);
       if (d.shareUrl) d.shareUrl = d.shareUrl.replace(/^https?:\/\/[^/]+/, window.location.origin);
       setData(d);
-      if (!m && d.allowedModels?.length) setModel(d.model || d.allowedModels[0]);
-    } catch (e) { setMsg(e.message); }
-  };
-  if (data === null && !msg) { load(''); }
+      if (!m) setModel(d.model || (d.allowedModels || ['model-router'])[0]);
+    } catch (e) {
+      setMsg('오류: ' + (e.message || e));
+    }
+    setLoading(false);
+  }, [keyId]);
+
+  useEffect(() => { load(''); }, [load]);
 
   const copy = (text) => { navigator.clipboard.writeText(text); setMsg('복사됨!'); setTimeout(() => setMsg(''), 1500); };
   const qrUrl = data ? `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(data.shareUrl)}` : '';
@@ -49,21 +55,20 @@ export default function KeyExampleModal({ keyId, onClose }) {
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
         </div>
         {msg && <div className="mb-3 p-2 bg-blue-50 text-blue-700 rounded text-sm">{msg}</div>}
-        {!data && !msg && <p className="text-gray-400">불러오는 중…</p>}
+        {loading && !data && <p className="text-gray-400">불러오는 중…</p>}
+        {!loading && !data && !msg && <p className="text-gray-400">데이터 없음</p>}
 
         {data && (
           <>
-            {/* ===== 복사 가능한 접속 정보 칸 ===== */}
             <div className="mb-4 p-3 bg-slate-50 rounded-lg border">
               <p className="text-xs font-bold text-slate-600 mb-2">접속 정보 — 각 항목 복사해서 입력하세요</p>
               <CopyField label="Display name (표시 이름)" value={data.owner || keyId} mono={false} />
               <CopyField label="Wire API (Base URL)" value={`https://apim-eduelden-ai.azure-api.net/openai/v1`} />
-              <CopyField label="API 키 (Custom headers — Ocp-Apim-Subscription-Key 값)" value={data.header.replace('Ocp-Apim-Subscription-Key: ', '')} />
-              <CopyField label="Custom header 전체" value={data.header} />
+              <CopyField label="API 키 (Custom headers — Ocp-Apim-Subscription-Key 값)" value={data.header ? data.header.replace('Ocp-Apim-Subscription-Key: ', '') : ''} />
+              <CopyField label="Custom header 전체" value={data.header || ''} />
               {data.shareUrl && <CopyField label="공유 링크 (QR 대상)" value={data.shareUrl} />}
             </div>
 
-            {/* ===== 모델 드롭다운: 실습 배정 모델만 ===== */}
             <div className="mb-4 flex items-center gap-2">
               <label className="text-sm text-gray-600">모델:</label>
               <select
@@ -77,7 +82,6 @@ export default function KeyExampleModal({ keyId, onClose }) {
               <span className="text-xs text-gray-400">이 실습에 배정된 모델만 표시 · 만료: {data.expiresAt?.slice(0, 16)}</span>
             </div>
 
-            {/* QR */}
             <div className="mb-5 flex gap-4 items-center bg-gray-50 p-4 rounded-lg">
               {qrUrl && <img src={qrUrl} alt="QR" className="w-32 h-32 border rounded bg-white" />}
               <div className="flex-1">
@@ -92,7 +96,6 @@ export default function KeyExampleModal({ keyId, onClose }) {
               </div>
             </div>
 
-            {/* 코드 탭 */}
             <div className="flex gap-1 mb-2">
               {['python', 'curl', 'vscode', 'header'].map((t) => (
                 <button key={t} onClick={() => setTab(t)}
