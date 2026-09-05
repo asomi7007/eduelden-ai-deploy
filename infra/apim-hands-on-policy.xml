@@ -25,6 +25,14 @@
 		</choose>
 		<rate-limit calls="10" renewal-period="60" />
 		<choose>
+			<when condition="@(context.Request.Url.Path.EndsWith("/models"))">
+				<!-- 모델 목록: 백엔드 /openai/models 로 전달 -->
+				<rewrite-uri template="/v1/models" copy-unmatched-params="true" />
+			</when>
+			<when condition="@(context.Request.Url.Path.Contains("/responses"))">
+				<!-- Responses API: 본문의 model을 deployments 경로로 재작성하지 않고 v1 직행 -->
+				<rewrite-uri template="/v1/responses" copy-unmatched-params="true" />
+			</when>
 			<when condition="@(context.Request.Url.Path.Contains("/chat/completions") &amp;&amp; !context.Request.Url.Path.Contains("/deployments/"))">
 				<set-variable name="reqBody" value="@(context.Request.Body.As&lt;JObject&gt;(preserveContent: true))" />
 				<set-variable name="modelName" value="@{
