@@ -12,6 +12,7 @@ import AccessKeysPage from './pages/AccessKeysPage';
 import ModelsPage from './pages/ModelsPage';
 import UsagePage from './pages/UsagePage';
 import AuditLogsPage from './pages/AuditLogsPage';
+import SharePage from './pages/SharePage';
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated } = useAuth();
@@ -24,6 +25,7 @@ function AppRoutes() {
 
   return (
     <Routes>
+      <Route path="/share/:keyId" element={<SharePage />} />
       <Route
         path="/login"
         element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />}
