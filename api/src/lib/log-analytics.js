@@ -109,7 +109,10 @@ const COST_RATES = {
   // 기존 호환 (per 1K → 1M 환산)
   'gpt-54-mini':  { input: 0.40, output: 1.60 },
   'gpt-55':       { input: 5.00, output: 15.00 },
-  // model-router: 실제 라우팅 결과물은 응답 model 필드 기준으로 개별 계산됨
+  // Model Router (Foundry — 라우팅 수수료, 입력 1M당)
+  'model-router': { input: 0.14, output: 0 },
+  // GPT-Image-2 (텍스트 입력/이미지 출력 기준)
+  'gpt-image-2': { input: 5.00, output: 30.00 },
 };
 
 /**
