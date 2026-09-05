@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../api/client';
+import UsageModal from '../components/UsageModal';
 
 export default function WorkshopsPage() {
   const [workshops, setWorkshops] = useState([]);
@@ -7,6 +8,7 @@ export default function WorkshopsPage() {
   const [showForm, setShowForm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  const [usageWs, setUsageWs] = useState(null);
   const [form, setForm] = useState({
     workshopId: '', name: '',
     validFrom: '', expiresAt: '',
@@ -191,6 +193,7 @@ export default function WorkshopsPage() {
                 <td className="p-3 text-xs">{w.org || '-'}</td>
                 <td className="p-3">{badge(w.status)}</td>
                 <td className="p-3 space-x-1 whitespace-nowrap">
+                  <button onClick={() => setUsageWs(w.workshopId)} className="px-2 py-1 bg-sky-100 text-sky-800 rounded text-xs hover:bg-sky-200">📊 내역</button>
                   <button onClick={() => extend(w)} className="px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs hover:bg-amber-200">연장</button>
                   <button onClick={() => cloneWorkshop(w)} className="px-2 py-1 bg-gray-100 rounded text-xs hover:bg-gray-200">복제</button>
                   {w.status !== 'CLOSED' && (
@@ -208,6 +211,8 @@ export default function WorkshopsPage() {
           </tbody>
         </table>
       </div>
-    </div>
+    
+      {usageWs && <UsageModal workshopId={usageWs} onClose={() => setUsageWs(null)} />}
+</div>
   );
 }
