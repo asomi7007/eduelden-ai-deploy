@@ -19,3 +19,5 @@ require('./admin-statistics');
 require('./admin-system');
 require('./admin-snippets');
 require('./expire-keys');
+require('./key-example');
+require('./share-key');
