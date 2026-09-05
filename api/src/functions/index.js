@@ -21,3 +21,4 @@ require('./admin-snippets');
 require('./expire-keys');
 require('./key-example');
 require('./share-key');
+require('./admin-usage');
