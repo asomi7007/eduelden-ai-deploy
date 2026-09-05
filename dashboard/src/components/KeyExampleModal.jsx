@@ -69,17 +69,21 @@ export default function KeyExampleModal({ keyId, onClose }) {
               {data.shareUrl && <CopyField label="공유 링크 (QR 대상)" value={data.shareUrl} />}
             </div>
 
-            <div className="mb-4 flex items-center gap-2">
-              <label className="text-sm text-gray-600">모델:</label>
-              <select
-                value={model}
-                onChange={(e) => { const m = e.target.value; setModel(m); load(m); }}
-                className="border rounded px-2 py-1 text-sm">
+            <div className="mb-4">
+              <p className="text-xs font-bold text-gray-600 mb-1">Model ID — 이 실습에 배정된 모델 (텍스트 전용)</p>
+              <div className="space-y-1">
                 {(data.allowedModels || ['model-router']).map((m) => (
-                  <option key={m} value={m}>{m}</option>
+                  <div key={m} className={`flex gap-2 items-center rounded border px-2 py-1.5 ${model === m ? 'border-green-600 bg-green-50' : 'border-gray-200'}`}>
+                    <button onClick={() => { setModel(m); load(m); }} className="flex-1 text-left">
+                      <code className="text-sm font-mono">{m}</code>
+                      <span className="text-xs text-gray-400 ml-2">{(data.displayNames || {})[m] || ''}</span>
+                    </button>
+                    <button onClick={() => copy(m)}
+                      className="px-2 py-1 bg-green-700 text-white rounded text-xs">{msg === '복사됨!' && model === m ? '✓' : '복사'}</button>
+                  </div>
                 ))}
-              </select>
-              <span className="text-xs text-gray-400">이 실습에 배정된 모델만 표시 · 만료: {data.expiresAt?.slice(0, 16)}</span>
+              </div>
+              <p className="text-[11px] text-gray-400 mt-1">클릭해서 예제에 적용 · 만료: {data.expiresAt?.slice(0, 16)} · 이미지 모델은 Copilot 앱 미지원으로 제외됨</p>
             </div>
 
             <div className="mb-5 flex gap-4 items-center bg-gray-50 p-4 rounded-lg">
