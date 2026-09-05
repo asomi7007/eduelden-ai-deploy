@@ -7,8 +7,7 @@ on:
       - main
     paths:
       - "dashboard/**"
-      - "api/src/functions/dashboard-*"
-      - "api/src/functions/index.js"
+      - "api/src/functions/**"
       - "api/src/lib/**"
       - "api/package.json"
   pull_request:
@@ -17,8 +16,7 @@ on:
       - main
     paths:
       - "dashboard/**"
-      - "api/src/functions/dashboard-*"
-      - "api/src/functions/index.js"
+      - "api/src/functions/**"
       - "api/src/lib/**"
       - "api/package.json"
 
@@ -51,7 +49,7 @@ jobs:
         working-directory: api
         run: npm ci
 
-      - name: Deploy to Azure Static Web Apps
+      - name: Deploy to Azure Static Web Apps (swa-eduelden-admin)
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_SWA_DASHBOARD_TOKEN }}
