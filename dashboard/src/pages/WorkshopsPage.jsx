@@ -205,7 +205,7 @@ export default function WorkshopsPage() {
                   <input type="checkbox" className="hidden"
                     checked={form.allowedModels.includes(m.modelId)}
                     onChange={() => toggleModel(m.modelId)} />
-                  {m.displayName}
+                  {m.modelId}
                 </label>
               ))}
             </div>
