@@ -6,7 +6,8 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => sessionStorage.getItem('admin_token'));
 
   const login = useCallback(async (password) => {
-    const res = await fetch('/api/dashboard/overview', {
+    // 인증 검증은 헬스체크 엔드포인트 사용 (Log Analytics 의존 제거)
+    const res = await fetch('/api/dashboard/admin/system/health', {
       headers: {
         'Content-Type': 'application/json',
         'X-Admin-Token': password,
@@ -38,7 +39,5 @@ export function AuthProvider({ children }) {
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
-  return ctx;
+  return useContext(AuthContext);
 }

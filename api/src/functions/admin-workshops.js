@@ -2,12 +2,12 @@
 
 const { app } = require('@azure/functions');
 const { verifyAdmin, handleCors, successResponse, errorResponse } = require('../lib/auth');
-const { listWorkshops, getWorkshop, upsertWorkshop, writeAudit } = require('../lib/tableStorage');
-const { setSubscriptionState } = require('../lib/apim');
-const { listKeys, upsertKey } = require('../lib/tableStorage');
+const { listWorkshops, getWorkshop, upsertWorkshop, deleteWorkshopEntity, writeAudit } = require('../lib/tableStorage');
+const { setSubscriptionState, deleteSubscription } = require('../lib/apim');
+const { listKeys, upsertKey, deleteKeyEntity } = require('../lib/tableStorage');
 
 app.http('adminWorkshops', {
-  methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
   authLevel: 'anonymous',
   route: 'dashboard/admin/workshops/{workshopId?}',
   handler: async (request) => {
@@ -56,6 +56,24 @@ app.http('adminWorkshops', {
         await writeAudit('workshop.update', { workshopId, patch: body });
         return successResponse({ ok: true });
       }
+      if (request.method === 'DELETE') {
+        const workshopId = request.params.workshopId;
+        if (!workshopId) return errorResponse('workshopId required', 400);
+        // 소속 키 전부 폐기 (APIM 구독 삭제 + DB 삭제)
+        const keys = await listKeys(workshopId);
+        let purged = 0;
+        for (const k of keys) {
+          try {
+            await deleteSubscription(k.apimSubscriptionId);
+            await deleteKeyEntity(k.workshopId, k.keyId);
+            purged++;
+          } catch { /* continue */ }
+        }
+        await deleteWorkshopEntity(workshopId);
+        await writeAudit('workshop.delete', { workshopId, purged });
+        return successResponse({ ok: true, purged });
+      }
+
       return errorResponse('method not allowed', 405);
     } catch (e) {
       return errorResponse(e.message, 500);

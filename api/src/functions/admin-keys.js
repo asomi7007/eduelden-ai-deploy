@@ -4,6 +4,7 @@ const { app } = require('@azure/functions');
 const { verifyAdmin, handleCors, successResponse, errorResponse } = require('../lib/auth');
 const { listKeys, upsertKey, deleteKeyEntity, getWorkshop, upsertWorkshop, writeAudit } = require('../lib/tableStorage');
 const { createLabSubscription, regenerateKey, setSubscriptionState, deleteSubscription, maskKey } = require('../lib/apim');
+const { encSecret } = require('./key-example');
 
 function newKeyId() {
   const d = new Date();
@@ -47,6 +48,7 @@ app.http('adminKeys', {
               keyId, workshopId, name: keyId, owner,
               apimSubscriptionId: subId,
               maskedKey: maskKey(secrets.primaryKey),
+              encryptedKey: encSecret(secrets.primaryKey),
               status: 'ACTIVE',
               issuedAt: new Date().toISOString(),
               expiresAt: workshop.expiresAt,
@@ -71,6 +73,7 @@ app.http('adminKeys', {
           keyId, workshopId, name: keyId, owner,
           apimSubscriptionId: subId,
           maskedKey: maskKey(secrets.primaryKey),
+          encryptedKey: encSecret(secrets.primaryKey),
           status: 'ACTIVE',
           issuedAt: new Date().toISOString(),
           expiresAt: workshop.expiresAt,
@@ -78,6 +81,18 @@ app.http('adminKeys', {
         await upsertWorkshop({ ...workshop, keyCount: (workshop.keyCount || 0) + 1 });
         await writeAudit('key.issue', { workshopId, keyId });
         return successResponse({ keyId, owner, primaryKey: secrets.primaryKey, expiresAt: workshop.expiresAt });
+      }
+
+      if (request.method === 'DELETE') {
+        const keyId = request.params.keyId;
+        if (!keyId) return errorResponse('keyId required', 400);
+        const keys = (await listKeys()).filter((k) => k.keyId === keyId);
+        if (!keys.length) return errorResponse('key not found', 404);
+        const k = keys[0];
+        await deleteSubscription(k.apimSubscriptionId);
+        await deleteKeyEntity(k.workshopId, k.keyId);
+        await writeAudit('key.delete', keyId);
+        return successResponse({ ok: true });
       }
 
       return errorResponse('method not allowed', 405);
@@ -117,6 +132,7 @@ app.http('adminKeyAction', {
         await upsertKey({
           ...k,
           maskedKey: maskKey(which === 'secondary' ? secrets.secondaryKey : secrets.primaryKey),
+          encryptedKey: encSecret(secrets.primaryKey),
           lastRotatedAt: new Date().toISOString(),
         });
         await writeAudit('key.regenerate', { keyId, which });

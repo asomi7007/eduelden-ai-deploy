@@ -84,10 +84,35 @@ function clearCache() {
 
 // --- Cost estimation ---
 
+// Azure 공식 가격표 기준 (2026-09-05 확인, Global Standard, per 1M tokens USD)
+// https://azure.microsoft.com/en-us/pricing/details/azure-openai/
+// https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/grok/
+// https://azure.microsoft.com/en-us/pricing/details/ai-foundry-models/deepseek/
 const COST_RATES = {
-  'gpt-54-mini': { input: 0.0004, output: 0.0016 },   // per 1K tokens
-  'gpt-55': { input: 0.005, output: 0.015 },
-  'deepseek-v4-flash': { input: 0.00014, output: 0.00028 }
+  // GPT-5.6 시리즈 (short context Global)
+  'gpt-5.6-luna':  { input: 0.20, output: 1.20 },
+  'gpt-5.6-sol':   { input: 5.00, output: 30.00 },
+  'gpt-5.6-terra': { input: 2.00, output: 12.00 },
+  // GPT-Chat Latest (08062026 Global)
+  'gpt-chat-latest': { input: 5.00, output: 30.00 },
+  // Grok (Foundry serverless, Global)
+  'grok-4.6':     { input: 1.25, output: 2.50 },   // Grok-4.2/4.3 Global 기준
+  'grok-4':       { input: 3.00, output: 15.00 },
+  'grok-4-fast':  { input: 0.20, output: 0.50 },
+  'grok-3':       { input: 3.00, output: 15.00 },
+  'grok-3-mini':  { input: 0.25, output: 1.27 },
+  // DeepSeek (Foundry serverless, Global)
+  'deepseek-v4-flash': { input: 0.19, output: 0.51 },
+  'deepseek-v4-pro':   { input: 1.74, output: 3.48 },
+  'deepseek-r1':       { input: 1.35, output: 5.40 },
+  'deepseek-v3':       { input: 1.14, output: 4.56 },
+  // 기존 호환 (per 1K → 1M 환산)
+  'gpt-54-mini':  { input: 0.40, output: 1.60 },
+  'gpt-55':       { input: 5.00, output: 15.00 },
+  // Model Router (Foundry — 라우팅 수수료, 입력 1M당)
+  'model-router': { input: 0.14, output: 0 },
+  // GPT-Image-2 (텍스트 입력/이미지 출력 기준)
+  'gpt-image-2': { input: 5.00, output: 30.00 },
 };
 
 /**
@@ -115,18 +140,21 @@ function extractModelFromUrl(url) {
  * @returns {number} estimated cost in USD
  */
 function estimateCost(model, inputTokens, outputTokens) {
-  // Try to match model name to known rates
+  // rates are per 1M tokens (Azure 공식 가격표 기준)
   const normalizedModel = model.toLowerCase();
   let rates = null;
 
-  for (const [key, value] of Object.entries(COST_RATES)) {
-    if (normalizedModel.includes(key.replace('-', ''))) {
-      rates = value;
-      break;
-    }
-    if (normalizedModel.includes(key)) {
-      rates = value;
-      break;
+  // exact match 우선
+  if (COST_RATES[normalizedModel]) {
+    rates = COST_RATES[normalizedModel];
+  }
+  // prefix/contains 매칭 (롱컨텍스트 등 변형 포함)
+  if (!rates) {
+    for (const [key, value] of Object.entries(COST_RATES)) {
+      if (normalizedModel.includes(key)) {
+        rates = value;
+        break;
+      }
     }
   }
 
@@ -144,7 +172,7 @@ function estimateCost(model, inputTokens, outputTokens) {
     }
   }
 
-  return (inputTokens / 1000) * rates.input + (outputTokens / 1000) * rates.output;
+  return (inputTokens / 1e6) * rates.input + (outputTokens / 1e6) * rates.output;
 }
 
 // --- Pre-built KQL queries ---

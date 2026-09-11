@@ -28,8 +28,12 @@ function getService() {
 }
 
 function getTable(name) {
-  const svc = getService();
-  return svc.getTableClient(TABLES[name]);
+  const endpoint = `https://${ACCOUNT}.table.core.windows.net`;
+  const key = process.env.STORAGE_ACCOUNT_KEY;
+  const credential = key
+    ? new AzureNamedKeyCredential(ACCOUNT, key)
+    : new (require('@azure/identity').DefaultAzureCredential)({ managedIdentityClientId: process.env.MANAGED_IDENTITY_CLIENT_ID });
+  return new TableClient(endpoint, TABLES[name], credential);
 }
 
 // ---------- Models ----------
@@ -57,8 +61,8 @@ async function upsertModel(m) {
   const t = getTable('models');
   const now = new Date().toISOString();
   await t.upsertEntity({
-    PartitionKey: 'MODEL',
-    RowKey: m.modelId,
+    partitionKey: 'MODEL',
+    rowKey: m.modelId,
     DisplayName: m.displayName || m.modelId,
     DeploymentName: m.deploymentName || m.modelId,
     ModelType: m.modelType || 'text',
@@ -108,8 +112,8 @@ async function upsertWorkshop(w) {
   const t = getTable('workshops');
   const now = new Date().toISOString();
   await t.upsertEntity({
-    PartitionKey: 'WORKSHOP',
-    RowKey: w.workshopId,
+    partitionKey: 'WORKSHOP',
+    rowKey: w.workshopId,
     Name: w.name,
     ValidFrom: w.validFrom,
     ExpiresAt: w.expiresAt,
@@ -125,6 +129,12 @@ async function upsertWorkshop(w) {
   return { ok: true };
 }
 
+async function deleteWorkshopEntity(workshopId) {
+  const t = getTable('workshops');
+  await t.deleteEntity('WORKSHOP', workshopId);
+  return { ok: true };
+}
+
 // ---------- AccessKeys ----------
 function keyFromEntity(e) {
   return {
@@ -134,6 +144,7 @@ function keyFromEntity(e) {
     owner: e.Owner || '',
     apimSubscriptionId: e.ApimSubscriptionId,
     maskedKey: e.MaskedKey || '',
+    encryptedKey: e.EncryptedKey || '',
     status: e.Status || 'ACTIVE',
     issuedAt: e.IssuedAt,
     expiresAt: e.ExpiresAt,
@@ -154,13 +165,14 @@ async function listKeys(workshopId) {
 async function upsertKey(k) {
   const t = getTable('keys');
   await t.upsertEntity({
-    PartitionKey: k.workshopId,
-    RowKey: k.keyId,
+    partitionKey: k.workshopId,
+    rowKey: k.keyId,
     WorkshopId: k.workshopId,
     Name: k.name,
     Owner: k.owner || '',
     ApimSubscriptionId: k.apimSubscriptionId,
     MaskedKey: k.maskedKey || '',
+    EncryptedKey: k.encryptedKey || '',
     Status: k.status || 'ACTIVE',
     IssuedAt: k.issuedAt || new Date().toISOString(),
     ExpiresAt: k.expiresAt,
@@ -191,8 +203,8 @@ async function writeAudit(action, detail, actor) {
   const ts = new Date().toISOString();
   const rowKey = `${ts.replace(/[^0-9]/g, '')}-${Math.random().toString(36).slice(2, 8)}`;
   await t.upsertEntity({
-    PartitionKey: 'AUDIT',
-    RowKey: rowKey,
+    partitionKey: 'AUDIT',
+    rowKey: rowKey,
     Action: action,
     Detail: typeof detail === 'string' ? detail : JSON.stringify(detail),
     Actor: actor || 'admin',
@@ -213,7 +225,7 @@ async function listAudit(limit = 100) {
 
 module.exports = {
   listModels, upsertModel,
-  listWorkshops, getWorkshop, upsertWorkshop,
+  listWorkshops, getWorkshop, upsertWorkshop, deleteWorkshopEntity,
   listKeys, upsertKey, deleteKeyEntity, findExpiringKeys,
   writeAudit, listAudit,
 };
