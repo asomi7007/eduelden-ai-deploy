@@ -92,7 +92,9 @@ export default function KeyExampleModal({ keyId, onClose }) {
     setMsg('');
     try {
       const d = await apiClient(`/admin/keys/${keyId}/example${m ? `?model=${m}` : ''}`);
-      if (d.shareUrl) d.shareUrl = d.shareUrl.replace(/^https?:\/\/[^/]+/, window.location.origin);
+      // 단축 URL(eldnx.com/g/*)은 그대로, 원본 공유 URL만 origin 보정
+      if (d.shareUrl && !/eldnx\.com/.test(d.shareUrl)) d.shareUrl = d.shareUrl.replace(/^https?:\/\/[^/]+/, window.location.origin);
+      if (d.shareUrlOriginal) d.shareUrlOriginal = d.shareUrlOriginal.replace(/^https?:\/\/[^/]+/, window.location.origin);
       setData(d);
       if (!m) setModel(d.model || (d.allowedModels || ['model-router'])[0]);
     } catch (e) {

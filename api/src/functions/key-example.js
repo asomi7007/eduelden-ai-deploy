@@ -39,6 +39,25 @@ async function getStoredKey(keyId) {
   return keys[0];
 }
 
+// eldon-link 단축 URL 자동 생성 (실패해도 원본 URL로 폴백 — 공유 기능은 죽지 않게)
+async function makeShortUrl(longUrl, title) {
+  const token = process.env.ELDON_LINK_TOKEN;
+  const endpoint = process.env.ELDON_LINK_ENDPOINT || 'https://www.eldnx.com/api/links/create';
+  if (!token) return null;
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ destination: longUrl, title: title || '', meta: 'apim-dashboard' })
+    });
+    if (!res.ok) return null;
+    const j = await res.json();
+    return j.shortUrl || null;
+  } catch (e) {
+    return null;
+  }
+}
+
 app.http('keyExample', {
   methods: ['GET', 'OPTIONS'],
   authLevel: 'anonymous',
@@ -79,7 +98,12 @@ app.http('keyExample', {
         modelCapabilities: MODEL_CAPABILITIES,
         modelTokenLimits: MODEL_TOKEN_LIMITS,
         ...snippets,
-        shareUrl: `${origin}/share/${keyId}?t=${shareToken(keyId)}`,
+        shareUrl: await (async () => {
+          const longUrl = `${origin}/share/${keyId}?t=${shareToken(keyId)}`;
+          const short = await makeShortUrl(longUrl, k.owner || keyId);
+          return short || longUrl;
+        })(),
+        shareUrlOriginal: `${origin}/share/${keyId}?t=${shareToken(keyId)}`,
       });
     } catch (e) {
       return errorResponse(e.message, 500);
