@@ -50,6 +50,10 @@
           if (mdl != null &amp;&amp; mdl.StartsWith("gpt", StringComparison.OrdinalIgnoreCase) &amp;&amp; body["temperature"] != null) {
             body["temperature"] = 1;
           }
+          // GPT-5+ 계열은 top_p 미지원 → GPT 모델이면 제거 (2026-09-12)
+          if (mdl != null &amp;&amp; mdl.StartsWith("gpt", StringComparison.OrdinalIgnoreCase) &amp;&amp; body["top_p"] != null) {
+            body.Remove("top_p");
+          }
           foreach (var prop in body.Properties()) { bool ok = false; foreach (var a in allowed) { if (prop.Name == a) { ok = true; break; } } if (!ok) { toRemove.Add(prop.Name); } }
           foreach (var rm in toRemove) { body.Remove(rm); }
           return body.ToString(Newtonsoft.Json.Formatting.None);
