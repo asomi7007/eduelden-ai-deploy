@@ -47,7 +47,7 @@ async function makeShortUrl(longUrl, title) {
   try {
     const res = await fetch(endpoint, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      headers: { 'x-api-token': token, 'Content-Type': 'application/json' },  // SWA가 Authorization 치환하므로 커스텀 헤더
       body: JSON.stringify({ destination: longUrl, title: title || '', meta: 'apim-dashboard' })
     });
     if (!res.ok) return null;
