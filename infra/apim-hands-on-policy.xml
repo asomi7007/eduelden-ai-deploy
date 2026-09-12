@@ -50,9 +50,11 @@
           if (mdl != null &amp;&amp; mdl.StartsWith("gpt", StringComparison.OrdinalIgnoreCase) &amp;&amp; body["temperature"] != null) {
             body["temperature"] = 1;
           }
-          // GPT-5+ 계열은 top_p 미지원 → GPT 모델이면 제거 (2026-09-12)
-          if (mdl != null &amp;&amp; mdl.StartsWith("gpt", StringComparison.OrdinalIgnoreCase) &amp;&amp; body["top_p"] != null) {
-            body.Remove("top_p");
+          // GPT-5+ 계열 미지원 파라미터 일괄 제거 (2026-09-12 실측: 400 Unsupported parameter)
+          if (mdl != null &amp;&amp; mdl.StartsWith("gpt", StringComparison.OrdinalIgnoreCase)) {
+            var unsupported = new string[] { "top_p", "frequency_penalty", "presence_penalty", "stop", "logprobs", "top_logprobs" };
+            foreach (var u in unsupported) { if (body[u] != null) { body.Remove(u); } }
+            if (body["parallel_tool_calls"] != null &amp;&amp; body["tools"] == null) { body.Remove("parallel_tool_calls"); }
           }
           foreach (var prop in body.Properties()) { bool ok = false; foreach (var a in allowed) { if (prop.Name == a) { ok = true; break; } } if (!ok) { toRemove.Add(prop.Name); } }
           foreach (var rm in toRemove) { body.Remove(rm); }
