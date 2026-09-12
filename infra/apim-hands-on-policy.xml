@@ -40,6 +40,11 @@
           var body = (JObject)context.Variables["reqBody"];
           var allowed = new string[] { "model", "messages", "temperature", "top_p", "max_tokens", "max_completion_tokens", "stream", "stop", "presence_penalty", "frequency_penalty", "n", "response_format", "tools", "tool_choice", "logprobs", "top_logprobs", "user", "seed", "reasoning_effort", "stream_options", "parallel_tool_calls", "modalities", "audio", "prediction", "web_search_options", "function_call", "functions", "metadata" };
           var toRemove = new System.Collections.Generic.List&lt;string&gt;();
+          // GPT-5+ 계열은 max_tokens 미지원 → max_completion_tokens로 자동 변환 (2026-09-12)
+          if (body["max_tokens"] != null &amp;&amp; body["max_completion_tokens"] == null) {
+            body["max_completion_tokens"] = body["max_tokens"];
+            body.Remove("max_tokens");
+          }
           foreach (var prop in body.Properties()) { bool ok = false; foreach (var a in allowed) { if (prop.Name == a) { ok = true; break; } } if (!ok) { toRemove.Add(prop.Name); } }
           foreach (var rm in toRemove) { body.Remove(rm); }
           return body.ToString(Newtonsoft.Json.Formatting.None);
