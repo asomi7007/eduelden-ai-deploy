@@ -45,6 +45,11 @@
             body["max_completion_tokens"] = body["max_tokens"];
             body.Remove("max_tokens");
           }
+          // GPT-5+ 계열은 temperature=1만 지원 → GPT 모델이면 1로 강제 (2026-09-12)
+          var mdl = (string)body["model"];
+          if (mdl != null &amp;&amp; mdl.StartsWith("gpt", StringComparison.OrdinalIgnoreCase) &amp;&amp; body["temperature"] != null) {
+            body["temperature"] = 1;
+          }
           foreach (var prop in body.Properties()) { bool ok = false; foreach (var a in allowed) { if (prop.Name == a) { ok = true; break; } } if (!ok) { toRemove.Add(prop.Name); } }
           foreach (var rm in toRemove) { body.Remove(rm); }
           return body.ToString(Newtonsoft.Json.Formatting.None);
