@@ -61,6 +61,7 @@ const MODEL_TOKEN_LIMITS = {
   'gpt-5.6-terra':     { maxPromptTokens: 272000, maxOutputTokens: 128000 },
   'gpt-5.6-luna':      { maxPromptTokens: 272000, maxOutputTokens: 128000 },
   'gpt-chat-latest':   { maxPromptTokens: 272000, maxOutputTokens: 128000 },
+  'gpt-6-astra':       { maxPromptTokens: 272000, maxOutputTokens: 128000 },
   'DeepSeek-V4-Flash': { maxPromptTokens: 128000, maxOutputTokens: 64000 },
   'grok-4.6':          { maxPromptTokens: 256000, maxOutputTokens: 64000 },
   'gpt-image-2':       { maxPromptTokens: 4000,   maxOutputTokens: 16000 },
