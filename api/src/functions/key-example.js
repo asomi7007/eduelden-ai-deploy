@@ -3,7 +3,7 @@
 const { app } = require('@azure/functions');
 const { verifyAdmin, handleCors, successResponse, errorResponse } = require('../lib/auth');
 const { buildSnippets, MODEL_DESCRIPTIONS, MODEL_CAPABILITIES, MODEL_TOKEN_LIMITS } = require('../lib/snippets');
-const { listKeys, getWorkshop, listModels } = require('../lib/tableStorage');
+const { listKeys, getWorkshop, listModels, upsertKey } = require('../lib/tableStorage');
 const crypto = require('crypto');
 
 function shareToken(keyId) {
@@ -99,8 +99,14 @@ app.http('keyExample', {
         modelTokenLimits: MODEL_TOKEN_LIMITS,
         ...snippets,
         shareUrl: await (async () => {
-          const longUrl = `${origin}/share/${keyId}?t=${shareToken(keyId)}`;
+          // 키별 1회 생성 후 캐시 — 모달을 열 때마다 새 단축URL이 쌓이지 않게
+          if (k.shareShortUrl) return k.shareShortUrl;
+          const origin2 = process.env.PUBLIC_BASE_URL || 'https://api.eldnx.com';
+          const longUrl = `${origin2}/share/${keyId}?t=${shareToken(keyId)}`;
           const short = await makeShortUrl(longUrl, k.owner || keyId);
+          if (short) {
+            try { await upsertKey({ ...k, shareShortUrl: short }); } catch { /* 캐시 저장 실패는 무시 */ }
+          }
           return short || longUrl;
         })(),
         shareUrlOriginal: `${origin}/share/${keyId}?t=${shareToken(keyId)}`,

@@ -149,6 +149,7 @@ function keyFromEntity(e) {
     issuedAt: e.IssuedAt,
     expiresAt: e.ExpiresAt,
     lastRotatedAt: e.LastRotatedAt,
+    shareShortUrl: e.ShareShortUrl || '',
   };
 }
 
@@ -177,6 +178,7 @@ async function upsertKey(k) {
     IssuedAt: k.issuedAt || new Date().toISOString(),
     ExpiresAt: k.expiresAt,
     LastRotatedAt: k.lastRotatedAt,
+    ShareShortUrl: k.shareShortUrl || '',
   }, 'Replace');
   return { ok: true };
 }

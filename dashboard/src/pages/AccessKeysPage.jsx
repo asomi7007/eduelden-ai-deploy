@@ -73,8 +73,17 @@ export default function AccessKeysPage() {
 
   const copy = (text) => { navigator.clipboard.writeText(text); setMsg('복사됨'); };
 
+  // 참가자 정렬 — 발급순(기본)/이름/만료/상태
+  const [sortKey, setSortKey] = useState('default');
+  const sortOptions = [
+    ['default', '발급순'], ['owner', '이름순'], ['expiresAt', '만료순'], ['status', '상태순'],
+  ];
   const filtered = keys.filter((k) =>
     !filter || k.keyId.includes(filter) || (k.owner || '').includes(filter) || k.workshopId.includes(filter));
+  const sorted = sortKey === 'default' ? filtered : [...filtered].sort((a, b) => {
+    const av = String(a[sortKey] ?? ''), bv = String(b[sortKey] ?? '');
+    return av.localeCompare(bv, 'ko');
+  });
 
   const badge = (s) => (
     <span className={`px-2 py-0.5 rounded text-xs ${
@@ -148,26 +157,44 @@ export default function AccessKeysPage() {
         </div>
       </div>
 
-      <input placeholder="키/이름/실습 검색" value={filter}
-        onChange={(e) => setFilter(e.target.value)}
-        className="mb-3 border rounded px-3 py-2 w-64" />
+      <div className="flex gap-2 mb-3">
+        <input placeholder="키/이름/실습 검색" value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="border rounded px-3 py-2 w-64" />
+        <select value={sortKey} onChange={(e) => setSortKey(e.target.value)}
+          className="border rounded px-3 py-2 text-sm bg-white">
+          {sortOptions.map(([v, label]) => <option key={v} value={v}>정렬: {label}</option>)}
+        </select>
+      </div>
 
       <div className="bg-white rounded-lg shadow overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 text-left">
             <tr>
               <th className="p-3">이름</th><th className="p-3">참가자</th><th className="p-3">실습</th>
-              <th className="p-3">키</th><th className="p-3">만료</th><th className="p-3">상태</th>
+              <th className="p-3">키</th><th className="p-3">단축 URL</th><th className="p-3">만료</th><th className="p-3">상태</th>
               <th className="p-3">작업</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((k) => (
+            {sorted.map((k) => (
               <tr key={k.keyId} className="border-t">
                 <td className="p-3 font-mono text-xs">{k.keyId}</td>
                 <td className="p-3">{k.owner || '-'}</td>
                 <td className="p-3 text-xs">{k.workshopId}</td>
                 <td className="p-3 font-mono text-xs">{k.maskedKey}</td>
+                <td className="p-3 text-xs">
+                  {k.shareShortUrl ? (
+                    <span className="inline-flex items-center gap-1">
+                      <a href={k.shareShortUrl} target="_blank" rel="noreferrer"
+                         className="text-blue-600 hover:underline font-mono">{k.shareShortUrl.replace('https://', '')}</a>
+                      <button onClick={() => copy(k.shareShortUrl)}
+                              className="text-[10px] px-1.5 py-0.5 bg-slate-200 rounded hover:bg-slate-300">복사</button>
+                    </span>
+                  ) : (
+                    <button onClick={() => setExampleKey(k.keyId)} className="text-gray-400 hover:text-blue-600 underline text-xs">생성</button>
+                  )}
+                </td>
                 <td className="p-3 text-xs">{(k.expiresAt || '').slice(0, 16)}</td>
                 <td className="p-3">{badge(k.status)}</td>
                 <td className="p-3 space-x-1 whitespace-nowrap">
