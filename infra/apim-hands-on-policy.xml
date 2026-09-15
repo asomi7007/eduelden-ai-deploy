@@ -23,7 +23,7 @@
 				</return-response>
 			</when>
 		</choose>
-		<rate-limit calls="10" renewal-period="60" />
+		<rate-limit calls="30" renewal-period="60" />
 		<choose>
 			<when condition="@(context.Request.Url.Path.EndsWith("/models"))">
 				<!-- 모델 목록: 백엔드 /openai/models 로 전달 -->
