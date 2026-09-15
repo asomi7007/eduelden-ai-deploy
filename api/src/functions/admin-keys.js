@@ -5,6 +5,7 @@ const { verifyAdmin, handleCors, successResponse, errorResponse } = require('../
 const { listKeys, upsertKey, deleteKeyEntity, getWorkshop, upsertWorkshop, writeAudit } = require('../lib/tableStorage');
 const { createLabSubscription, regenerateKey, setSubscriptionState, deleteSubscription, maskKey } = require('../lib/apim');
 const { encSecret } = require('./key-example');
+const { ensureShareShortUrl } = require('../lib/shareUrl');
 
 function newKeyId() {
   const d = new Date();
@@ -44,7 +45,7 @@ app.http('adminKeys', {
             const keyId = newKeyId();
             const subId = `sub-${workshopId}-${keyId}`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
             const secrets = await createLabSubscription(subId, `${workshopId}/${owner}`);
-            await upsertKey({
+            const keyRec = {
               keyId, workshopId, name: keyId, owner,
               apimSubscriptionId: subId,
               maskedKey: maskKey(secrets.primaryKey),
@@ -52,8 +53,11 @@ app.http('adminKeys', {
               status: 'ACTIVE',
               issuedAt: new Date().toISOString(),
               expiresAt: workshop.expiresAt,
-            });
-            issued.push({ keyId, owner, subId, primaryKey: secrets.primaryKey, expiresAt: workshop.expiresAt });
+            };
+            // 발급과 동시에 단축 URL 자동 생성 (ensureShareShortUrl이 캐시 저장까지)
+            const shortUrl = await ensureShareShortUrl(keyRec);
+            await upsertKey(shortUrl ? { ...keyRec, shareShortUrl: shortUrl } : keyRec);
+            issued.push({ keyId, owner, subId, primaryKey: secrets.primaryKey, expiresAt: workshop.expiresAt, shareUrl: shortUrl || null });
           }
           await upsertWorkshop({ ...workshop, keyCount: (workshop.keyCount || 0) + issued.length });
           await writeAudit('key.bulkIssue', { workshopId, count: issued.length });
@@ -69,7 +73,7 @@ app.http('adminKeys', {
         const keyId = newKeyId();
         const subId = `sub-${workshopId}-${keyId}`.toLowerCase().replace(/[^a-z0-9-]/g, '-');
         const secrets = await createLabSubscription(subId, `${workshopId}/${owner || keyId}`);
-        await upsertKey({
+        const keyRec = {
           keyId, workshopId, name: keyId, owner,
           apimSubscriptionId: subId,
           maskedKey: maskKey(secrets.primaryKey),
@@ -77,10 +81,13 @@ app.http('adminKeys', {
           status: 'ACTIVE',
           issuedAt: new Date().toISOString(),
           expiresAt: workshop.expiresAt,
-        });
+        };
+        // 발급과 동시에 단축 URL 자동 생성
+        const shortUrl = await ensureShareShortUrl(keyRec);
+        await upsertKey(shortUrl ? { ...keyRec, shareShortUrl: shortUrl } : keyRec);
         await upsertWorkshop({ ...workshop, keyCount: (workshop.keyCount || 0) + 1 });
         await writeAudit('key.issue', { workshopId, keyId });
-        return successResponse({ keyId, owner, primaryKey: secrets.primaryKey, expiresAt: workshop.expiresAt });
+        return successResponse({ keyId, owner, primaryKey: secrets.primaryKey, expiresAt: workshop.expiresAt, shareUrl: shortUrl || null });
       }
 
       if (request.method === 'DELETE') {
