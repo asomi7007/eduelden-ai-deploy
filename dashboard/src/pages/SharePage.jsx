@@ -159,7 +159,7 @@ print(response.choices[0].message.content)`,
                     onCopyValue={(k, v) => copy(k, v)} />
                 ))}
               </div>
-              <p className="text-[11px] text-gray-400 mt-1">만료: {data.expiresAt?.slice(0, 16).replace('T', ' ')} · 분당 10회 / 일 200회 · 이미지 모델은 미지원</p>
+              <p className="text-[11px] text-gray-400 mt-1">만료: {data.expiresAt?.slice(0, 16).replace('T', ' ')} · 분당 30회 / 일 1,000회 · 이미지 모델은 미지원</p>
             </div>
 
             {current && (

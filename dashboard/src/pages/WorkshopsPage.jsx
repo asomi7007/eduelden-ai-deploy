@@ -14,7 +14,7 @@ export default function WorkshopsPage() {
     workshopId: '', name: '',
     validFrom: '', expiresAt: '',
     allowedModels: ['model-router'],
-    requestsPerMinute: 10, dailyRequestLimit: 200,
+    requestsPerMinute: 30, dailyRequestLimit: 1000,
     org: '', tokenLimitPerKey: 0,
   });
 
@@ -178,11 +178,11 @@ export default function WorkshopsPage() {
               <input type="datetime-local" required value={form.expiresAt}
                 onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
                 className="border rounded px-3 py-2 w-full" /></label>
-            <label className="text-sm">분당 요청 (기본 10)
+            <label className="text-sm">분당 요청 (기본 30)
               <input type="number" value={form.requestsPerMinute}
                 onChange={(e) => setForm({ ...form, requestsPerMinute: Number(e.target.value) })}
                 className="border rounded px-3 py-2 w-full" /></label>
-            <label className="text-sm">일일 요청 (기본 200)
+            <label className="text-sm">일일 요청 (기본 1000)
               <input type="number" value={form.dailyRequestLimit}
                 onChange={(e) => setForm({ ...form, dailyRequestLimit: Number(e.target.value) })}
                 className="border rounded px-3 py-2 w-full" /></label>
