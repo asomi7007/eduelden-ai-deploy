@@ -1,4 +1,5 @@
 const { app } = require('@azure/functions');
+const { verifyClassPasscode, createOnboardingProof } = require('../lib/classPasscode');
 
 const MAX_STUDENTS = 50;
 const MAX_ASSIGN_ATTEMPTS = 5;
@@ -93,14 +94,13 @@ app.http('onboard', {
     const corsHeaders = { 'Access-Control-Allow-Origin': '*' };
     const repo = process.env.GITHUB_REPO;
     const pat = process.env.GITHUB_PAT;
-    const classPasscode = process.env.CLASS_PASSCODE;
 
     try {
       const body = await request.json();
       const { passcode, studentId: requestedId, email, event } = body;
 
       // Validate passcode
-      if (!passcode || passcode !== classPasscode) {
+      if (!await verifyClassPasscode(passcode)) {
         return { status: 403, jsonBody: { error: '패스코드가 올바르지 않습니다.' }, headers: corsHeaders };
       }
 
@@ -109,6 +109,10 @@ app.http('onboard', {
         return { status: 400, jsonBody: { error: '유효한 이메일 주소를 입력해주세요.' }, headers: corsHeaders };
       }
       const emailKey = email.trim().toLowerCase();
+      if (event != null && event !== '' && (typeof event !== 'string' || !/^[a-z0-9][a-z0-9-]{0,79}$/.test(event))) {
+        return { status: 400, jsonBody: { error: '행사 ID를 확인해주세요.' }, headers: corsHeaders };
+      }
+      const eventId = event || 'default';
 
       // studentId는 선택값: 없으면 자동 할당, 있으면(구 클라이언트) 해당 번호를 요청
       const explicitId = requestedId ? String(requestedId) : null;
@@ -150,9 +154,8 @@ app.http('onboard', {
           }
         }
 
-        // Create issue (워크플로우 파싱 형식 유지: PASSCODE/STUDENT_ID/EMAIL/EVENT)
-        const eventLine = event ? `\nEVENT: ${event}` : '';
-        const issueBody = `PASSCODE: ${passcode}\nSTUDENT_ID: ${studentId}\nEMAIL: ${email}${eventLine}`;
+        const proof = createOnboardingProof(studentId, emailKey, eventId);
+        const issueBody = `ONBOARDING_PROOF: ${proof}\nSTUDENT_ID: ${studentId}\nEMAIL: ${emailKey}\nEVENT: ${eventId}`;
         const createResp = await fetch(`https://api.github.com/repos/${repo}/issues`, {
           method: 'POST',
           headers: ghHeaders,

@@ -7,6 +7,8 @@
 
 > 학생 50명이 AI와 함께 코딩하는 수업을 위한 셀프서비스 온보딩 플랫폼입니다.
 
+> **2026-11-07 Techive의 여덟 번째 발표  with 광주과학기술원:** Kimi-K3.1-Pro 단일 모델, APIM Basic v2, VS Code + GitHub Copilot BYOK를 사용합니다. 예전 GPT/DeepSeek/Cline 안내는 과거 구성이므로, 이번 행사 설치와 메일 안내는 [Techive 행사 런북](events/kimi-copilot-20261107-gwangju/README.md)을 기준으로 하세요.
+
 ---
 
 ## 📑 목차
@@ -250,6 +252,8 @@ az staticwebapp show -n swa-eduelden-dashboard --query defaultHostname -o tsv
 ```
 
 ### 수업 당일
+
+수업 패스코드는 신청 페이지의 **관리자 → 수업 패스코드 변경**에서 새 코드와 확인 값을 입력해 변경할 수 있습니다. 저장하면 신청과 학생 취소에 즉시 적용됩니다. 기존 API 키와 이미 접수된 신청의 메일 발송은 유지됩니다. 자세한 운영·초기 설정은 [Techive 행사 런북](events/kimi-copilot-20261107-gwangju/README.md#수업-패스코드-변경)을 참고하세요.
 
 1. 학생에게 온보딩 URL과 패스코드를 공유합니다.
 2. 학생이 웹 페이지에서 신청하면 자동으로 이메일이 발송됩니다.

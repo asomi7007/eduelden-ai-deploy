@@ -3,6 +3,7 @@ require('./slots');
 require('./onboard');
 require('./cancel');
 require('./admin');
+require('./class-passcode');
 require('./reset');
 require('./send-prompts');
 require('./dashboard-overview');

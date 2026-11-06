@@ -18,6 +18,9 @@ jobs:
         id: parse
         env:
           CLASS_PASSCODE: ${{ secrets.CLASS_PASSCODE }}
+          ONBOARDING_SIGNING_KEY: ${{ secrets.ONBOARDING_SIGNING_KEY }}
+          GITHUB_REPO: ${{ github.repository }}
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
         uses: actions/github-script@v7
         with:
           script: |
@@ -26,25 +29,6 @@ jobs:
             const passcodeMatch = body.match(/PASSCODE:\s*(.+)/);
             const idMatch = body.match(/STUDENT_ID:\s*(\d{2})/);
             const emailMatch = body.match(/EMAIL:\s*([\w.+-]+@[\w.-]+\.\w+)/);
-
-            const submitted = passcodeMatch ? passcodeMatch[1].trim() : '';
-            if (!submitted || submitted !== process.env.CLASS_PASSCODE) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: '❌ 패스코드가 올바르지 않습니다.'
-              });
-              await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                state: 'closed',
-                labels: ['onboarding', 'rejected']
-              });
-              core.setFailed('패스코드 불일치');
-              return;
-            }
 
             if (!idMatch) {
               await github.rest.issues.createComment({
@@ -104,9 +88,34 @@ jobs:
 
             const eventMatch = body.match(/EVENT:\s*(.+)/);
             const eventId = eventMatch ? eventMatch[1].trim() : 'default';
+            const email = emailMatch[1].trim().toLowerCase();
+            const { verifyClassPasscode, verifyOnboardingProof } =
+              require(`${process.env.GITHUB_WORKSPACE}/api/src/lib/classPasscode`);
+            const proofMatch = body.match(/^ONBOARDING_PROOF:\s*([a-f0-9]{64})$/m);
+            const hasProof = /^ONBOARDING_PROOF:/m.test(body);
+            const authenticated = hasProof
+              ? !!proofMatch && verifyOnboardingProof(proofMatch[1], studentId, email, eventId)
+              : await verifyClassPasscode(passcodeMatch ? passcodeMatch[1].trim() : '');
+            if (!authenticated) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: '❌ 수업 인증에 실패했습니다. 신청 페이지에서 현재 패스코드로 다시 신청해주세요.'
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                state: 'closed',
+                labels: ['onboarding', 'rejected']
+              });
+              core.setFailed('수업 인증 실패');
+              return;
+            }
 
             core.setOutput('student_id', studentId);
-            core.setOutput('student_email', emailMatch[1].trim());
+            core.setOutput('student_email', email);
             core.setOutput('event_id', eventId);
 
       - name: Get APIM subscription key
@@ -157,7 +166,7 @@ jobs:
             const eventId = '${{ steps.parse.outputs.event_id }}';
             const eventLabels = {
               'powerbi-mcp-20260530': ' (Power BI Workshop)',
-              'kimi-copilot-20261107-gwangju': ' (AI 바이브코딩 워크숍 - 광주)',
+              'kimi-copilot-20261107-gwangju': ' (Techive의 여덟 번째 발표  with 광주과학기술원)',
             };
             const eventLabel = eventLabels[eventId] || '';
             await github.rest.issues.createComment({

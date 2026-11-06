@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI 바이브코딩 워크숍 (광주) - 온보딩</title>
+<title>Techive의 여덟 번째 발표  with 광주과학기술원 - 온보딩</title>
 <style>
   :root {
     --primary: #1a56db;
@@ -309,7 +309,7 @@
 
 <div class="container">
   <header>
-    <h1 id="pageTitle">🚀 AI 바이브코딩 워크숍 (광주)</h1>
+    <h1 id="pageTitle">🚀 Techive의 여덟 번째 발표  with 광주과학기술원</h1>
     <p id="pageSubtitle">온보딩 신청 페이지 — 이메일과 패스코드만 입력하면 접속 정보와 설치 안내가 메일로 발송됩니다</p>
   </header>
 
@@ -414,6 +414,25 @@
 
     <div id="adminDashboard" class="hidden">
       <div class="card">
+        <h2>🔑 수업 패스코드 변경</h2>
+        <p style="font-size:0.88rem;color:var(--gray-500);margin-bottom:16px">
+          변경하면 새 신청과 학생 취소에 즉시 적용됩니다. 이미 접수된 신청의 메일 발송과 발급된 API 키는 유지됩니다.
+          현재 패스코드는 표시하지 않으니, 새 코드를 수강생에게 안내해주세요.
+        </p>
+        <div id="alertPasscode" class="alert" role="status" aria-live="polite"></div>
+        <div class="field">
+          <label for="newClassPasscode">새 수업 패스코드 <span class="hint">(공백 없이 4~128자)</span></label>
+          <input type="password" id="newClassPasscode" minlength="4" maxlength="128" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label for="confirmClassPasscode">새 수업 패스코드 확인</label>
+          <input type="password" id="confirmClassPasscode" minlength="4" maxlength="128" autocomplete="new-password"
+                 onkeydown="if(event.key==='Enter')adminChangePasscode()">
+        </div>
+        <button id="btnSavePasscode" class="btn btn-primary" onclick="adminChangePasscode()">패스코드 변경</button>
+      </div>
+
+      <div class="card">
         <h2>📊 관리자 대시보드
           <button class="btn btn-outline btn-sm" style="margin-left:auto" onclick="adminRefresh()">새로고침</button>
           <button class="btn btn-danger btn-sm" onclick="adminResetAll()">전체 초기화</button>
@@ -467,7 +486,7 @@
   </div>
 
   <div class="footer">
-    AI 바이브코딩 워크숍 (광주) &copy; 2026 EduElden
+    Techive의 여덟 번째 발표  with 광주과학기술원 &copy; 2026 EduElden
   </div>
 </div>
 
@@ -715,6 +734,39 @@ function adminLogout() {
   document.getElementById('adminLogin').classList.remove('hidden');
   document.getElementById('adminDashboard').classList.add('hidden');
   document.getElementById('adminPassword').value = '';
+  document.getElementById('newClassPasscode').value = '';
+  document.getElementById('confirmClassPasscode').value = '';
+  hideAlert('alertPasscode');
+}
+
+async function adminChangePasscode() {
+  const button = document.getElementById('btnSavePasscode');
+  if (button.disabled) return;
+  hideAlert('alertPasscode');
+  const passcode = document.getElementById('newClassPasscode').value;
+  const confirmPasscode = document.getElementById('confirmClassPasscode').value;
+  if (passcode.length < 4 || passcode.length > 128 || /[\s\u0000-\u001f\u007f]/u.test(passcode)) {
+    return showAlert('alertPasscode', 'error', '패스코드는 공백 없이 4~128자로 입력해주세요.');
+  }
+  if (passcode !== confirmPasscode) {
+    return showAlert('alertPasscode', 'error', '새 패스코드와 확인 값이 일치하지 않습니다.');
+  }
+  button.disabled = true;
+  button.textContent = '저장 중...';
+  try {
+    const data = await apiFetch('/manage/passcode', {
+      method: 'POST',
+      body: JSON.stringify({ adminPw, passcode, confirmPasscode })
+    });
+    document.getElementById('newClassPasscode').value = '';
+    document.getElementById('confirmClassPasscode').value = '';
+    showAlert('alertPasscode', 'success', data.message);
+  } catch (error) {
+    showAlert('alertPasscode', 'error', `❌ ${error.message}`);
+  } finally {
+    button.disabled = false;
+    button.textContent = '패스코드 변경';
+  }
 }
 
 async function adminRefresh() {

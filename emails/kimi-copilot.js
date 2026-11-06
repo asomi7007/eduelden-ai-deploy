@@ -1,8 +1,9 @@
-// AI 바이브코딩 워크숍(광주) 이메일 템플릿 — VS Code + GitHub Copilot BYOK(Custom Endpoint)
+// Techive 행사 이메일 템플릿 — VS Code + GitHub Copilot BYOK(Custom Endpoint)
 const { tbl, code, stepCircle } = require('./helpers');
 
 const MODEL_ID = 'Kimi-K3.1-Pro';
 const MODEL_NAME = 'Kimi K3.1 Pro';
+const EVENT_NAME = 'Techive의 여덟 번째 발표  with 광주과학기술원';
 
 const escapeHtml = (s) =>
   String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -17,7 +18,7 @@ function generate({ studentId, apiKey, apimUrl }) {
   const baseUrl = String(apimUrl).replace(/\/+$/, '');
   const chatUrl = `${baseUrl}/chat/completions`;
 
-  const subject = `[AI 워크숍] ${studentId}번 — 접속 정보 및 설치 안내`;
+  const subject = `[${EVENT_NAME}] ${studentId}번 — 접속 정보 및 설치 안내`;
 
   const modelJson = JSON.stringify([{
     name: 'Eduelden',
@@ -40,7 +41,7 @@ function generate({ studentId, apiKey, apimUrl }) {
 
   const html = `<div style="font-family:'Segoe UI',Pretendard,'Malgun Gothic',sans-serif;max-width:680px;margin:auto;color:#1e293b">
 <div style="background:linear-gradient(135deg,#1a56db,#7c3aed);padding:26px 24px;border-radius:12px 12px 0 0;text-align:center">
-  <h1 style="color:#fff;margin:0;font-size:22px">AI 바이브코딩 워크숍 (광주)</h1>
+  <h1 style="color:#fff;margin:0;font-size:22px">${EVENT_NAME}</h1>
   <p style="color:#e0e7ff;margin:8px 0 0;font-size:14px">VS Code + GitHub Copilot | 2026년 11월 7일 (토)</p>
 </div>
 <div style="padding:24px;background:#fff;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px">

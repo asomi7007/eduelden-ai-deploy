@@ -1,4 +1,5 @@
 const { app } = require('@azure/functions');
+const { verifyClassPasscode } = require('../lib/classPasscode');
 
 // POST /api/cancel — 온보딩 취소 (학생 본인 또는 관리자)
 app.http('cancel', {
@@ -20,7 +21,6 @@ app.http('cancel', {
     const corsHeaders = { 'Access-Control-Allow-Origin': '*' };
     const repo = process.env.GITHUB_REPO;
     const pat = process.env.GITHUB_PAT;
-    const classPasscode = process.env.CLASS_PASSCODE;
     const adminPassword = process.env.ADMIN_PASSWORD;
 
     try {
@@ -33,7 +33,7 @@ app.http('cancel', {
           return { status: 403, jsonBody: { error: '관리자 비밀번호가 틀렸습니다.' }, headers: corsHeaders };
         }
       } else {
-        if (!passcode || passcode !== classPasscode) {
+        if (!await verifyClassPasscode(passcode)) {
           return { status: 403, jsonBody: { error: '패스코드가 올바르지 않습니다.' }, headers: corsHeaders };
         }
       }
