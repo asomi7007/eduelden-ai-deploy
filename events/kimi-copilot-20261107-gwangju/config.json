@@ -1,0 +1,43 @@
+{
+  "event_name": "AI 바이브코딩 워크숍 (광주)",
+  "event_code": "kimi-copilot-20261107-gwangju",
+  "event_date": "2026-11-07",
+  "instructor": "허석",
+  "student_count": 40,
+  "key_count": 50,
+  "student_id_range": "01-50",
+  "student_id_assignment": "auto",
+
+  "apim": {
+    "name": "apim-eduelden-ai-v2",
+    "resource_group": "rg-eduelden-hub",
+    "base_url": "https://apim-eduelden-ai-v2.azure-api.net/openai/v1",
+    "chat_completions_url": "https://apim-eduelden-ai-v2.azure-api.net/openai/v1/chat/completions",
+    "default_model": "Kimi-K3.1-Pro",
+    "max_output_tokens": 4096,
+    "subscription_prefix": "sub-student-",
+    "rate_limit": {
+      "per_student_per_minute": 30,
+      "per_student_per_day": 500,
+      "total_tpm": 100000,
+      "total_rpm": 100
+    }
+  },
+
+  "software": {
+    "vscode": true,
+    "powerbi_desktop": true,
+    "github_copilot": {
+      "mode": "BYOK",
+      "vendor": "customendpoint",
+      "api_type": "chat-completions",
+      "plan": "Copilot Free 가능"
+    }
+  },
+
+  "onboarding": {
+    "email_template": "emails/kimi-copilot.js",
+    "event_id": "kimi-copilot-20261107-gwangju",
+    "key_backup_file": ".secrets/student_keys_v2.csv"
+  }
+}

@@ -8,8 +8,8 @@
   //
   "cline.apiProvider": "openai-compatible",
   "cline.openAiCompatibleApiConfiguration": {
-    "baseUrl": "https://apim-eduelden-ai.azure-api.net/openai/v1",
+    "baseUrl": "https://apim-eduelden-ai-v2.azure-api.net/openai/v1",
     "apiKey": "YOUR_API_KEY_HERE",
-    "modelId": "gpt-54-mini"
+    "modelId": "Kimi-K3.1-Pro"
   }
 }

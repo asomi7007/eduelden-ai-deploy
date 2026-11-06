@@ -119,13 +119,29 @@ jobs:
         run: |
           SID="sub-student-${{ steps.parse.outputs.student_id }}"
           KEYS=$(az rest --method POST \
-            --url "https://management.azure.com/subscriptions/3354f2f5-e261-49af-9ead-2c6938f447a3/resourceGroups/rg-powerplatform-billing/providers/Microsoft.ApiManagement/service/apim-eduelden-ai/subscriptions/${SID}/listSecrets?api-version=2022-08-01" \
+            --url "https://management.azure.com/subscriptions/08bfa8d7-3cb6-42d6-8214-18e784777a56/resourceGroups/rg-eduelden-hub/providers/Microsoft.ApiManagement/service/apim-eduelden-ai-v2/subscriptions/${SID}/listSecrets?api-version=2024-05-01" \
             --output json)
           PK=$(echo "$KEYS" | jq -r '.primaryKey')
           echo "::add-mask::$PK"
           echo "primary_key=$PK" >> "$GITHUB_OUTPUT"
 
+      # 동시 신청으로 API가 이 이슈를 rejected 처리했다면 메일 발송/완료 처리를 건너뜀
+      - name: Check issue is still active
+        id: active
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+            const rejected = data.labels.some(l => (l.name || l) === 'rejected');
+            core.setOutput('skip', rejected ? 'true' : 'false');
+            if (rejected) core.notice('이슈가 rejected 상태여서 메일 발송을 건너뜁니다.');
+
       - name: Send welcome email via ACS Email
+        if: steps.active.outputs.skip != 'true'
         env:
           ACS_CONNECTION_STRING: ${{ secrets.ACS_CONNECTION_STRING }}
           ACS_SENDER_ADDRESS: ${{ secrets.ACS_SENDER_ADDRESS }}
@@ -136,16 +152,21 @@ jobs:
         run: node emails/send.js
 
       - name: Comment on issue
+        if: steps.active.outputs.skip != 'true'
         uses: actions/github-script@v7
         with:
           script: |
             const eventId = '${{ steps.parse.outputs.event_id }}';
-            const eventLabel = eventId === 'powerbi-mcp-20260530' ? ' (Power BI Workshop)' : '';
+            const eventLabels = {
+              'powerbi-mcp-20260530': ' (Power BI Workshop)',
+              'kimi-copilot-20261107-gwangju': ' (AI 바이브코딩 워크숍 - 광주)',
+            };
+            const eventLabel = eventLabels[eventId] || '';
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number,
-              body: `✅ 온보딩 완료!${eventLabel}\n\n- 학생 번호: ${{ steps.parse.outputs.student_id }}\n- 이메일 발송: ${{ steps.parse.outputs.student_email }}\n- Azure 계정: ${{ steps.parse.outputs.student_id }}@eduelden.kr\n- APIM 구독: sub-student-${{ steps.parse.outputs.student_id }}\n- 이벤트: ${eventId}`
+              body: `✅ 온보딩 완료!${eventLabel}\n\n- 학생 번호: ${{ steps.parse.outputs.student_id }}\n- 이메일 발송: ${{ steps.parse.outputs.student_email }}\n- APIM 구독: sub-student-${{ steps.parse.outputs.student_id }}\n- 이벤트: ${eventId}`
             });
             await github.rest.issues.update({
               owner: context.repo.owner,

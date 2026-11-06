@@ -100,7 +100,7 @@ function promptCard(p) {
 }
 
 function generate({ studentId, apimUrl }) {
-  const baseUrl = (apimUrl || 'https://apim-eduelden-ai.azure-api.net') + '/openai/v1';
+  const baseUrl = (apimUrl || 'https://apim-eduelden-ai-v2.azure-api.net') + '/openai/v1';
   const greeting = studentId
     ? `안녕하세요, <b>${studentId}번</b> 참가자님!`
     : '안녕하세요, 참가자님!';

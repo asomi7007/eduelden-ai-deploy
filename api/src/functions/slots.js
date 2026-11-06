@@ -16,19 +16,22 @@ app.http('slots', {
     };
 
     try {
-      // Fetch open + closed onboarding issues
-      const [openResp, closedResp] = await Promise.all([
-        fetch(`https://api.github.com/repos/${repo}/issues?labels=onboarding&state=open&per_page=100`, { headers }),
-        fetch(`https://api.github.com/repos/${repo}/issues?labels=onboarding&state=closed&per_page=100`, { headers })
-      ]);
-
-      if (!openResp.ok || !closedResp.ok) {
-        return { status: 502, jsonBody: { error: 'GitHub API 호출 실패' } };
+      // Fetch open + closed onboarding issues (onboard.js 자동 할당과 동일하게 페이지네이션)
+      const all = [];
+      for (const state of ['open', 'closed']) {
+        for (let page = 1; page <= 5; page++) {
+          const resp = await fetch(
+            `https://api.github.com/repos/${repo}/issues?labels=onboarding&state=${state}&per_page=100&page=${page}`,
+            { headers }
+          );
+          if (!resp.ok) {
+            return { status: 502, jsonBody: { error: 'GitHub API 호출 실패' } };
+          }
+          const items = await resp.json();
+          all.push(...items.filter(i => !i.pull_request));
+          if (items.length < 100) break;
+        }
       }
-
-      const openIssues = await openResp.json();
-      const closedIssues = await closedResp.json();
-      const all = [...openIssues, ...closedIssues].filter(i => !i.pull_request);
 
       // Build slot map
       const slots = {};

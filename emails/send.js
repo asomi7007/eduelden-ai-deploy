@@ -12,20 +12,27 @@ async function main() {
   const studentId = process.env.STUDENT_ID;
   const apiKey = process.env.API_KEY;
   const eventId = process.env.EVENT_ID || 'default';
-  const apimUrl = 'https://apim-eduelden-ai.azure-api.net';
-  const azAccount = `${studentId}@eduelden.kr`;
-  const azPassword = '!!ed7788';
+  const apimUrl = 'https://apim-eduelden-ai-v2.azure-api.net/openai/v1';
 
-  // Load the correct template
+  // 이벤트별 템플릿. legacy 템플릿만 Azure 계정/초기 비밀번호와 '/openai/v1' 미포함 base URL을 받는다.
   const templateMap = {
-    'powerbi-mcp-20260530': './powerbi-mcp',
+    'powerbi-mcp-20260530': { path: './powerbi-mcp', legacy: true },
+    'kimi-copilot-20261107-gwangju': { path: './kimi-copilot', legacy: false },
   };
-  const templatePath = templateMap[eventId] || './default';
-  const template = require(templatePath);
+  const entry = templateMap[eventId] || { path: './default', legacy: true };
+  const template = require(entry.path);
 
-  const { subject, html } = template.generate({
-    studentId, apiKey, apimUrl, azAccount, azPassword,
-  });
+  const params = entry.legacy
+    ? {
+        studentId,
+        apiKey,
+        apimUrl: apimUrl.replace(/\/openai\/v1$/, ''),
+        azAccount: `${studentId}@eduelden.kr`,
+        azPassword: '!!ed7788',
+      }
+    : { studentId, apiKey, apimUrl };
+
+  const { subject, html } = template.generate(params);
 
   // Parse ACS connection string
   const connStr = process.env.ACS_CONNECTION_STRING;

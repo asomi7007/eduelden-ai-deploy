@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Azure AI Foundry 바이브코딩 실습 - 온보딩</title>
+<title>AI 바이브코딩 워크숍 (광주) - 온보딩</title>
 <style>
   :root {
     --primary: #1a56db;
@@ -309,8 +309,8 @@
 
 <div class="container">
   <header>
-    <h1 id="pageTitle">🚀 Azure AI Foundry 바이브코딩 실습</h1>
-    <p id="pageSubtitle">온보딩 신청 페이지 — 학생 번호와 이메일을 입력하면 API 키가 발송됩니다</p>
+    <h1 id="pageTitle">🚀 AI 바이브코딩 워크숍 (광주)</h1>
+    <p id="pageSubtitle">온보딩 신청 페이지 — 이메일과 패스코드만 입력하면 접속 정보와 설치 안내가 메일로 발송됩니다</p>
   </header>
 
   <!-- QR Code -->
@@ -354,27 +354,21 @@
       </p>
       <div id="slotGrid" class="slot-grid"></div>
       <p style="font-size:0.78rem;color:var(--gray-500);margin-top:4px">
-        ⬜ 빈 자리 &nbsp; 🟩 내 선택 &nbsp; 🟦 사용 중
+        ⬜ 빈 자리 &nbsp; 🟦 사용 중 &nbsp; (번호는 신청 시 자동으로 배정됩니다)
       </p>
     </div>
 
     <div class="card">
       <h2>✏️ 온보딩 신청</h2>
       <div id="alertStudent" class="alert"></div>
+      <input type="hidden" id="inputEvent" value="kimi-copilot-20261107-gwangju">
+      <div class="field">
+        <label>이메일 <span class="hint">(접속 정보를 받을 이메일 주소)</span></label>
+        <input type="email" id="inputEmail" placeholder="example@email.com">
+      </div>
       <div class="field">
         <label>수업 패스코드 <span class="hint">(강사가 알려준 코드)</span></label>
         <input type="password" id="inputPasscode" placeholder="패스코드 입력" autocomplete="off">
-      </div>
-      <div class="field">
-        <label>학생 번호 <span class="hint">(위 현황판에서 빈 자리를 클릭하세요)</span></label>
-        <div id="selectedSlotDisplay" style="padding:10px 14px;border:1px solid var(--gray-300);border-radius:8px;font-size:0.95rem;color:var(--gray-500);background:var(--gray-50)">
-          아직 선택하지 않았습니다
-        </div>
-        <input type="hidden" id="inputStudentId" value="">
-      </div>
-      <div class="field">
-        <label>이메일 <span class="hint">(API 키를 받을 이메일 주소)</span></label>
-        <input type="email" id="inputEmail" placeholder="example@email.com">
       </div>
       <button id="btnSubmit" class="btn btn-primary" onclick="submitOnboarding()">
         온보딩 신청
@@ -388,7 +382,7 @@
       <h2>↩️ 신청 취소 / 재신청</h2>
       <p style="font-size:0.88rem;color:var(--gray-500);margin-bottom:16px">
         이메일을 잘못 입력했거나 다시 신청하고 싶을 때 사용하세요.<br>
-        기존 신청을 취소하면 해당 번호가 다시 빈 자리가 됩니다.
+        기존 신청을 취소하면 해당 번호가 다시 빈 자리가 됩니다. 내 번호는 신청 완료 화면 또는 메일 제목에서 확인하세요.
       </p>
       <div id="alertCancel" class="alert"></div>
       <div class="field">
@@ -473,7 +467,7 @@
   </div>
 
   <div class="footer">
-    Azure AI Foundry 바이브코딩 실습 &copy; 2026 EduElden
+    AI 바이브코딩 워크숍 (광주) &copy; 2026 EduElden
   </div>
 </div>
 
@@ -486,7 +480,6 @@ const API_BASE = window.ONBOARD_API_BASE || '/api';
 
 let slotsData = {};
 let adminPw = '';
-let selectedSlot = '';
 let showRejected = false;
 let sortMode = 'student'; // 'student' | 'issue'
 let adminEntries = [];
@@ -588,13 +581,7 @@ async function refreshSlots() {
         div.title = `${id}번: 사용 중`;
         count++;
       } else {
-        div.title = `${id}번: 빈 자리 (클릭하여 선택)`;
-        div.addEventListener('click', () => selectSlot(id));
-      }
-      // 이전에 선택한 슬롯 복원
-      if (id === selectedSlot && !slotsData[id]) {
-        div.classList.add('selected');
-        div.textContent = `${id} ✓`;
+        div.title = `${id}번: 빈 자리`;
       }
       grid.appendChild(div);
     }
@@ -603,49 +590,6 @@ async function refreshSlots() {
   } catch (e) {
     grid.innerHTML = `<p style="grid-column:1/-1;color:var(--danger);font-size:0.85rem">서버 연결 실패: ${e.message}</p>`;
   }
-}
-
-// ============================================================
-// SLOT SELECTION (그리드에서 직접 클릭)
-// ============================================================
-function selectSlot(id) {
-  // 이미 사용 중인 슬롯은 선택 불가
-  if (slotsData[id]) return;
-
-  // 이전 선택 해제
-  document.querySelectorAll('.slot.selected').forEach(el => {
-    el.classList.remove('selected');
-    el.textContent = el.textContent.replace(' ✓', '');
-  });
-
-  // 같은 슬롯 다시 클릭하면 선택 해제
-  if (selectedSlot === id) {
-    selectedSlot = '';
-    document.getElementById('inputStudentId').value = '';
-    document.getElementById('selectedSlotDisplay').innerHTML =
-      '<span style="color:var(--gray-500)">아직 선택하지 않았습니다</span>';
-    return;
-  }
-
-  // 새 슬롯 선택
-  selectedSlot = id;
-  document.getElementById('inputStudentId').value = id;
-
-  // 그리드에서 선택 표시
-  const slots = document.querySelectorAll('.slot');
-  slots.forEach(el => {
-    if (el.textContent.replace(' ✓', '') === id) {
-      el.classList.add('selected');
-      el.textContent = `${id} ✓`;
-    }
-  });
-
-  // 선택 표시 업데이트
-  document.getElementById('selectedSlotDisplay').innerHTML =
-    `<span style="color:var(--success);font-weight:700">✅ ${id}번 선택됨</span>`;
-
-  // 학생 패널로 스크롤 (현황판에서 선택 후)
-  document.getElementById('inputPasscode').focus();
 }
 
 // ============================================================
@@ -679,13 +623,12 @@ function hideAlert(id) {
 async function submitOnboarding() {
   hideAlert('alertStudent');
   const passcode = document.getElementById('inputPasscode').value.trim();
-  const studentId = document.getElementById('inputStudentId').value;
   const email = document.getElementById('inputEmail').value.trim();
+  const event = document.getElementById('inputEvent').value;
 
-  if (!passcode) return showAlert('alertStudent', 'error', '패스코드를 입력해주세요.');
-  if (!studentId) return showAlert('alertStudent', 'error', '학생 번호를 선택해주세요.');
   if (!email) return showAlert('alertStudent', 'error', '이메일 주소를 입력해주세요.');
   if (!/^[\w.+\-]+@[\w.\-]+\.\w+$/.test(email)) return showAlert('alertStudent', 'error', '유효한 이메일 주소를 입력해주세요.');
+  if (!passcode) return showAlert('alertStudent', 'error', '패스코드를 입력해주세요.');
 
   const btn = document.getElementById('btnSubmit');
   btn.disabled = true;
@@ -694,20 +637,16 @@ async function submitOnboarding() {
   try {
     const result = await apiFetch('/onboard', {
       method: 'POST',
-      body: JSON.stringify({ passcode, studentId, email })
+      body: JSON.stringify({ passcode, email, event })
     });
 
     showAlert('alertStudent', 'success',
       `✅ 온보딩 신청 완료!<br>
-       <b>${studentId}번</b> — <b>${email}</b>로 API 키와 계정 정보가 곧 발송됩니다.<br>
+       <b>${result.studentId}번</b>으로 배정되었습니다. <b>${email}</b>로 접속 정보와 설치 안내가 곧 발송됩니다.<br>
        <small style="color:var(--gray-500)">처리까지 1~2분 정도 소요됩니다.</small>`
     );
     document.getElementById('inputPasscode').value = '';
-    document.getElementById('inputStudentId').value = '';
     document.getElementById('inputEmail').value = '';
-    selectedSlot = '';
-    document.getElementById('selectedSlotDisplay').innerHTML =
-      '<span style="color:var(--gray-500)">아직 선택하지 않았습니다</span>';
     setTimeout(refreshSlots, 3000);
 
   } catch (e) {
