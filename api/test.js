@@ -17,7 +17,10 @@ require('./src/functions/cancel');
 app.http = register;
 
 const originalFetch = global.fetch;
-const envNames = ['GITHUB_REPO', 'GITHUB_PAT', 'CLASS_PASSCODE', 'ADMIN_PASSWORD', 'ONBOARDING_SIGNING_KEY'];
+const envNames = [
+  'GITHUB_REPO', 'GITHUB_PAT', 'CLASS_PASSCODE', 'ADMIN_PASSWORD',
+  'ONBOARDING_SIGNING_KEY', 'CLASS_PASSCODE_ISSUE_NUMBER',
+];
 let originalEnv;
 let settingsIssues;
 let onboardingIssues;
@@ -39,6 +42,7 @@ beforeEach(() => {
     ONBOARDING_SIGNING_KEY: 'test-signing-key-not-a-credential',
     ADMIN_PASSWORD: 'test-admin-password',
   });
+  delete process.env.CLASS_PASSCODE_ISSUE_NUMBER;
   settingsIssues = [];
   onboardingIssues = [];
   writes = [];
@@ -64,6 +68,10 @@ beforeEach(() => {
       return response(issue, 201);
     }
     const issueMatch = parsed.pathname.match(/\/issues\/(\d+)$/);
+    if (issueMatch && method === 'GET') {
+      const issue = [...settingsIssues, ...onboardingIssues].find(item => item.number === Number(issueMatch[1]));
+      return response(issue || {}, issue ? 200 : 404);
+    }
     if (issueMatch && method === 'PATCH') {
       const issue = [...settingsIssues, ...onboardingIssues].find(item => item.number === Number(issueMatch[1]));
       if (!issue) throw new Error('Mock issue not found');
@@ -122,6 +130,18 @@ test('updates the existing settings issue without reserving an onboarding slot',
   assert.equal(await passcodes.verifyClassPasscode('second-test-code'), true);
 });
 
+test('preserves Unicode codes through changes and restoration', async () => {
+  const original = '초기-시험코드';
+  process.env.CLASS_PASSCODE = original;
+  assert.equal(await passcodes.verifyClassPasscode(original), true);
+  await passcodes.saveClassPasscode('변경-시험코드');
+  assert.equal(await passcodes.verifyClassPasscode(original), false);
+  assert.equal(await passcodes.verifyClassPasscode('변경-시험코드'), true);
+  await passcodes.saveClassPasscode(original);
+  assert.equal(await passcodes.verifyClassPasscode(original), true);
+  assert.equal(await passcodes.verifyClassPasscode('변경-시험코드'), false);
+});
+
 test('handles concurrent first-save records deterministically', async () => {
   await passcodes.saveClassPasscode('first-test-code');
   const first = { ...settingsIssues[0] };
@@ -131,6 +151,28 @@ test('handles concurrent first-save records deterministically', async () => {
   assert.equal(await passcodes.verifyClassPasscode('first-test-code'), false);
 });
 
+test('fixed issue lookup bypasses stale listings and fails closed if the record is missing', async () => {
+  await passcodes.saveClassPasscode('new-code');
+  process.env.CLASS_PASSCODE_ISSUE_NUMBER = String(settingsIssues[0].number);
+  settingsStatus = 500;
+  assert.equal(await passcodes.verifyClassPasscode('new-code'), true);
+  await passcodes.saveClassPasscode('changed-code');
+  assert.equal(await passcodes.verifyClassPasscode('changed-code'), true);
+  assert.equal(await passcodes.verifyClassPasscode('new-code'), false);
+  settingsIssues = [];
+  await assert.rejects(passcodes.verifyClassPasscode('initial-test-code'), /HTTP 404/);
+});
+
+test('first save verifies the created issue directly even before it appears in listings', async () => {
+  const fetch = global.fetch;
+  global.fetch = async (url, options = {}) => {
+    if (new URL(url).searchParams.get('labels') === 'class-settings') return response([]);
+    return fetch(url, options);
+  };
+  const saved = await passcodes.saveClassPasscode('new-code');
+  assert.ok(saved.updatedAt);
+  assert.equal(settingsIssues.length, 1);
+});
 test('never falls back to the original code when settings cannot be read', async () => {
   for (const status of [403, 404, 500]) {
     settingsStatus = status;

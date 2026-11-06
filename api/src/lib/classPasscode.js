@@ -38,17 +38,27 @@ async function github(path, options = {}, token = process.env.GITHUB_PAT) {
   });
 }
 
-async function loadSettings(token) {
-  const response = await github(`/issues?labels=${SETTINGS_LABEL}&state=all&sort=created&direction=desc&per_page=100`, {}, token);
+async function loadSettings(token, issueNumber = process.env.CLASS_PASSCODE_ISSUE_NUMBER) {
+  if (!issueNumber) {
+    const listing = await github(`/issues?labels=${SETTINGS_LABEL}&state=all&sort=created&direction=desc&per_page=100`, {}, token);
+    if (!listing.ok) throw new Error(`수업 설정 조회 실패 (HTTP ${listing.status})`);
+    const issues = (await listing.json()).filter(issue => !issue.pull_request && issue.title === SETTINGS_TITLE);
+    if (!issues.length) return null;
+    issues.sort((a, b) => b.number - a.number);
+    issueNumber = issues[0].number;
+  }
+  if (!/^\d+$/.test(String(issueNumber))) throw new Error('수업 설정 이슈 번호가 올바르지 않습니다.');
+  const response = await github(`/issues/${issueNumber}`, {}, token);
   if (!response.ok) throw new Error(`수업 설정 조회 실패 (HTTP ${response.status})`);
-  const issues = (await response.json()).filter(issue => !issue.pull_request && issue.title === SETTINGS_TITLE);
-  if (!issues.length) return null;
-  // Concurrent first saves can create two issues. The newest issue is authoritative.
-  issues.sort((a, b) => b.number - a.number);
+  const issue = await response.json();
+  if (issue.pull_request || issue.title !== SETTINGS_TITLE ||
+      !issue.labels.some(label => label.name === SETTINGS_LABEL)) {
+    throw new Error('수업 설정 이슈가 올바르지 않습니다.');
+  }
 
   let record;
   try {
-    record = JSON.parse(issues[0].body);
+    record = JSON.parse(issue.body);
   } catch {
     throw new Error('수업 설정 형식이 올바르지 않습니다.');
   }
@@ -57,7 +67,7 @@ async function loadSettings(token) {
       !/^[a-f0-9]{64}$/.test(settings.hash) || !equalSignature(signature, sign(settings))) {
     throw new Error('수업 설정 인증에 실패했습니다.');
   }
-  return { issueNumber: issues[0].number, settings };
+  return { issueNumber: issue.number, settings };
 }
 
 async function verifyClassPasscode(passcode, token) {
@@ -105,7 +115,7 @@ async function saveClassPasscode(passcode) {
   });
   if (!response.ok) throw new Error(`수업 패스코드 저장 실패 (HTTP ${response.status})`);
 
-  const saved = await loadSettings();
+  const saved = await loadSettings(undefined, (await response.json()).number);
   if (!saved || saved.settings.hash !== hash || saved.settings.salt !== salt) {
     throw new Error('수업 패스코드 저장을 확인할 수 없습니다. 새로고침 후 다시 시도해주세요.');
   }

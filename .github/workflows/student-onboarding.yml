@@ -19,6 +19,7 @@ jobs:
         env:
           CLASS_PASSCODE: ${{ secrets.CLASS_PASSCODE }}
           ONBOARDING_SIGNING_KEY: ${{ secrets.ONBOARDING_SIGNING_KEY }}
+          CLASS_PASSCODE_ISSUE_NUMBER: ${{ vars.CLASS_PASSCODE_ISSUE_NUMBER }}
           GITHUB_REPO: ${{ github.repository }}
           GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
         uses: actions/github-script@v7
