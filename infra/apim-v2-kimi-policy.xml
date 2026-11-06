@@ -1,119 +1,102 @@
 <policies>
-	<inbound>
-		<base />
-		<!-- 1) 키 추출: Authorization Bearer / api-key / Ocp-Apim-Subscription-Key 모두 허용 -->
-		<set-variable name="auth-key" value='@{
-      var auth = context.Request.Headers.GetValueOrDefault("Authorization","");
-      if(auth.StartsWith("Bearer ",StringComparison.OrdinalIgnoreCase)) {
-        return auth.Substring(7).Trim();
-      }
-      var ak = context.Request.Headers.GetValueOrDefault("api-key","");
-      if(!string.IsNullOrEmpty(ak)) {
-        return ak;
-      }
-      return context.Request.Headers.GetValueOrDefault("Ocp-Apim-Subscription-Key","");
+  <inbound>
+    <base />
+    <choose>
+      <when condition='@(context.Subscription == null || !System.Text.RegularExpressions.Regex.IsMatch(context.Subscription.Id, "^sub-student-(0[1-9]|[1-4][0-9]|50)$"))'>
+        <return-response>
+          <set-status code="403" reason="Forbidden" />
+          <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+          <set-body>{"error":{"code":"student_subscription_required","message":"An active workshop student subscription is required."}}</set-body>
+        </return-response>
+      </when>
+    </choose>
+    <rate-limit-by-key calls="30" renewal-period="60" counter-key="@(context.Subscription.Id)" retry-after-header-name="Retry-After" />
+    <quota-by-key calls="500" renewal-period="86400" counter-key="@(context.Subscription.Id)" />
+    <choose>
+      <when condition='@(context.Request.Method == "GET" &amp;&amp; context.Request.Url.Path.EndsWith("/models"))'>
+        <return-response>
+          <set-status code="200" reason="OK" />
+          <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+          <set-body>{"object":"list","data":[{"id":"gpt-5.4-mini","object":"model","owned_by":"eduelden"},{"id":"Kimi-K3.1-Pro","object":"model","owned_by":"eduelden"}]}</set-body>
+        </return-response>
+      </when>
+      <when condition='@(context.Request.Method != "POST" || !context.Request.Url.Path.EndsWith("/v1/chat/completions"))'>
+        <return-response>
+          <set-status code="400" reason="Bad Request" />
+          <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+          <set-body>{"error":{"code":"unsupported_api","message":"Use Chat Completions with gpt-5.4-mini or Kimi-K3.1-Pro. Responses API is not enabled on this gateway."}}</set-body>
+        </return-response>
+      </when>
+    </choose>
+    <set-variable name="reqBody" value='@(context.Request.Body.As&lt;JObject&gt;(preserveContent: true))' />
+    <set-variable name="modelName" value='@{ var body = (JObject)context.Variables["reqBody"]; return (string)body["model"] ?? ""; }' />
+    <choose>
+      <when condition='@(!string.Equals((string)context.Variables["modelName"], "gpt-5.4-mini", StringComparison.OrdinalIgnoreCase) &amp;&amp; !string.Equals((string)context.Variables["modelName"], "Kimi-K3.1-Pro", StringComparison.OrdinalIgnoreCase))'>
+        <return-response>
+          <set-status code="400" reason="Bad Request" />
+          <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+          <set-body>{"error":{"code":"model_not_allowed","message":"Use model ID gpt-5.4-mini or Kimi-K3.1-Pro."}}</set-body>
+        </return-response>
+      </when>
+      <when condition='@{
+        var body = (JObject)context.Variables["reqBody"];
+        var limit = body["max_completion_tokens"] ?? body["max_tokens"];
+        return !(body["messages"] is JArray) || (limit != null &amp;&amp; (limit.Type != JTokenType.Integer || (long)limit &lt;= 0));
+      }'>
+        <return-response>
+          <set-status code="400" reason="Bad Request" />
+          <set-header name="Content-Type" exists-action="override"><value>application/json</value></set-header>
+          <set-body>{"error":{"code":"invalid_request","message":"messages must be an array and the output token limit must be a positive integer."}}</set-body>
+        </return-response>
+      </when>
+    </choose>
+    <set-variable name="tenant-route" value='@{
+      var isGpt = string.Equals((string)context.Variables["modelName"], "gpt-5.4-mini", StringComparison.OrdinalIgnoreCase);
+      var primary = isGpt ? new string[] { "sub-student-02", "sub-student-06", "sub-student-09", "sub-student-13", "sub-student-16", "sub-student-20", "sub-student-23", "sub-student-27", "sub-student-30", "sub-student-34", "sub-student-37", "sub-student-41", "sub-student-44", "sub-student-48" } : new string[] { "sub-student-01", "sub-student-03", "sub-student-05", "sub-student-07", "sub-student-09", "sub-student-11", "sub-student-13", "sub-student-15", "sub-student-17", "sub-student-19", "sub-student-21", "sub-student-23", "sub-student-25", "sub-student-27", "sub-student-29", "sub-student-31", "sub-student-33", "sub-student-35", "sub-student-37", "sub-student-39", "sub-student-41", "sub-student-43", "sub-student-45", "sub-student-47", "sub-student-49" };
+      foreach (var id in primary) { if (id == context.Subscription.Id) { return "primary"; } }
+      return "secondary";
     }' />
-		<choose>
-			<when condition='@(string.IsNullOrEmpty((string)context.Variables["auth-key"]))'>
-				<return-response>
-					<set-status code="401" reason="Unauthorized" />
-					<set-header name="Content-Type" exists-action="override">
-						<value>application/json</value>
-					</set-header>
-					<set-body>{"error":{"code":"401","message":"API key required"}}</set-body>
-				</return-response>
-			</when>
-		</choose>
-		<!-- 2) 키 검증: 발급된 학생 키 목록(named value)에 있어야 통과 -->
-		<choose>
-			<when condition='@(!("," + "{{student-keys-v1}}" + ",").Contains("," + (string)context.Variables["auth-key"] + ","))'>
-				<return-response>
-					<set-status code="401" reason="Unauthorized" />
-					<set-header name="Content-Type" exists-action="override">
-						<value>application/json</value>
-					</set-header>
-					<set-body>{"error":{"code":"401","message":"Invalid API key"}}</set-body>
-				</return-response>
-			</when>
-		</choose>
-		<!-- 3) 학생별 속도 제한: 분당 30회 / 일 500회 -->
-		<rate-limit-by-key calls="30" renewal-period="60" counter-key='@((string)context.Variables["auth-key"])' retry-after-header-name="Retry-After" />
-		<quota-by-key calls="500" renewal-period="86400" counter-key='@((string)context.Variables["auth-key"])' />
-		<!-- 4) 경로별 처리 -->
-		<choose>
-			<!-- 모델 목록: Kimi만 노출 (백엔드 호출 없이 정적 응답) -->
-			<when condition='@(context.Request.Url.Path.EndsWith("/models"))'>
-				<return-response>
-					<set-status code="200" reason="OK" />
-					<set-header name="Content-Type" exists-action="override">
-						<value>application/json</value>
-					</set-header>
-					<set-body>{"object":"list","data":[{"id":"Kimi-K3.1-Pro","object":"model","owned_by":"eduelden"}]}</set-body>
-				</return-response>
-			</when>
-			<!-- Responses API: 이번 행사 미지원 -->
-			<when condition='@(context.Request.Url.Path.Contains("/responses"))'>
-				<return-response>
-					<set-status code="400" reason="Bad Request" />
-					<set-header name="Content-Type" exists-action="override">
-						<value>application/json</value>
-					</set-header>
-					<set-body>{"error":{"code":"unsupported_api","message":"Responses API는 지원하지 않습니다. VS Code 모델 설정에서 API type을 'Chat Completions'로 선택해주세요. 모델 ID: Kimi-K3.1-Pro"}}</set-body>
-				</return-response>
-			</when>
-			<when condition='@(context.Request.Url.Path.Contains("/chat/completions") &amp;&amp; !context.Request.Url.Path.Contains("/deployments/"))'>
-				<set-variable name="reqBody" value='@(context.Request.Body.As&lt;JObject&gt;(preserveContent: true))' />
-				<set-variable name="modelName" value='@{
-          var body = (JObject)context.Variables["reqBody"];
-          return body["model"] != null ? body["model"].ToString() : "";
-        }' />
-				<!-- 5) 모델 제한: Kimi-K3.1-Pro만 허용 -->
-				<choose>
-					<when condition='@(!((string)context.Variables["modelName"]).StartsWith("Kimi-K3.1-Pro", StringComparison.OrdinalIgnoreCase))'>
-						<return-response>
-							<set-status code="400" reason="Bad Request" />
-							<set-header name="Content-Type" exists-action="override">
-								<value>application/json</value>
-							</set-header>
-							<set-body>{"error":{"code":"model_not_allowed","message":"이 행사에서는 Kimi-K3.1-Pro 모델만 사용할 수 있습니다. 모델 ID를 Kimi-K3.1-Pro로 설정해주세요."}}</set-body>
-						</return-response>
-					</when>
-				</choose>
-				<!-- 6) 모델명 정규화 + max_tokens 클램프 + 비표준 필드 정리 -->
-				<set-body>@{
-          var body = (JObject)context.Variables["reqBody"];
-          body["model"] = "Kimi-K3.1-Pro";
-          var allowed = new string[] { "model", "messages", "temperature", "top_p", "max_tokens", "max_completion_tokens", "stream", "stop", "presence_penalty", "frequency_penalty", "n", "response_format", "tools", "tool_choice", "logprobs", "top_logprobs", "user", "seed", "stream_options", "parallel_tool_calls", "metadata" };
-          if (body["max_tokens"] != null &amp;&amp; body["max_completion_tokens"] == null) {
-            body["max_completion_tokens"] = body["max_tokens"];
-            body.Remove("max_tokens");
-          }
-          // TPM 선반영 폭증 방지: 출력 토큰 상한 4096
-          var mct = body["max_completion_tokens"];
-          if (mct == null || (int)mct &gt; 4096) { body["max_completion_tokens"] = 4096; }
-          if (body["parallel_tool_calls"] != null &amp;&amp; body["tools"] == null) { body.Remove("parallel_tool_calls"); }
-          var toRemove = new System.Collections.Generic.List&lt;string&gt;();
-          foreach (var prop in body.Properties()) { bool ok = false; foreach (var a in allowed) { if (prop.Name == a) { ok = true; break; } } if (!ok) { toRemove.Add(prop.Name); } }
-          foreach (var rm in toRemove) { body.Remove(rm); }
-          return body.ToString(Newtonsoft.Json.Formatting.None);
-        }</set-body>
-				<rewrite-uri template="/v1/chat/completions" copy-unmatched-params="true" />
-			</when>
-		</choose>
-		<!-- 7) 백엔드 인증: Managed Identity (학생에게 실제 키 비노출) -->
-		<set-header name="Authorization" exists-action="delete" />
-		<set-header name="Ocp-Apim-Subscription-Key" exists-action="delete" />
-		<set-header name="api-key" exists-action="delete" />
-		<set-backend-service backend-id="backend-foundry-mi" />
-		<authentication-managed-identity resource="https://cognitiveservices.azure.com" />
-	</inbound>
-	<backend>
-		<base />
-	</backend>
-	<outbound>
-		<base />
-	</outbound>
-	<on-error>
-		<base />
-	</on-error>
+    <set-body>@{
+      var body = (JObject)context.Variables["reqBody"];
+      var isGpt = string.Equals((string)context.Variables["modelName"], "gpt-5.4-mini", StringComparison.OrdinalIgnoreCase);
+      var secondary = (string)context.Variables["tenant-route"] == "secondary";
+      body["model"] = isGpt ? (secondary ? "gpt-5.4-mini-1" : "gpt-5.4-mini") : "Kimi-K3.1-Pro";
+      var limit = body["max_completion_tokens"] ?? body["max_tokens"];
+      body.Remove("max_tokens");
+      body["max_completion_tokens"] = limit == null || (long)limit &gt; 4096 ? 4096 : (long)limit;
+      // Keep Chat Completions tool calls fast and avoid exhausting the output cap on reasoning.
+      if (isGpt) { body["reasoning_effort"] = "none"; } else { body.Remove("reasoning_effort"); }
+      if (body["tools"] == null) { body.Remove("parallel_tool_calls"); }
+      var allowed = new string[] { "model", "messages", "temperature", "top_p", "max_completion_tokens", "stream", "stop", "presence_penalty", "frequency_penalty", "n", "response_format", "tools", "tool_choice", "logprobs", "top_logprobs", "user", "seed", "stream_options", "parallel_tool_calls", "metadata", "reasoning_effort" };
+      var remove = new System.Collections.Generic.List&lt;string&gt;();
+      foreach (var property in body.Properties()) {
+        bool keep = false;
+        foreach (var name in allowed) { if (property.Name == name) { keep = true; break; } }
+        if (!keep) { remove.Add(property.Name); }
+      }
+      foreach (var name in remove) { body.Remove(name); }
+      return body.ToString(Newtonsoft.Json.Formatting.None);
+    }</set-body>
+    <rewrite-uri template="/v1/chat/completions" copy-unmatched-params="false" />
+    <set-header name="Authorization" exists-action="delete" />
+    <set-header name="Ocp-Apim-Subscription-Key" exists-action="delete" />
+    <set-header name="api-key" exists-action="delete" />
+    <choose>
+      <when condition='@((string)context.Variables["tenant-route"] == "primary")'>
+        <set-backend-service backend-id="backend-foundry-mi" />
+        <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+      </when>
+      <otherwise>
+        <set-backend-service backend-id="backend-workshop-secondary" />
+      </otherwise>
+    </choose>
+  </inbound>
+  <backend>
+    <forward-request timeout="120" buffer-response="false" />
+  </backend>
+  <outbound>
+    <base />
+    <set-header name="X-Workshop-Tenant" exists-action="override"><value>@((string)context.Variables["tenant-route"])</value></set-header>
+  </outbound>
+  <on-error><base /></on-error>
 </policies>

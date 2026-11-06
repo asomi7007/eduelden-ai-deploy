@@ -402,8 +402,70 @@ test('welcome email includes the practice URL and setup guidance without changin
   const [config] = JSON.parse(configText);
   assert.equal(config.apiKey, apiKey);
   assert.equal(config.models[0].requestHeaders['Ocp-Apim-Subscription-Key'], apiKey);
-  assert.equal(config.models[0].id, 'Kimi-K3.1-Pro');
+  assert.equal(config.models[0].id, 'gpt-5.4-mini');
   assert.equal(config.models[0].url, 'https://test.example/openai/v1/chat/completions');
   assert.equal(config.apiType, 'chat-completions');
   assert.equal(config.models[0].maxOutputTokens, 4096);
+  assert.equal(config.models.length, 2);
+  assert.equal(config.models[1].id, 'Kimi-K3.1-Pro');
+  for (const model of config.models) {
+    assert.equal(model.requestHeaders['Ocp-Apim-Subscription-Key'], apiKey);
+    assert.equal(model.url, config.models[0].url);
+    assert.equal(model.toolCalling, true);
+  }
+  assert.ok(html.includes('공유 토큰·요청 한도'));
+  assert.ok(html.includes('별도 Azure 로그인은 필요하지 않습니다'));
+});
+
+test('tenant assignment follows model capacity for every student prefix and is stable', () => {
+  const { models, assignTenant, assignments } = require('../infra/workshop-routing');
+  for (const model of models) {
+    for (let count = 1; count <= 50; count++) {
+      const primary = assignments(model.id, count).filter(item => item.tenant === 'primary').length;
+      const expected = Math.round(count * model.tpm.primary / (model.tpm.primary + model.tpm.secondary));
+      assert.equal(primary, expected, `${model.id}, first ${count} students`);
+    }
+    for (const item of assignments(model.id)) {
+      assert.equal(assignTenant(item.studentId, model.id), item.tenant);
+      assert.equal(assignTenant(item.studentId, model.id), assignTenant(item.studentId, model.id));
+    }
+  }
+  assert.equal(assignments('gpt-5.4-mini', 40).filter(item => item.tenant === 'primary').length, 11);
+  assert.equal(assignments('gpt-5.4-mini', 50).filter(item => item.tenant === 'primary').length, 14);
+  assert.equal(assignments('Kimi-K3.1-Pro', 40).filter(item => item.tenant === 'primary').length, 20);
+  for (const id of [null, '', '1', '00', '51', '99', '01\n', 'sub-student-01']) {
+    assert.throws(() => assignTenant(id, 'gpt-5.4-mini'), /Student ID/);
+  }
+  assert.throws(() => assignTenant('01', 'gpt-5.4-mini-1'), /Unsupported/);
+  assert.match('Kimi-K3.1', new RegExp(models[1].responseModelPattern));
+  assert.match('Kimi-K3.1-Pro', new RegExp(models[1].responseModelPattern));
+  assert.doesNotMatch('Kimi-K2', new RegExp(models[1].responseModelPattern));
+  assert.match('gpt-5.4-mini-2026-03-17', new RegExp(models[0].responseModelPattern));
+  assert.doesNotMatch('gpt-5-mini', new RegExp(models[0].responseModelPattern));
+});
+
+test('generated APIM routes use validated subscription identities and match shared assignments', () => {
+  const { models, assignments, generatePolicy } = require('../infra/workshop-routing');
+  const policy = generatePolicy();
+  assert.equal(fs.readFileSync(path.join(__dirname, '..', 'infra', 'apim-v2-kimi-policy.xml'), 'utf8').replace(/\r\n/g, '\n'), policy);
+  const lists = [...policy.matchAll(/new string\[\] \{ ("sub-student-[^}]+) \}/g)];
+  assert.equal(lists.length, 2);
+  for (const [index, model] of models.entries()) {
+    const ids = [...lists[index][1].matchAll(/"sub-student-(\d{2})"/g)].map(match => match[1]);
+    assert.deepEqual(ids, assignments(model.id).filter(item => item.tenant === 'primary').map(item => item.studentId));
+  }
+  assert.equal((policy.match(/counter-key="@\(context\.Subscription\.Id\)"/g) || []).length, 2);
+  assert.ok(policy.includes('^sub-student-(0[1-9]|[1-4][0-9]|50)$'));
+  assert.ok(policy.includes('gpt-5.4-mini-1'));
+  assert.ok(policy.includes('buffer-response="false"'));
+  assert.ok(policy.includes('body["reasoning_effort"] = "none"'));
+  assert.ok(policy.includes('body.Remove("max_tokens")'));
+  assert.ok(policy.includes('limit.Type != JTokenType.Integer'));
+  assert.ok(!policy.includes('StartsWith("Kimi'));
+  assert.ok(!policy.includes('student-keys-v1'));
+  assert.ok(!policy.includes('<retry'));
+  const primaryBranch = policy.indexOf('<set-backend-service backend-id="backend-foundry-mi"');
+  const secondaryBranch = policy.indexOf('<set-backend-service backend-id="backend-workshop-secondary"');
+  const identity = policy.indexOf('<authentication-managed-identity');
+  assert.ok(primaryBranch < identity && identity < secondaryBranch);
 });

@@ -7,7 +7,7 @@
 
 > 학생 50명이 AI와 함께 코딩하는 수업을 위한 셀프서비스 온보딩 플랫폼입니다.
 
-> **2026-11-07 Techive의 여덟 번째 발표  with 광주과학기술원:** Kimi-K3.1-Pro 단일 모델, APIM Basic v2, VS Code + GitHub Copilot BYOK를 사용합니다. 예전 GPT/DeepSeek/Cline 안내는 과거 구성이므로, 이번 행사 설치와 메일 안내는 [Techive 행사 런북](events/kimi-copilot-20261107-gwangju/README.md)을 기준으로 하세요.
+> **2026-11-07 Techive의 여덟 번째 발표  with 광주과학기술원:** GPT-5.4-mini 주력 + Kimi-K3.1-Pro 선택 모델, APIM Basic v2, VS Code + GitHub Copilot BYOK를 사용합니다. GPT는 두 테넌트에 학생을 2:5, Kimi는 1:1로 고정 배정합니다. 이전 Cline 안내는 과거 구성이므로, 이번 행사 설치와 메일 안내는 [Techive 행사 런북](events/kimi-copilot-20261107-gwangju/README.md)을 기준으로 하세요.
 
 ---
 
@@ -67,31 +67,33 @@
   ┌──────────────────────────────────────┐
   │  GitHub Actions Workflow              │
   │  1. 패스코드 검증                      │
-  │  2. APIM 구독 키 조회                  │
+  │  2. 학생별 APIM 키 조회 (Actions Secret)│
   │  3. ACS 이메일 발송                    │
   │  4. Issue 완료 처리                    │
   └──────────────────────┬───────────────┘
                          │ 이메일 수신 → PowerShell 실행
                          ▼
   ┌──────────────────────────────────────┐
-  │  VS Code + Cline 확장                 │
-  │  (Authorization: Bearer 키)           │
+  │  VS Code + GitHub Copilot (BYOK)      │
+  │  (Ocp-Apim-Subscription-Key)           │
   └──────────────────────┬───────────────┘
                          │
                          ▼
   ┌──────────────────────────────────────┐
-  │  Azure APIM (apim-eduelden-ai)        │
-  │  - 인증 검증 / 속도 제한 (10/분)        │
-  │  - URL 형식 변환 / 백엔드 키 주입       │
-  │  - 불필요 파라미터 자동 제거            │
-  └────────────┬──────────────┬──────────┘
-               │              │
-               ▼              ▼
-  ┌────────────────┐  ┌───────────────────┐
-  │  Azure OpenAI  │  │  DeepSeek V4 Flash │
-  │  - gpt-54-mini │  │  (라운드로빈 x2)   │
-  │  - gpt-55      │  │                   │
-  └────────────────┘  └───────────────────┘
+  │  Azure APIM (apim-eduelden-ai-v2)     │
+  │  - native 학생별 구독 키 검증          │
+  │  - 학생별 30회/분, 500회/일 제한       │
+  │  - Foundry 백엔드는 Managed Identity   │
+  └──────────────────────┬───────────────┘
+                         │
+                         ▼
+  ┌──────────────────────────────────────┐
+  │  Azure AI Foundry                    │
+  │  - GPT-5.4-mini: 두 테넌트 2:5 배정    │
+  │    합계 14M TPM / 14K RPM             │
+  │  - Kimi-K3.1-Pro: 두 테넌트 1:1 배정  │
+  │    합계 200K TPM / 200 RPM            │
+  └──────────────────────────────────────┘
 
   ┌──────────────────────────────────────┐
   │  관리자 (Chrome)                       │
@@ -126,11 +128,11 @@
 
 ### APIM(API Management)을 사용하는 이유
 
-학생에게 진짜 Azure OpenAI 키를 주는 대신, **APIM이 중간에서 대리인 역할**을 수행합니다.
+학생에게 Foundry 리소스 키를 주는 대신, **APIM이 중간에서 대리인 역할**을 수행합니다.
 
-- **학생 1명 = 키 1개 = 모델 3개**: 하나의 키로 GPT-5.4-mini, GPT-5.5, DeepSeek 세 가지 모델을 모두 사용할 수 있습니다.
-- **속도 제한**: 분당 10회, 일 200회로 제한하여 한 명이 예산을 독점하는 것을 방지합니다.
-- **키 은닉**: APIM이 학생의 키를 검증한 뒤, 백엔드에는 진짜 Azure OpenAI 키를 주입하여 전송합니다. 학생은 진짜 키를 절대 볼 수 없습니다.
+- **이번 행사: 학생 1명 = 키 1개 = GPT-5.4-mini + Kimi-K3.1-Pro**. GPT를 주력으로 사용하며, 학생 번호별 테넌트 고정 배정은 [공통 라우팅 설정](infra/workshop-routing.js)에서 생성합니다.
+- **속도 제한**: 학생별 분당 30회/일 500회는 두 모델·두 APIM 키를 합산합니다. GPT는 기존 4M TPM/4K RPM + 추가 10M TPM/10K RPM, Kimi는 테넌트마다 100K TPM/100 RPM입니다. 합계 용량이 단일 요청에 합쳐지는 것은 아닙니다.
+- **키 검증/은닉**: APIM native subscription validation으로 학생 키를 검증하고, Foundry에는 Managed Identity로 인증합니다. 학생은 Foundry 리소스 키를 받지 않습니다.
 
 ### GitHub Issues 기반 온보딩
 
@@ -357,9 +359,8 @@ GitHub Repository Variables에 다음 값을 설정합니다 (`deploy-all.sh`가
 
 | 분류 | 기술 | 용도 |
 |------|------|------|
-| API 게이트웨이 | Azure API Management (Developer SKU) | 학생 키 관리, 속도 제한, URL 변환, 파라미터 제거 |
-| AI 모델 | Azure OpenAI (GPT-5.4-mini, GPT-5.5) | AI 코딩 어시스턴트 백엔드 |
-| AI 모델 | DeepSeek V4 Flash (Serverless x2) | 대안 모델, 라운드로빈 분산 |
+| API 게이트웨이 | Azure API Management (Basic v2) | 학생 키 검증, 속도 제한, URL 변환 |
+| AI 모델 | Azure AI Foundry (GPT-5.4-mini + Kimi-K3.1-Pro) | 2026-11-07 광주 행사, 두 테넌트 고정 배정 |
 | 온보딩 프론트엔드 | Azure Static Web Apps | 학생 신청 웹 페이지 (`swa-eduelden-onboard`) |
 | 대시보드 프론트엔드 | Azure Static Web Apps | 관리자 모니터링 대시보드 (`swa-eduelden-dashboard`) |
 | 대시보드 UI | React 18 + Vite + Recharts | 실시간 차트, 학생별 통계, 예산 게이지 |

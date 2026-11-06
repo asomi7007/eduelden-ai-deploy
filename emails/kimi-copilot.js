@@ -1,8 +1,9 @@
 // Techive 행사 이메일 템플릿 — VS Code + GitHub Copilot BYOK(Custom Endpoint)
 const { tbl, code, stepCircle } = require('./helpers');
+const { models, tenants, assignTenant, MAX_OUTPUT_TOKENS } = require('../infra/workshop-routing');
 
-const MODEL_ID = 'Kimi-K3.1-Pro';
-const MODEL_NAME = 'Kimi K3.1 Pro';
+const MODEL_ID = models[0].id;
+const MODEL_NAME = models[0].name;
 const EVENT_NAME = 'Techive의 여덟 번째 발표  with 광주과학기술원';
 const PRACTICE_URL = 'https://power-platform-users-korea.github.io/copilot-dev-days-seoul-2026/powerbi-agent/';
 const PRACTICE_PACKAGE_URL = `${PRACTICE_URL}kit/K_Retail_PowerBI_Agent_%EC%8B%A4%EC%8A%B5%ED%8C%A8%ED%82%A4%EC%A7%80_%ED%86%B5%ED%95%A9%EB%B3%B8.zip`;
@@ -27,18 +28,18 @@ function generate({ studentId, apiKey, apimUrl }) {
     vendor: 'customendpoint',
     apiKey,
     apiType: 'chat-completions',
-    models: [{
-      id: MODEL_ID,
-      name: MODEL_NAME,
+    models: models.map(model => ({
+      id: model.id,
+      name: model.name,
       url: chatUrl,
       requestHeaders: {
         'Ocp-Apim-Subscription-Key': apiKey,
       },
       toolCalling: true,
-      vision: false,
+      vision: model.vision,
       maxInputTokens: 120000,
-      maxOutputTokens: 4096,
-    }],
+      maxOutputTokens: MAX_OUTPUT_TOKENS,
+    })),
   }], null, 2);
 
   const html = `<div style="font-family:'Segoe UI',Pretendard,'Malgun Gothic',sans-serif;max-width:680px;margin:auto;color:#1e293b">
@@ -55,7 +56,10 @@ ${h2('1. 내 접속 정보', '#1a56db')}
 <table ${tbl}>
   <tr style="background:#f0f7ff"><td style="width:130px"><b>엔드포인트 URL</b></td><td style="word-break:break-all">${code(escapeHtml(baseUrl))}</td></tr>
   <tr><td><b>모델 ID</b></td><td>${code(MODEL_ID)}</td></tr>
+  <tr style="background:#f0f7ff"><td><b>선택 모델</b></td><td>${code('Kimi-K3.1-Pro')} (처리 한도가 작으므로 주력 모델은 GPT 5.4 mini를 사용하세요)</td></tr>
+  ${models.map(model => `<tr><td><b>${model.name} 배정</b></td><td>${tenants[assignTenant(studentId, model.id)].label}</td></tr>`).join('\n  ')}
 </table>
+<p style="font-size:13px;color:#555">학생 번호에 따라 모델별 처리 용량 비율로 테넌트가 자동 배정됩니다. 주소와 키는 두 모델 모두 같고, 별도 Azure 로그인은 필요하지 않습니다.</p>
 <p style="margin:12px 0 4px"><b>API 키</b> <span style="color:#dc2626;font-size:13px">(다른 사람에게 공유하지 마세요)</span></p>
 ${pre(escapeHtml(apiKey))}
 
@@ -81,7 +85,7 @@ ${h2('3. VS Code에 모델 등록', '#7c3aed')}
   <li>열리는 ${code('chatLanguageModels.json')} 에 아래 JSON을 <b>그대로 붙여넣고</b> 저장합니다. (API 키는 이미 들어 있습니다)</li>
 </ol>
 ${pre(escapeHtml(modelJson))}
-<p style="font-size:14px">저장 후 모델 선택 드롭다운에서 <b>"${MODEL_NAME}"</b> 을 선택하세요.</p>
+<p style="font-size:14px">저장 후 모델 선택 드롭다운에서 <b>"${MODEL_NAME}"</b> 을 선택하세요. Kimi K3.1 Pro도 같은 키로 선택할 수 있습니다.</p>
 <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:12px;margin:12px 0;font-size:13px">
   <b>주의</b>: API type은 반드시 <b>Chat Completions</b> 여야 합니다. <b>Azure</b> 공급자(Azure OpenAI)를 선택하면 동작하지 않습니다.
 </div>
@@ -103,8 +107,8 @@ ${h2('5. Power BI AI 에이전트 실습', '#0891b2')}
 ${h2('6. 문제 해결', '#dc2626')}
 <table ${tbl}>
   <tr style="background:#f8fafc"><th style="width:180px;text-align:left">증상</th><th style="text-align:left">해결 방법</th></tr>
-  <tr><td><b>429 응답</b></td><td>분당 30회 제한입니다. 잠시(약 1분) 기다린 뒤 다시 시도하세요.</td></tr>
-  <tr style="background:#f8fafc"><td><b>400 model_not_allowed</b></td><td>모델 ID를 ${code(MODEL_ID)} 로 정확히 입력했는지 확인하세요.</td></tr>
+  <tr><td><b>429 응답</b></td><td>학생별 분당 30회·일 500회 제한 또는 배정된 모델의 공유 토큰·요청 한도를 넘으면 발생합니다. Retry-After 안내에 따라 기다리세요. 안내가 없으면 약 1분 후 재시도하고, 대화가 길면 새 채팅에서 필요한 내용만 전달하세요. Kimi를 사용 중이면 GPT 5.4 mini로 전환하세요.</td></tr>
+  <tr style="background:#f8fafc"><td><b>400 model_not_allowed</b></td><td>모델 ID는 ${code(MODEL_ID)} 또는 ${code('Kimi-K3.1-Pro')}입니다. 실제 테넌트 배포명은 게이트웨이가 자동 변환합니다.</td></tr>
   <tr><td><b>401 (키 관련 오류)</b></td><td>이 메일의 JSON에서 ${code('apiKey')}와 ${code('requestHeaders.Ocp-Apim-Subscription-Key')} 값이 같은지 확인하고, 키를 바꾸지 않았는지 확인하세요.</td></tr>
 </table>
 
