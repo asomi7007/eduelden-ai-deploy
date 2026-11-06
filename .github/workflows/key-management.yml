@@ -44,50 +44,63 @@ jobs:
           APIM="${{ vars.APIM_NAME || 'apim-eduelden-ai-v2' }}"
           ACTION="${{ github.event.inputs.action }}"
           SID="${{ github.event.inputs.student_id }}"
+          SUBSCRIPTION_ID=$(az account show --query id --output tsv)
+          APIM_URL="https://management.azure.com/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG/providers/Microsoft.ApiManagement/service/$APIM"
 
           case "$ACTION" in
             verify-access)
-              az apim show --resource-group "$RG" --name "$APIM" \
+              az rest --method GET --url "$APIM_URL?api-version=2024-05-01" \
                 --query "{name:name, sku:sku.name}" --output table
-              COUNT=$(az apim subscription list --resource-group "$RG" \
-                --service-name "$APIM" --query "length(@)" --output tsv)
+              COUNT=$(az rest --method GET \
+                --url "$APIM_URL/subscriptions?api-version=2024-05-01" \
+                --query "length(value)" --output tsv)
               echo "Azure access verified; APIM subscriptions visible: $COUNT"
               ;;
             disable-all)
               for i in $(seq -w 1 50); do
-                az apim subscription update --resource-group "$RG" --service-name "$APIM" \
-                  --subscription-id "sub-student-$i" --state suspended --output none
+                az rest --method PATCH \
+                  --url "$APIM_URL/subscriptions/sub-student-$i?api-version=2024-05-01" \
+                  --headers "If-Match=*" \
+                  --body '{"properties":{"state":"suspended"}}' --output none
                 echo "Disabled sub-student-$i"
               done
               ;;
             enable-all)
               for i in $(seq -w 1 50); do
-                az apim subscription update --resource-group "$RG" --service-name "$APIM" \
-                  --subscription-id "sub-student-$i" --state active --output none
+                az rest --method PATCH \
+                  --url "$APIM_URL/subscriptions/sub-student-$i?api-version=2024-05-01" \
+                  --headers "If-Match=*" \
+                  --body '{"properties":{"state":"active"}}' --output none
                 echo "Enabled sub-student-$i"
               done
               ;;
             regenerate-all)
               for i in $(seq -w 1 50); do
-                az apim subscription keys regenerate-primary-key --resource-group "$RG" \
-                  --service-name "$APIM" --subscription-id "sub-student-$i" --output none
+                az rest --method POST \
+                  --url "$APIM_URL/subscriptions/sub-student-$i/regeneratePrimaryKey?api-version=2024-05-01" \
+                  --output none
                 echo "Regenerated sub-student-$i"
               done
               ;;
             disable-student)
               [ -z "$SID" ] && echo "Student ID required" && exit 1
-              az apim subscription update --resource-group "$RG" --service-name "$APIM" \
-                --subscription-id "sub-student-$SID" --state suspended
+              az rest --method PATCH \
+                --url "$APIM_URL/subscriptions/sub-student-$SID?api-version=2024-05-01" \
+                --headers "If-Match=*" \
+                --body '{"properties":{"state":"suspended"}}' --output none
               ;;
             enable-student)
               [ -z "$SID" ] && echo "Student ID required" && exit 1
-              az apim subscription update --resource-group "$RG" --service-name "$APIM" \
-                --subscription-id "sub-student-$SID" --state active
+              az rest --method PATCH \
+                --url "$APIM_URL/subscriptions/sub-student-$SID?api-version=2024-05-01" \
+                --headers "If-Match=*" \
+                --body '{"properties":{"state":"active"}}' --output none
               ;;
             regenerate-student)
               [ -z "$SID" ] && echo "Student ID required" && exit 1
-              az apim subscription keys regenerate-primary-key --resource-group "$RG" \
-                --service-name "$APIM" --subscription-id "sub-student-$SID" --output none
+              az rest --method POST \
+                --url "$APIM_URL/subscriptions/sub-student-$SID/regeneratePrimaryKey?api-version=2024-05-01" \
+                --output none
               echo "Regenerated key for sub-student-$SID"
               echo "⚠️ Student must receive the new key. Run the onboarding workflow or manually send the key."
               ;;
