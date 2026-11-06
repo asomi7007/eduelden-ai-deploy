@@ -49,11 +49,14 @@
 ## 3. 학생 안내 순서 (당일)
 
 1. **신청 페이지 URL + 패스코드 공지** (화면/QR 코드 공유). 학생은 이메일과 패스코드만 입력하면 번호가 자동 배정됩니다.
-2. 학생이 **메일 수신** 확인 (신청 후 1~2분). 메일에는 엔드포인트 URL, API 키, 모델 ID, 설치 링크, 모델 등록 JSON이 들어 있습니다.
+2. 학생이 **메일 수신** 확인 (신청 후 1~2분). 메일에는 엔드포인트 URL, API 키, 모델 ID, 설치 링크, 모델 등록 JSON, 실습 설명과 매뉴얼 URL이 들어 있습니다.
 3. **설치**: VS Code → Power BI Desktop(Microsoft Store 권장) → GitHub Copilot 확장 설치 및 로그인 (Copilot Free 가능).
 4. **모델 등록**: Copilot Chat > 모델 드롭다운 > `Manage Language Models...` > `Add Model` > **Custom Endpoint** → `chatLanguageModels.json`에 메일의 JSON 붙여넣기 → 저장 → 모델 피커에서 `Kimi K3.1 Pro` 선택.
    - API type은 반드시 **Chat Completions** (Azure 공급자 선택 금지)
 5. **확인 테스트**: 채팅에 "안녕하세요라고 답해줘" 입력 후 응답 확인.
+6. **실습 시작**: [PBI_AGENT_QUEST · 한결전자(K-Retail) Power BI AI 에이전트 완전 자동화 매뉴얼](https://power-platform-users-korea.github.io/copilot-dev-days-seoul-2026/powerbi-agent/)에서 실습 패키지 ZIP을 내려받고 PBIP·MCP 준비 안내를 따라 진행합니다. 교육용 가상 데이터로 DAX 측정값 생성·검증, 보고서 작성과 화면 검수를 실습합니다.
+
+실습 안내는 새 신청의 환영 메일에 포함됩니다. 기존 신청자에게는 자동 재발송하지 않습니다.
 
 ## 4. 자주 발생하는 문제
 

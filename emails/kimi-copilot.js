@@ -4,6 +4,7 @@ const { tbl, code, stepCircle } = require('./helpers');
 const MODEL_ID = 'Kimi-K3.1-Pro';
 const MODEL_NAME = 'Kimi K3.1 Pro';
 const EVENT_NAME = 'Techive의 여덟 번째 발표  with 광주과학기술원';
+const PRACTICE_URL = 'https://power-platform-users-korea.github.io/copilot-dev-days-seoul-2026/powerbi-agent/';
 
 const escapeHtml = (s) =>
   String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -89,7 +90,14 @@ ${h2('4. 확인 테스트', '#0891b2')}
 ${pre('안녕하세요라고 답해줘')}
 <p style="font-size:14px">AI가 "안녕하세요"라고 응답하면 설정이 완료된 것입니다.</p>
 
-${h2('5. 문제 해결', '#dc2626')}
+${h2('5. Power BI AI 에이전트 실습', '#0891b2')}
+<p>이번 실습에서는 한결전자(K-Retail)의 교육용 가상 데이터로 Power BI 모델을 연결하고, AI 에이전트와 함께 DAX 측정값 생성·검증부터 보고서 화면 작성과 검수까지 진행합니다.</p>
+<p><a href="${PRACTICE_URL}" style="color:#1a56db">PBI_AGENT_QUEST · 한결전자(K-Retail) Power BI AI 에이전트 완전 자동화 매뉴얼</a><br/>
+  <span style="word-break:break-all;font-size:13px">${PRACTICE_URL}</span></p>
+<p>설치와 모델 연결 테스트를 마치신 뒤 실습 페이지를 열어주세요. 페이지의 실습 패키지 ZIP을 내려받고 실습 데이터와 PBIP 준비, MCP 연결 안내부터 강사와 함께 진행합니다.</p>
+<p style="font-size:13px;color:#555">매뉴얼에는 여러 에이전트 도구의 예시가 있습니다. 이번 행사에서는 위에서 설정한 VS Code + GitHub Copilot과 ${MODEL_ID}를 사용합니다. 실습 페이지의 MCP·도구 설정도 별도로 따라주세요.</p>
+
+${h2('6. 문제 해결', '#dc2626')}
 <table ${tbl}>
   <tr style="background:#f8fafc"><th style="width:180px;text-align:left">증상</th><th style="text-align:left">해결 방법</th></tr>
   <tr><td><b>429 응답</b></td><td>분당 30회 제한입니다. 잠시(약 1분) 기다린 뒤 다시 시도하세요.</td></tr>

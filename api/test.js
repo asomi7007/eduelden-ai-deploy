@@ -376,3 +376,26 @@ test('uses the exact event name on the page, email and completion notification',
   const workflow = fs.readFileSync(path.join(__dirname, '..', '.github', 'workflows', 'student-onboarding.yml'), 'utf8');
   assert.ok(workflow.includes(`'kimi-copilot-20261107-gwangju': ' (${eventName})'`));
 });
+
+test('welcome email includes the practice URL and setup guidance without changing model credentials', () => {
+  const url = 'https://power-platform-users-korea.github.io/copilot-dev-days-seoul-2026/powerbi-agent/';
+  const apiKey = 'test-key-not-a-credential';
+  const { html } = require('../emails/kimi-copilot').generate({
+    studentId: '01', apiKey, apimUrl: 'https://test.example/openai/v1/',
+  });
+  assert.ok(html.includes(`href="${url}"`));
+  assert.ok(html.includes(`>${url}</span>`));
+  assert.ok(html.includes('PBI_AGENT_QUEST · 한결전자(K-Retail) Power BI AI 에이전트 완전 자동화 매뉴얼'));
+  for (const text of ['교육용 가상 데이터', 'DAX', '보고서 화면', '실습 패키지 ZIP', 'PBIP', 'MCP·도구 설정']) {
+    assert.ok(html.includes(text), `Missing practice guidance: ${text}`);
+  }
+  const blocks = [...html.matchAll(/<pre[^>]*>([\s\S]*?)<\/pre>/g)];
+  const configText = blocks[1][1].replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  const [config] = JSON.parse(configText);
+  assert.equal(config.apiKey, apiKey);
+  assert.equal(config.models[0].requestHeaders['Ocp-Apim-Subscription-Key'], apiKey);
+  assert.equal(config.models[0].id, 'Kimi-K3.1-Pro');
+  assert.equal(config.models[0].url, 'https://test.example/openai/v1/chat/completions');
+  assert.equal(config.apiType, 'chat-completions');
+  assert.equal(config.models[0].maxOutputTokens, 4096);
+});
