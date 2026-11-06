@@ -28,6 +28,9 @@ function generate({ studentId, apiKey, apimUrl }) {
       id: MODEL_ID,
       name: MODEL_NAME,
       url: chatUrl,
+      requestHeaders: {
+        'Ocp-Apim-Subscription-Key': apiKey,
+      },
       toolCalling: true,
       vision: false,
       maxInputTokens: 120000,
@@ -90,7 +93,7 @@ ${h2('5. 문제 해결', '#dc2626')}
   <tr style="background:#f8fafc"><th style="width:180px;text-align:left">증상</th><th style="text-align:left">해결 방법</th></tr>
   <tr><td><b>429 응답</b></td><td>분당 30회 제한입니다. 잠시(약 1분) 기다린 뒤 다시 시도하세요.</td></tr>
   <tr style="background:#f8fafc"><td><b>400 model_not_allowed</b></td><td>모델 ID를 ${code(MODEL_ID)} 로 정확히 입력했는지 확인하세요.</td></tr>
-  <tr><td><b>401 (키 관련 오류)</b></td><td>이 메일의 API 키와 JSON의 ${code('apiKey')} 값이 같은지 다시 확인하세요.</td></tr>
+  <tr><td><b>401 (키 관련 오류)</b></td><td>이 메일의 JSON에서 ${code('apiKey')}와 ${code('requestHeaders.Ocp-Apim-Subscription-Key')} 값이 같은지 확인하고, 키를 바꾸지 않았는지 확인하세요.</td></tr>
 </table>
 
 <p style="color:#6b7280;font-size:13px;margin-top:28px;border-top:1px solid #e2e8f0;padding-top:12px">
