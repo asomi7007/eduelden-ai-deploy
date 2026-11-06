@@ -8,6 +8,7 @@ on:
         required: true
         type: choice
         options:
+          - verify-access
           - disable-all
           - enable-all
           - regenerate-all
@@ -39,12 +40,19 @@ jobs:
 
       - name: Execute key management
         run: |
-          RG="${{ vars.RG_NAME || 'rg-powerplatform-billing' }}"
-          APIM="${{ vars.APIM_NAME || 'apim-eduelden-ai' }}"
+          RG="${{ vars.RG_NAME || 'rg-eduelden-hub' }}"
+          APIM="${{ vars.APIM_NAME || 'apim-eduelden-ai-v2' }}"
           ACTION="${{ github.event.inputs.action }}"
           SID="${{ github.event.inputs.student_id }}"
 
           case "$ACTION" in
+            verify-access)
+              az apim show --resource-group "$RG" --name "$APIM" \
+                --query "{name:name, sku:sku.name}" --output table
+              COUNT=$(az apim subscription list --resource-group "$RG" \
+                --service-name "$APIM" --query "length(@)" --output tsv)
+              echo "Azure access verified; APIM subscriptions visible: $COUNT"
+              ;;
             disable-all)
               for i in $(seq -w 1 50); do
                 az apim subscription update --resource-group "$RG" --service-name "$APIM" \
