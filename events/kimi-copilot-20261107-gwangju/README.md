@@ -24,13 +24,14 @@
 ## 2. 사전 체크 (전날~당일 아침)
 
 1. 신청 페이지 배포 확인: GitHub Actions의 `Onboard Page Deploy` 워크플로우 성공 여부 (시크릿 `AZURE_SWA_ONBOARD_TOKEN`).
-2. 신청 페이지 접속 후 **관리자 탭 > 전체 초기화**로 이전 행사 신청 내역을 비웁니다. (이전 신청이 남아 있으면 번호가 01부터 채워지지 않습니다.)
-3. **본인 이메일로 테스트 신청 1건** 수행
+2. GitHub 저장소에 `STUDENT_KEYS_JSON` 시크릿이 있고, 현재 APIM 키 50개와 일치하는지 확인합니다. 키를 재생성하면 이 시크릿도 갱신해야 합니다.
+3. 신청 페이지 접속 후 이전 행사 신청 내역을 초기화합니다. (이전 신청이 남아 있으면 번호가 01부터 채워지지 않습니다.) 초기화 전에는 기존 이슈 목록과 수강 이력을 확인하세요.
+4. **본인 이메일로 테스트 신청 1건** 수행
    - 메일이 도착하는지, 제목이 `[AI 워크숍] NN번 — 접속 정보 및 설치 안내`인지 확인
    - 메일의 JSON을 `chatLanguageModels.json`에 붙여넣고 모델 피커에서 `Kimi K3.1 Pro` 선택 → "안녕하세요라고 답해줘" 응답 확인
    - 테스트 후 취소/재신청 탭 또는 관리자 탭에서 취소해 번호를 반납합니다.
-4. APIM 429 모니터링 준비: Azure Portal > `apim-eduelden-ai-v2` > Monitoring(Metrics 또는 Logs)에서 응답 코드 429 건수를 확인할 수 있게 창을 띄워 둡니다.
-5. 학생 공통 준비물 공지: Windows 노트북, GitHub 계정, VS Code / Power BI Desktop 설치.
+5. APIM 429 모니터링 준비: Azure Portal > `apim-eduelden-ai-v2` > Monitoring(Metrics 또는 Logs)에서 응답 코드 429 건수를 확인할 수 있게 창을 띄워 둡니다.
+6. 학생 공통 준비물 공지: Windows 노트북, GitHub 계정, VS Code / Power BI Desktop 설치.
 
 ## 3. 학생 안내 순서 (당일)
 

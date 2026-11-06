@@ -109,19 +109,17 @@ jobs:
             core.setOutput('student_email', emailMatch[1].trim());
             core.setOutput('event_id', eventId);
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
       - name: Get APIM subscription key
         id: key
+        env:
+          STUDENT_KEYS_JSON: ${{ secrets.STUDENT_KEYS_JSON }}
+          STUDENT_ID: ${{ steps.parse.outputs.student_id }}
         run: |
-          SID="sub-student-${{ steps.parse.outputs.student_id }}"
-          KEYS=$(az rest --method POST \
-            --url "https://management.azure.com/subscriptions/08bfa8d7-3cb6-42d6-8214-18e784777a56/resourceGroups/rg-eduelden-hub/providers/Microsoft.ApiManagement/service/apim-eduelden-ai-v2/subscriptions/${SID}/listSecrets?api-version=2024-05-01" \
-            --output json)
-          PK=$(echo "$KEYS" | jq -r '.primaryKey')
+          PK=$(jq -r --arg sid "$STUDENT_ID" '.[$sid] // empty' <<< "$STUDENT_KEYS_JSON")
+          if [ -z "$PK" ]; then
+            echo "::error::APIM key not found for student $STUDENT_ID"
+            exit 1
+          fi
           echo "::add-mask::$PK"
           echo "primary_key=$PK" >> "$GITHUB_OUTPUT"
 
