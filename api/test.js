@@ -379,12 +379,20 @@ test('uses the exact event name on the page, email and completion notification',
 
 test('welcome email includes the practice URL and setup guidance without changing model credentials', () => {
   const url = 'https://power-platform-users-korea.github.io/copilot-dev-days-seoul-2026/powerbi-agent/';
+  const packageUrl = `${url}kit/K_Retail_PowerBI_Agent_%EC%8B%A4%EC%8A%B5%ED%8C%A8%ED%82%A4%EC%A7%80_%ED%86%B5%ED%95%A9%EB%B3%B8.zip`;
   const apiKey = 'test-key-not-a-credential';
   const { html } = require('../emails/kimi-copilot').generate({
     studentId: '01', apiKey, apimUrl: 'https://test.example/openai/v1/',
   });
   assert.ok(html.includes(`href="${url}"`));
   assert.ok(html.includes(`>${url}</span>`));
+  assert.ok(html.includes(`href="${packageUrl}"`));
+  assert.ok(html.includes(`>${packageUrl}</span>`));
+  assert.match(html, /실습 패키지 다운로드 \(ZIP\)/);
+  const manualEnd = html.indexOf(`>${url}</span></p>`) + `>${url}</span></p>`.length;
+  const packageStart = html.indexOf(`<p><a href="${packageUrl}"`);
+  assert.equal(html.slice(manualEnd, packageStart).trim(), '');
+  assert.ok(packageStart >= manualEnd, 'Package link must immediately follow the manual URL');
   assert.ok(html.includes('PBI_AGENT_QUEST · 한결전자(K-Retail) Power BI AI 에이전트 완전 자동화 매뉴얼'));
   for (const text of ['교육용 가상 데이터', 'DAX', '보고서 화면', '실습 패키지 ZIP', 'PBIP', 'MCP·도구 설정']) {
     assert.ok(html.includes(text), `Missing practice guidance: ${text}`);

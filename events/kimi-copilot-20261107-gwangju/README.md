@@ -55,6 +55,7 @@
    - API type은 반드시 **Chat Completions** (Azure 공급자 선택 금지)
 5. **확인 테스트**: 채팅에 "안녕하세요라고 답해줘" 입력 후 응답 확인.
 6. **실습 시작**: [PBI_AGENT_QUEST · 한결전자(K-Retail) Power BI AI 에이전트 완전 자동화 매뉴얼](https://power-platform-users-korea.github.io/copilot-dev-days-seoul-2026/powerbi-agent/)에서 실습 패키지 ZIP을 내려받고 PBIP·MCP 준비 안내를 따라 진행합니다. 교육용 가상 데이터로 DAX 측정값 생성·검증, 보고서 작성과 화면 검수를 실습합니다.
+   - 메일의 매뉴얼 URL 바로 아래에 [실습 패키지 다운로드 (ZIP)](https://power-platform-users-korea.github.io/copilot-dev-days-seoul-2026/powerbi-agent/kit/K_Retail_PowerBI_Agent_%EC%8B%A4%EC%8A%B5%ED%8C%A8%ED%82%A4%EC%A7%80_%ED%86%B5%ED%95%A9%EB%B3%B8.zip) 링크도 포함됩니다.
 
 실습 안내는 새 신청의 환영 메일에 포함됩니다. 기존 신청자에게는 자동 재발송하지 않습니다.
 
